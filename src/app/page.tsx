@@ -1,6 +1,5 @@
 import Navbar from "@/components/layout/Navbar";
 import FeaturesSection from "@/components/sections/FeaturesSection";
-import GlobalDistribution from "@/components/sections/GlobalDistrubution";
 import HeroSection from "@/components/sections/HeroSection";
 
 export default function HomePage() {
@@ -8,8 +7,7 @@ export default function HomePage() {
     <main>
       <Navbar />
       <HeroSection />
-      <GlobalDistribution/>
-      {/* <FeaturesSection/> */}
+      <FeaturesSection/>
       {/* Additional sections will be added here as they are built */}
     </main>
   );
