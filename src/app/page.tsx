@@ -1,6 +1,10 @@
+import Footer from "@/components/layout/Footer";
 import Navbar from "@/components/layout/Navbar";
 import FeaturesSection from "@/components/sections/FeaturesSection";
 import HeroSection from "@/components/sections/HeroSection";
+import MarketingSection from "@/components/sections/MarketingSection";
+import PitchPortalSection from "@/components/sections/PitchPortalSection";
+import TestimonialsSection from "@/components/sections/TestimonialsSection";
 
 export default function HomePage() {
   return (
@@ -8,7 +12,10 @@ export default function HomePage() {
       <Navbar />
       <HeroSection />
       <FeaturesSection/>
-      {/* Additional sections will be added here as they are built */}
+      <MarketingSection/>
+      <PitchPortalSection/>
+      <TestimonialsSection/>
+      <Footer/>
     </main>
   );
 }

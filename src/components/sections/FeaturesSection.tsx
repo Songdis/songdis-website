@@ -110,8 +110,6 @@ const FLOAT_ICONS = [
   },
 ];
 
-
-
 /* ─────────────────────────────────────────────────────────
    COMPONENT
 ───────────────────────────────────────────────────────── */
@@ -193,11 +191,11 @@ const PlatformIconsDisplay: React.FC = () => (
       style={{
         width: "100%",
         height: "100%",
-        maxWidth: "560px",
+        
       }}
     >
       <Image
-        src="/images/platform.svg"
+        src="/images/platforms.png"
         alt="Music platforms — Spotify, Apple Music, Meta, YouTube Music and more"
         fill
         className="object-contain"
@@ -210,80 +208,13 @@ const PlatformIconsDisplay: React.FC = () => (
 /* ─────────────────────────────────────────────────────────
    SMART LINK CARD MOCK
 ───────────────────────────────────────────────────────── */
-// const SmartLinkCard: React.FC = () => (
-//   <div className="w-full max-w-[500px] mx-auto rounded-2xl bg-[#1A0A0A] border border-white/10 p-6 sm:p-8 shadow-2xl">
-//     <div className="flex items-center gap-4 mb-6">
-//       <div className="relative w-16 h-16 rounded-lg overflow-hidden shrink-0">
-//         <Image
-//           src="/images/cover-one.png"
-//           alt="Into The Night"
-//           fill
-//           className="object-cover"
-//         />
-//       </div>
-//       <div>
-//         <p className="font-heading text-white text-sm uppercase tracking-wider">
-//           Into The Night
-//         </p>
-//         <p className="font-body text-white/50 text-xs mt-1">Alexia Starr</p>
-//       </div>
-//     </div>
-//     <p className="font-body text-white/40 text-xs mb-3">
-//       Available On 25+ Platforms
-//     </p>
-//     <div className="flex items-center gap-3 mb-8 flex-wrap">
-//       {[
-//         { src: "/images/spotify.svg", bg: "bg-[#1DB954]", alt: "Spotify" },
-//         {
-//           src: "/images/musicmatch.svg",
-//           bg: "bg-[#FF6B35]",
-//           alt: "Musixmatch",
-//         },
-//         { src: "/images/meta.svg", bg: "bg-[#1877F2]", alt: "Meta" },
-//         {
-//           src: "/images/apple-music.svg",
-//           bg: "bg-[#FC3C44]",
-//           alt: "Apple Music",
-//         },
-//         { src: "/images/youtube.svg", bg: "bg-[#1A1010]", alt: "YouTube" },
-//       ].map((p) => (
-//         <div
-//           key={p.alt}
-//           className={`w-11 h-11 rounded-full ${p.bg} flex items-center justify-center shrink-0 border border-white/10`}
-//         >
-//           <Image
-//             src={p.src}
-//             alt={p.alt}
-//             width={22}
-//             height={22}
-//             className="w-5 h-5 object-contain brightness-0 invert"
-//           />
-//         </div>
-//       ))}
-//     </div>
-//     <div
-//       className="rounded-full p-[1.34px]"
-//       style={{
-//         background:
-//           "linear-gradient(86.92deg, #C30100 11.12%, rgba(255,255,255,0.2) 81.99%)",
-//       }}
-//     >
-//       <button className="w-full font-heading text-white text-xs uppercase tracking-[0.2em] py-4 rounded-full bg-[#140C0C] hover:bg-white hover:text-[#140C0C] transition-all duration-300">
-//         COPY LINK
-//       </button>
-//     </div>
-//   </div>
-// );
-
-
 const SmartLinkCard: React.FC = () => (
   <div className="w-full max-w-[480px] rounded-2xl bg-[#1A0A0A] border border-white/10 p-6 sm:p-8">
-    
     {/* Album row */}
     <div className="flex items-center gap-4 mb-6">
       <div className="relative w-[100px] h-[100px] rounded-xl overflow-hidden shrink-0">
         <Image
-          src="/images/cover-one.png"
+          src="/images/into-the-night.svg"
           alt="Into The Night"
           fill
           className="object-cover"
@@ -293,9 +224,7 @@ const SmartLinkCard: React.FC = () => (
         <p className="font-heading text-white text-sm uppercase tracking-wider mb-1">
           Into The Night
         </p>
-        <p className="font-body text-white/50 text-sm">
-          Alexia Starr
-        </p>
+        <p className="font-body text-white/50 text-sm">Alexia Starr</p>
       </div>
     </div>
 
@@ -305,25 +234,31 @@ const SmartLinkCard: React.FC = () => (
     </p>
 
     {/* Platform icons */}
-    <div className="flex items-center gap-3 mb-8">
+
+    <div className="flex flex-wrap items-center gap-3 sm:gap-4 mb-8">
       {[
-        { src: "/images/spotify.svg",     bg: "#1DB954", alt: "Spotify"     },
-        { src: "/images/musicmatch.svg",  bg: "#FF6B35", alt: "Musixmatch"  },
-        { src: "/images/meta.svg",        bg: "#1877F2", alt: "Meta"        },
-        { src: "/images/apple-music.svg", bg: "#FC3C44", alt: "Apple Music" },
-        { src: "/images/youtube.svg",     bg: "#0D0B0B", alt: "YouTube"     },
+        { src: "/images/spotify-frame.svg", alt: "Spotify" },
+        { src: "/images/music.svg", alt: "Musixmatch" },
+        { src: "/images/meta-frame.svg", alt: "Meta" },
+        { src: "/images/apple-frame.svg", alt: "Apple Music" },
+        { src: "/images/youtube-frame.svg", alt: "YouTube" },
       ].map((p) => (
         <div
           key={p.alt}
-          className="w-14 h-14 rounded-full flex items-center justify-center shrink-0 border border-white/10"
-          style={{ backgroundColor: p.bg }}
+          className="
+        flex items-center justify-center
+        rounded-full
+        w-10 h-10
+        sm:w-12 sm:h-12
+        lg:w-14 lg:h-14
+      "
         >
           <Image
             src={p.src}
             alt={p.alt}
-            width={28}
-            height={28}
-            className="w-6 h-6 object-contain brightness-0 invert"
+            width={56}
+            height={56}
+            className="w-full h-full object-contain"
           />
         </div>
       ))}
@@ -332,13 +267,15 @@ const SmartLinkCard: React.FC = () => (
     {/* Copy link button */}
     <div
       className="rounded-full p-[1.34px]"
-      style={{ background: "linear-gradient(86.92deg, #C30100 11.12%, rgba(255,255,255,0.2) 81.99%)" }}
+      style={{
+        background:
+          "linear-gradient(86.92deg, #C30100 11.12%, rgba(255,255,255,0.2) 81.99%)",
+      }}
     >
-      <button className="w-full font-heading text-white text-xs uppercase tracking-[0.2em] py-4 rounded-full bg-[#140C0C] hover:bg-white hover:text-[#140C0C] transition-all duration-300">
+      <button className="w-full font-heading text-white text-xs lg:text-[20px] uppercase tracking-[0.2em] py-4 rounded-full bg-[#140C0C] hover:bg-white hover:text-[#140C0C] transition-all duration-300">
         Copy Link
       </button>
     </div>
-
   </div>
 );
 
@@ -410,11 +347,10 @@ const FeaturesSection: React.FC = () => {
             ROW 1 — GLOBAL DISTRIBUTION
             Full width. Text left, icons right.
         ══════════════════════════════════ */}
-        <FeatureCard delay={0}>
+        {/* <FeatureCard delay={0}>
           <div className="flex flex-col lg:flex-row items-center gap-0 min-h-[360px]">
-            {/* Left — text block */}
             <div className="flex-1 p-8 sm:p-10 lg:p-14 flex flex-col items-start">
-              <h3 className="font-heading text-white text-center uppercase text-2xl sm:text-3xl lg:text-4xl tracking-wide mb-5">
+              <h3 className="font-heading text-white text-center uppercase text-xl sm:text-3xl lg:text-4xl tracking-wide mb-5">
                 Global Distribution
               </h3>
               <p className="font-body text-white text-sm sm:text-base leading-relaxed mb-10">
@@ -429,8 +365,35 @@ const FeaturesSection: React.FC = () => {
               </GradientBorderButton>
             </div>
 
-            {/* Right — floating icons */}
             <div className="flex-1 flex items-center justify-center p-6 lg:p-0 w-full min-h-[300px] lg:min-h-full">
+              <PlatformIconsDisplay />
+            </div>
+          </div>
+        </FeatureCard> */}
+
+        <FeatureCard delay={0}>
+          <div className="flex flex-col lg:flex-row items-center gap-10 lg:gap-0 min-h-[360px]">
+            {/* Left — text block */}
+            <div className="flex-1 p-6 sm:p-10 lg:p-14 flex flex-col items-start text-center lg:text-left max-w-[520px] mx-auto lg:mx-0">
+              <h3 className="font-heading text-white uppercase text-2xl sm:text-3xl lg:text-4xl tracking-wide mb-4">
+                Global Distribution
+              </h3>
+
+              <p className="font-body text-white/70 text-sm sm:text-base leading-relaxed mb-8">
+                Distribute your music worldwide with full ownership and control.
+                Release on your schedule and expand beyond borders.
+              </p>
+
+              <GradientBorderButton
+                href="/signup"
+                className="self-center lg:self-start text-sm sm:text-base tracking-wide px-5 sm:px-7 py-3"
+              >
+                Start Your Global Release
+              </GradientBorderButton>
+            </div>
+
+            {/* Right — floating icons */}
+            <div className="flex-1 flex items-center justify-center w-full min-h-[260px] sm:min-h-[320px] lg:min-h-full">
               <PlatformIconsDisplay />
             </div>
           </div>
@@ -619,30 +582,27 @@ const FeaturesSection: React.FC = () => {
 
         {/* ══════════════════════════════════
             ROW 5 — SMART RELEASE LINKS
-            Full width. Text left, mock card right.
         ══════════════════════════════════ */}
-       <FeatureCard delay={0}>
-  <div className="flex flex-col lg:flex-row items-center gap-10 p-8 sm:p-10 lg:p-14 min-h-[360px]">
-    
-    {/* Left — text */}
-    <div className="flex-1">
-      <h3 className="font-heading text-white uppercase text-2xl sm:text-3xl lg:text-4xl tracking-wide mb-5">
-        Smart Release Links
-      </h3>
-      <p className="font-body text-white/55 text-sm sm:text-base leading-relaxed max-w-[380px]">
-        Create powerful release links that drive pre-saves, track
-        engagement, and centralize your audience in one place. Turn
-        every release into a marketing asset.
-      </p>
-    </div>
+        <FeatureCard delay={0}>
+          <div className="flex flex-col lg:flex-row items-center gap-10 p-8 sm:p-10 lg:p-14 min-h-[360px]">
+            {/* Left — text */}
+            <div className="flex-1">
+              <h3 className="font-heading text-white uppercase text-2xl sm:text-3xl lg:text-4xl tracking-wide mb-5 text-center">
+                Smart Release Links
+              </h3>
+              <p className="font-body text-white text-sm sm:text-base leading-relaxed text-center">
+                Create powerful release links that drive pre-saves, track
+                engagement, and centralize your audience in one place. Turn
+                every release into a marketing asset.
+              </p>
+            </div>
 
-    {/* Right — mock card */}
-    <div className="flex-1 flex items-center justify-center w-full">
-      <SmartLinkCard />
-    </div>
-
-  </div>
-</FeatureCard>
+            {/* Right — mock card */}
+            <div className="flex-1 flex items-center justify-center w-full">
+              <SmartLinkCard />
+            </div>
+          </div>
+        </FeatureCard>
       </div>
     </section>
   );
