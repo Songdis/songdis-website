@@ -90,7 +90,7 @@ const PitchPortalSection: React.FC = () => {
               {/* Left — photo, bleeds to card edges */}
               <div className="relative w-full lg:w-[62%] min-h-[320px] lg:min-h-0 overflow-hidden">
                 <Image
-                  src="/images/pitch-portal.svg"
+                  src="/images/music-combo.svg"
                   alt="Artists — Pitch Portal"
                   fill
                   className="object-cover object-center"

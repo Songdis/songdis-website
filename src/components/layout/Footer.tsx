@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import NeonWordmark from "../ui/NeonWordmark";
 
 /* ─────────────────────────────────────────────────────────
    DATA
@@ -13,7 +14,7 @@ const USEFUL_LINKS = [
   { label: "Marketing", href: "/marketing" },
   { label: "Pricing", href: "/pricing" },
   { label: "Publishing", href: "/publishing" },
-  { label: "Privacy", href: "/privacy" },
+  { label: "Privacy Policy", href: "/privacy-policy" },
   { label: "Terms & Conditions", href: "/terms" },
 ];
 
@@ -199,26 +200,9 @@ const Footer: React.FC = () => {
       </div>
 
       {/* ════════════════════════════════════
-          SONGDIS WORDMARK — red outline, full bleed
+          SONGDIS WORDMARK — neon sign animation
       ════════════════════════════════════ */}
-      <div
-        aria-hidden="true"
-        className="w-full overflow-hidden select-none pointer-events-none"
-        style={{ marginBottom: "-0.12em" }}
-      >
-        <p
-          className="font-heading uppercase text-center whitespace-nowrap"
-          style={{
-            fontSize: "clamp(50px, 16vw, 260px)",
-            lineHeight: 1,
-            color: "transparent",
-            WebkitTextStroke: "2px #C30100",
-            letterSpacing: "-0.02em",
-          }}
-        >
-          SONGDIS
-        </p>
-      </div>
+      <NeonWordmark />
     </footer>
   );
 };

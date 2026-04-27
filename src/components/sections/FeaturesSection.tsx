@@ -411,12 +411,12 @@ const FeaturesSection: React.FC = () => {
           <FeatureCard delay={100} bg="bg-[#201515]">
             <div className="flex flex-col h-full">
               {/* Image */}
-              <div className="relative w-full h-[240px] sm:h-[260px] flex items-center justify-center">
+              <div className="relative w-full h-[240px] sm:h-full flex items-center justify-center">
                 <Image
-                  src="/images/analytics.svg"
+                  src="/images/new-analytics.svg"
                   alt="Analytics dashboard"
                   fill
-                  className="object-contain p-8"
+                  className="object-contain p-2"
                   loading="lazy"
                 />
               </div>
@@ -441,7 +441,7 @@ const FeaturesSection: React.FC = () => {
                 src="/images/linemap.svg"
                 alt="Pro tools diagram"
                 fill
-                className="object-contain p-6"
+                className="object-contain p-2"
                 loading="lazy"
               />
             </div>
@@ -529,13 +529,14 @@ const FeaturesSection: React.FC = () => {
             <div className="flex flex-col h-full">
               <div className="relative w-full h-[280px] sm:h-[320px] overflow-hidden shrink-0">
                 <Image
-                  src="/images/splitroyalties.svg"
+                  src="/images/new-split.svg"
                   alt="Money fan"
                   fill
-                  className="object-cover object-center"
+                  className="object-contain"
                   loading="lazy"
                 />
               </div>
+              
               <div className="flex flex-col items-center text-center p-6 sm:p-8">
                 <h3 className="font-heading text-white uppercase text-xl sm:text-2xl tracking-wide mb-3">
                   Split Royalties

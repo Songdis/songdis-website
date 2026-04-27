@@ -95,7 +95,9 @@ const Navbar: React.FC = () => {
   /* ── Lock body scroll ── */
   useEffect(() => {
     document.body.style.overflow = mobileOpen ? "hidden" : "";
-    return () => { document.body.style.overflow = ""; };
+    return () => {
+      document.body.style.overflow = "";
+    };
   }, [mobileOpen]);
 
   return (
@@ -116,7 +118,6 @@ const Navbar: React.FC = () => {
           aria-label="Main navigation"
           className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-10 flex items-center justify-between h-[72px]"
         >
-
           {/* ── LOGO ── */}
           <Link
             href="/"
@@ -128,13 +129,27 @@ const Navbar: React.FC = () => {
               <Image src="/images/logo.svg" alt="Songdis" width={120} height={32}
                 className="h-8 w-auto object-contain" priority />
             */}
-            <span className="font-heading text-white text-lg tracking-wider uppercase font-bold">
-              SONGDIS
-            </span>
+            <Link
+              href="/"
+              aria-label="Songdis home"
+              className="shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C30100] rounded"
+            >
+              <Image
+                src="/images/logo.svg"
+                alt="Songdis"
+                width={120}
+                height={32}
+                className="h-12 w-auto object-contain"
+                priority
+              />
+            </Link>
           </Link>
 
           {/* ── DESKTOP NAV LINKS — only at xl and above ── */}
-          <ul className="hidden xl:flex items-center gap-1 2xl:gap-2" role="list">
+          <ul
+            className="hidden xl:flex items-center gap-1 2xl:gap-2"
+            role="list"
+          >
             {NAV_ITEMS.map((item) => (
               <li key={item.href}>
                 <Link
@@ -202,7 +217,9 @@ const Navbar: React.FC = () => {
         aria-hidden={!mobileOpen}
         className={[
           "fixed inset-0 z-40 xl:hidden transition-opacity duration-300",
-          mobileOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none",
+          mobileOpen
+            ? "opacity-100 pointer-events-auto"
+            : "opacity-0 pointer-events-none",
         ].join(" ")}
       >
         {/* Backdrop */}

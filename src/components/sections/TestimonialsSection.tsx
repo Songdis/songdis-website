@@ -153,15 +153,10 @@ const TestimonialCard: React.FC<{ testimonial: Testimonial }> = ({
   testimonial,
 }) => (
   <div className="rounded-2xl bg-[#180F0F] border border-white/[0.07] p-5 sm:p-6 flex flex-col gap-4 w-full">
-    {/* Quote icon */}
     <QuoteIcon />
-
-    {/* Quote text */}
     <p className="font-body text-white/70 text-sm leading-relaxed flex-1">
       "{testimonial.quote}"
     </p>
-
-    {/* Author row */}
     <div className="flex items-center justify-between gap-3 mt-2">
       <div className="flex items-center gap-3">
         <div className="relative w-10 h-10 rounded-full overflow-hidden shrink-0 border border-white/10">
@@ -188,49 +183,60 @@ const TestimonialCard: React.FC<{ testimonial: Testimonial }> = ({
 );
 
 /* ─────────────────────────────────────────────────────────
-   AUTO-SCROLL COLUMN (center)
+   SCROLLING COLUMN
+   direction: "up" = scrolls upward (default), "down" = scrolls downward
+   Speed is intentionally different per column so they feel independent.
 ───────────────────────────────────────────────────────── */
 const ScrollingColumn: React.FC<{
   testimonials: Testimonial[];
+  direction?: "up" | "down";
   duration?: number;
-}> = ({ testimonials, duration = 22 }) => {
-  /* Duplicate list for seamless infinite loop */
+}> = ({ testimonials, direction = "up", duration = 26 }) => {
   const doubled = [...testimonials, ...testimonials];
+  const animName = direction === "up" ? "scroll-up" : "scroll-down";
 
   return (
     <div className="relative overflow-hidden" style={{ height: "880px" }}>
-      {/* Top + bottom fade masks */}
+      {/* Top fade */}
       <div
         aria-hidden="true"
-        className="absolute inset-x-0 top-0 h-16 z-10 pointer-events-none"
+        className="absolute inset-x-0 top-0 h-20 z-10 pointer-events-none"
         style={{
-          background:
-            "linear-gradient(to bottom, #140C0C 0%, transparent 100%)",
+          background: "linear-gradient(to bottom, #140C0C 0%, transparent 100%)",
         }}
       />
+      {/* Bottom fade */}
       <div
         aria-hidden="true"
-        className="absolute inset-x-0 bottom-0 h-16 z-10 pointer-events-none"
+        className="absolute inset-x-0 bottom-0 h-20 z-10 pointer-events-none"
         style={{
           background: "linear-gradient(to top, #140C0C 0%, transparent 100%)",
         }}
       />
 
       <style>{`
-  @keyframes scroll-down {
-    0%   { transform: translateY(-50%); }
-    100% { transform: translateY(0); }
-  }
-  .scroll-down-track {
-    animation: scroll-down ${duration}s linear infinite;
-    will-change: transform;
-  }
-  .scroll-down-track:hover {
-    animation-play-state: paused;
-  }
-`}</style>
+        @keyframes scroll-up {
+          0%   { transform: translateY(0); }
+          100% { transform: translateY(-50%); }
+        }
+        @keyframes scroll-down {
+          0%   { transform: translateY(-50%); }
+          100% { transform: translateY(0); }
+        }
+        .col-scroll {
+          will-change: transform;
+        }
+        .col-scroll:hover {
+          animation-play-state: paused;
+        }
+      `}</style>
 
-      <div className="scroll-down-track flex flex-col gap-4">
+      <div
+        className="col-scroll flex flex-col gap-4"
+        style={{
+          animation: `${animName} ${duration}s linear infinite`,
+        }}
+      >
         {doubled.map((t, i) => (
           <TestimonialCard key={`${t.name}-${i}`} testimonial={t} />
         ))}
@@ -238,25 +244,6 @@ const ScrollingColumn: React.FC<{
     </div>
   );
 };
-
-/* ─────────────────────────────────────────────────────────
-   STATIC COLUMN (left / right)
-───────────────────────────────────────────────────────── */
-const StaticColumn: React.FC<{
-  testimonials: Testimonial[];
-  delay?: number;
-}> = ({ testimonials, delay = 0 }) => (
-  <div className="flex flex-col gap-4">
-    {testimonials.map((t, i) => (
-      <div
-        key={`${t.name}-${i}`}
-        style={{ transitionDelay: `${delay + i * 100}ms` }}
-      >
-        <TestimonialCard testimonial={t} />
-      </div>
-    ))}
-  </div>
-);
 
 /* ─────────────────────────────────────────────────────────
    TESTIMONIALS SECTION
@@ -267,7 +254,7 @@ const TestimonialsSection: React.FC = () => {
 
   return (
     <section className="relative w-full bg-[#140C0C] py-20 sm:py-24 lg:py-32 px-4 sm:px-6 lg:px-10 overflow-hidden">
-      {/* ── Top red glow ── */}
+      {/* Top red glow */}
       <div
         aria-hidden="true"
         className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[500px] pointer-events-none opacity-20"
@@ -279,14 +266,12 @@ const TestimonialsSection: React.FC = () => {
       />
 
       <div className="relative z-10 max-w-[1280px] mx-auto">
-        {/* ── HEADER ── */}
+        {/* HEADER */}
         <div
           ref={headRef}
           className={[
             "text-center mb-14 sm:mb-16 lg:mb-20 transition-all duration-700",
-            headInView
-              ? "opacity-100 translate-y-0"
-              : "opacity-0 translate-y-6",
+            headInView ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6",
           ].join(" ")}
         >
           <h2 className="font-heading text-white uppercase text-3xl sm:text-4xl lg:text-5xl xl:text-[56px] leading-tight mb-5">
@@ -298,37 +283,45 @@ const TestimonialsSection: React.FC = () => {
           </p>
         </div>
 
-        {/* ── THREE COLUMNS ── */}
+        {/* THREE COLUMNS */}
         <div
           ref={colsRef}
           className={[
             "grid grid-cols-1 lg:grid-cols-3 gap-4 transition-all duration-700",
-            colsInView
-              ? "opacity-100 translate-y-0"
-              : "opacity-0 translate-y-8",
+            colsInView ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8",
           ].join(" ")}
         >
-          {/* Left — static */}
+          {/* Left — scrolls UP, slowest */}
           <div className="hidden lg:block">
-            <StaticColumn testimonials={LEFT_TESTIMONIALS} delay={0} />
+            <ScrollingColumn
+              testimonials={LEFT_TESTIMONIALS}
+              direction="up"
+              duration={30}
+            />
           </div>
 
-          {/* Center — auto-scrolling */}
-          <ScrollingColumn testimonials={CENTER_TESTIMONIALS} duration={24} />
+          {/* Center — scrolls DOWN, medium speed */}
+          <ScrollingColumn
+            testimonials={CENTER_TESTIMONIALS}
+            direction="down"
+            duration={24}
+          />
 
-          {/* Right — static */}
+          {/* Right — scrolls UP, slightly faster */}
           <div className="hidden lg:block">
-            <StaticColumn testimonials={RIGHT_TESTIMONIALS} delay={150} />
+            <ScrollingColumn
+              testimonials={RIGHT_TESTIMONIALS}
+              direction="up"
+              duration={28}
+            />
           </div>
         </div>
 
-        {/* ── CTA BUTTON ── */}
+        {/* CTA BUTTON */}
         <div
           className={[
             "flex justify-center mt-14 sm:mt-16 transition-all duration-700 delay-300",
-            colsInView
-              ? "opacity-100 translate-y-0"
-              : "opacity-0 translate-y-6",
+            colsInView ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6",
           ].join(" ")}
         >
           <div
