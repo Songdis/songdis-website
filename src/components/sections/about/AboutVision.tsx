@@ -20,7 +20,7 @@ const AboutVision: React.FC = () => {
               {/* Circle avatar */}
               <div className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-full overflow-hidden border-2 border-white/10">
                 <Image
-                  src="/images/co-founder.svg"
+                  src="/images/melody.jpg"
                   alt="Founder"
                   fill
                   className="object-cover object-center"
@@ -45,7 +45,7 @@ const AboutVision: React.FC = () => {
               {/* Circle avatar */}
               <div className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-full overflow-hidden border-2 border-white/10">
                 <Image
-                  src="/images/co-founder.svg"
+                  src="/images/obed.jpg"
                   alt="Co-Founder"
                   fill
                   className="object-cover object-center"
