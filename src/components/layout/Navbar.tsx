@@ -124,11 +124,7 @@ const Navbar: React.FC = () => {
             aria-label="Songdis home"
             className="shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C30100] rounded"
           >
-            {/*
-              Replace with your real logo:
-              <Image src="/images/logo.svg" alt="Songdis" width={120} height={32}
-                className="h-8 w-auto object-contain" priority />
-            */}
+            
             <Link
               href="/"
               aria-label="Songdis home"
@@ -173,7 +169,7 @@ const Navbar: React.FC = () => {
           {/* ── DESKTOP CTA — only at xl and above ── */}
           <div className="hidden xl:flex items-center gap-4">
             <Link
-              href="/login"
+              href="/sign-in"
               className="
                 font-heading text-xs text-white/80 tracking-widest uppercase
                 transition-colors duration-200 hover:text-white
@@ -184,7 +180,7 @@ const Navbar: React.FC = () => {
             </Link>
 
             <GradientBorderButton
-              href="/signup"
+              href="/sign-up"
               className="text-xs tracking-widest px-5 py-2.5"
             >
               GET STARTED
