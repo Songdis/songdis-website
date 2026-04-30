@@ -8,7 +8,6 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid,
   Tooltip, ResponsiveContainer, Cell,
 } from "recharts";
-import Link from "next/link";
 
 /* ─── Shared dropdown ─────────────────────────────────────────── */
 function Dropdown({
@@ -84,8 +83,7 @@ function StatCard({
     >
       <div className="flex items-center justify-between">
         <p className="font-body text-white/60 text-xs">{label}</p>
-       
-        <div className="w-12 h-12 rounded-lg flex items-center justify-center">
+        <div className="w-12 h-12 rounded-lg  flex items-center justify-center">
           <Image src={icon} alt={label} width={66} height={66} unoptimized />
         </div>
       </div>
@@ -143,7 +141,7 @@ export default function RoyaltyReportPage() {
       customCta={{ label: "Export Data", onClick: () => {} }}
     >
       {/* Extra topbar controls — period + platform dropdowns */}
-      <div className="flex items-center gap-3 mb-5 mt-8">
+      <div className="flex items-center gap-3 mb-5 -mt-2">
         <Dropdown value={period} options={TIME_PERIODS} onChange={setPeriod} />
         <Dropdown value={platform} options={PLATFORMS} onChange={setPlatform} />
       </div>
@@ -197,12 +195,12 @@ export default function RoyaltyReportPage() {
                 Your streams peaked in November with 530K+ streams — this correlates with your consistent social activity and a playlist placement on AfroBeats Daily. Nigeria is 61% of your audience. I recommend doubling down with Pidgin/Yoruba content to retain and grow that base while expanding into UK and US diaspora markets.
               </p>
               <div className="flex gap-2">
-                <Link href='/dashboard/ayo' className="font-body text-white text-xs bg-[#C30100]/20 border border-[#C30100]/40 hover:bg-[#C30100]/40 rounded-full px-4 py-2 transition-colors">
+                <button className="font-body text-white text-xs bg-[#C30100]/20 border border-[#C30100]/40 hover:bg-[#C30100]/40 rounded-full px-4 py-2 transition-colors">
                   Plan content with Ayo
-                </Link>
-                <Link href='/dashboard/ayo' className="font-body text-white/70 text-xs border border-white/10 hover:border-white/25 rounded-full px-4 py-2 transition-colors">
+                </button>
+                <button className="font-body text-white/70 text-xs border border-white/10 hover:border-white/25 rounded-full px-4 py-2 transition-colors">
                   View platform breakdown
-                </Link>
+                </button>
               </div>
             </div>
           </div>
@@ -430,7 +428,10 @@ export default function RoyaltyReportPage() {
                   fontFamily: "var(--font-montserrat)",
                   fontSize: 11,
                 }}
-                formatter={(value: number) => [`$${(value / 1000).toFixed(0)}k`]}
+                formatter={(value) => {
+                  const n = typeof value === "number" ? value : 0;
+                  return [`$${(n / 1000).toFixed(0)}k`];
+                }}
               />
               <Bar dataKey="social"    fill="#C30100" radius={[3, 3, 0, 0]} barSize={14} />
               <Bar dataKey="streaming" fill="#8B6A4B" radius={[3, 3, 0, 0]} barSize={14} />

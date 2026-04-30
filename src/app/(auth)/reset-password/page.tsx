@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, Suspense } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import AuthLayout from "@/components/auth/AuthLayout";
@@ -8,7 +8,8 @@ import { PasswordInput, AuthButton, FormError } from "@/components/auth/AuthPrim
 import { useResetPassword } from "@/lib/hooks/useAuth";
 import { SuccessModal } from "@/components/auth/SuccessModal";
 
-export default function ResetPasswordPage() {
+/* ─── Inner component — safe to call useSearchParams here ──────── */
+function ResetPasswordForm() {
   const router = useRouter();
   const params = useSearchParams();
 
@@ -107,7 +108,6 @@ export default function ResetPasswordPage() {
         </form>
       </AuthLayout>
 
-      {/* Success modal — renders above the layout */}
       <SuccessModal
         isOpen={showSuccess}
         onClose={() => {
@@ -120,6 +120,15 @@ export default function ResetPasswordPage() {
         onCta={() => router.push("/sign-in")}
       />
     </>
+  );
+}
+
+/* ─── Page shell — wraps inner component in Suspense ──────────── */
+export default function ResetPasswordPage() {
+  return (
+    <Suspense fallback={null}>
+      <ResetPasswordForm />
+    </Suspense>
   );
 }
 

@@ -1,20 +1,21 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, Suspense } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import AuthLayout from "@/components/auth/AuthLayout";
 import { OtpInput, AuthButton, FormError } from "@/components/auth/AuthPrimitives";
 import { useVerifyOtp, useResendOtp } from "@/lib/hooks/useAuth";
 
-const RESEND_COOLDOWN = 60; // seconds
+const RESEND_COOLDOWN = 60;
 
-export default function VerifyEmailPage() {
+/* ─── Inner component — safe to call useSearchParams here ──────── */
+function VerifyEmailForm() {
   const router = useRouter();
   const params = useSearchParams();
 
   const email = params.get("email") ?? "";
-  const flow = params.get("flow") ?? "signup"; // "signup" | "reset"
+  const flow = params.get("flow") ?? "signup";
 
   const { mutate: verify, isLoading, error } = useVerifyOtp();
   const { isLoading: resendLoading, error: resendError, trigger: resend } = useResendOtp();
@@ -23,7 +24,6 @@ export default function VerifyEmailPage() {
   const [otpError, setOtpError] = useState<string>();
   const [cooldown, setCooldown] = useState(0);
 
-  /* Resend cooldown timer */
   useEffect(() => {
     if (cooldown <= 0) return;
     const t = setTimeout(() => setCooldown((c) => c - 1), 1000);
@@ -32,20 +32,15 @@ export default function VerifyEmailPage() {
 
   const handleVerify = (e: React.FormEvent) => {
     e.preventDefault();
-
     if (otp.length < 6) {
       setOtpError("Enter the full 6-digit code.");
       return;
     }
     setOtpError(undefined);
-
     verify({ email, otp }, () => {
       if (flow === "reset") {
-        router.push(
-          `/auth/reset-password?email=${encodeURIComponent(email)}&otp=${otp}`
-        );
+        router.push(`/auth/reset-password?email=${encodeURIComponent(email)}&otp=${otp}`);
       } else {
-        // Signup flow — email verified, go to dashboard or sign-in
         router.push("/sign-in?verified=true");
       }
     });
@@ -87,7 +82,6 @@ export default function VerifyEmailPage() {
           Verify
         </AuthButton>
 
-        {/* Resend */}
         <p className="font-body text-white/50 text-sm text-center">
           Didn't receive a code?{" "}
           {cooldown > 0 ? (
@@ -115,6 +109,15 @@ export default function VerifyEmailPage() {
         </div>
       </form>
     </AuthLayout>
+  );
+}
+
+/* ─── Page shell — wraps inner component in Suspense ──────────── */
+export default function VerifyEmailPage() {
+  return (
+    <Suspense fallback={null}>
+      <VerifyEmailForm />
+    </Suspense>
   );
 }
 
