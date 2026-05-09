@@ -26,9 +26,10 @@ interface Props {
   onBack: () => void;
   onSubmit: () => void;
   onQuickDrop: () => void;
+  isSubmitting?: boolean;
 }
 
-export default function ReleaseAvailability({ state, update, onBack, onSubmit, onQuickDrop }: Props) {
+export default function ReleaseAvailability({ state, update, onBack, onSubmit, onQuickDrop, isSubmitting }: Props) {
   const [search, setSearch] = useState("");
 
   const toggleDSP = (id: string) => {
@@ -90,8 +91,7 @@ export default function ReleaseAvailability({ state, update, onBack, onSubmit, o
                   type="date"
                   value={state.releaseDate}
                   onChange={(e) => update({ releaseDate: e.target.value })}
-                  placeholder="mm/dd/yyyy"
-                  className="w-full bg-[#0E0808] border border-white/10 rounded-lg px-4 py-3 font-body text-white text-sm outline-none focus:border-[#C30100] transition-colors"
+                  className="w-full bg-[#0E0808] border border-white/10 rounded-lg px-4 py-3 font-body text-white text-sm outline-none focus:border-[#C30100] transition-colors [color-scheme:dark]"
                 />
               </div>
               <p className="font-body text-white/30 text-[11px] mt-1">
@@ -106,8 +106,7 @@ export default function ReleaseAvailability({ state, update, onBack, onSubmit, o
                 type="date"
                 value={state.preOrderDate}
                 onChange={(e) => update({ preOrderDate: e.target.value })}
-                placeholder="mm/dd/yyyy"
-                className="w-full bg-[#0E0808] border border-white/10 rounded-lg px-4 py-3 font-body text-white text-sm outline-none focus:border-[#C30100] transition-colors"
+                className="w-full bg-[#0E0808] border border-white/10 rounded-lg px-4 py-3 font-body text-white text-sm outline-none focus:border-[#C30100] transition-colors [color-scheme:dark]"
               />
               <p className="font-body text-white/30 text-[11px] mt-1">Must be before release date</p>
             </div>
@@ -238,6 +237,7 @@ export default function ReleaseAvailability({ state, update, onBack, onSubmit, o
           onContinue={onSubmit}
           continueLabel="Submit Release"
           isSubmit
+          isLoading={isSubmitting}
         />
       </div>
     </div>

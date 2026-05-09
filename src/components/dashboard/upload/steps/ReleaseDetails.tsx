@@ -209,9 +209,10 @@ interface Props {
   update: (patch: Partial<UploadState>) => void;
   onBack: () => void;
   onContinue: () => void;
+  onSaveDraft?: () => void;
 }
 
-export default function ReleaseDetails({ state, update, onBack, onContinue }: Props) {
+export default function ReleaseDetails({ state, update, onBack, onContinue, onSaveDraft }: Props) {
   const [artworkGen, setArtworkGen] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -223,7 +224,7 @@ export default function ReleaseDetails({ state, update, onBack, onContinue }: Pr
     const file = e.target.files?.[0];
     if (!file) return;
     const url = URL.createObjectURL(file);
-    update({ artwork: url });
+    update({ artwork: url, artworkFile: file });
   };
 
   return (
@@ -296,7 +297,12 @@ export default function ReleaseDetails({ state, update, onBack, onContinue }: Pr
             label="Primary Artist"
             hint="Choose your artist name. If someone else is featured on the song, you will add them in the next step — not here."
           >
-            <DashSelect value={state.primaryArtist || "Select artist"} onChange={(v) => update({ primaryArtist: v })} options={["Select artist", "Vjazzy"]} />
+            <input
+              value={state.primaryArtist}
+              onChange={(e) => update({ primaryArtist: e.target.value })}
+              placeholder="e.g. Vjazzy"
+              className="w-full bg-[#0E0808] border border-white/10 rounded-lg px-4 py-3 font-body text-white text-sm placeholder:text-white/25 outline-none focus:border-[#C30100] transition-colors"
+            />
           </Field>
 
           <Field
@@ -332,12 +338,36 @@ export default function ReleaseDetails({ state, update, onBack, onContinue }: Pr
             <DashSelect value={state.pLine} onChange={(v) => update({ pLine: v })} options={["2026", "2025", "2024", "2023"]} />
           </Field>
 
-          <Field label="Release Type" hint="We set this automatically. 1 to 3 songs = Single. 4 to 6 songs = EP. 7 or more songs = Album.">
-            <input value={state.releaseTypeAuto} disabled className="w-full bg-[#0E0808] border border-white/10 rounded-lg px-4 py-3 font-body text-white/50 text-sm outline-none cursor-not-allowed" />
+          <Field label="Release Type" hint="1 to 3 songs = Single. 4 to 6 songs = EP. 7 or more songs = Album.">
+            <input
+              value={
+                state.releaseType === "single" ? "Single" :
+                state.releaseType === "mixtape"
+                  ? (state.noOfTracks >= 7 ? "Mixtape (Album)" : state.noOfTracks >= 4 ? "Mixtape (EP)" : "Mixtape")
+                  : state.noOfTracks >= 7 ? "Album" :
+                state.noOfTracks >= 4 ? "EP" : "Album/EP"
+              }
+              disabled
+              className="w-full bg-[#0E0808] border border-white/10 rounded-lg px-4 py-3 font-body text-white/50 text-sm outline-none cursor-not-allowed"
+            />
           </Field>
 
-          <Field label="No of Tracks" hint="We count your tracks for you. Leave this alone.">
-            <input value={state.noOfTracks} disabled className="w-full bg-[#0E0808] border border-white/10 rounded-lg px-4 py-3 font-body text-white/50 text-sm outline-none cursor-not-allowed" />
+          <Field
+            label="No of Tracks"
+            hint={state.releaseType === "single" ? "Singles can only have 1 track." : "Enter the number of tracks in your release."}
+          >
+            <input
+              type="number"
+              min={1}
+              max={50}
+              value={state.noOfTracks}
+              disabled={state.releaseType === "single"}
+              onChange={(e) => update({ noOfTracks: Math.max(1, parseInt(e.target.value) || 1) })}
+              className={[
+                "w-full bg-[#0E0808] border border-white/10 rounded-lg px-4 py-3 font-body text-white text-sm outline-none focus:border-[#C30100] transition-colors",
+                state.releaseType === "single" ? "text-white/50 cursor-not-allowed" : "",
+              ].join(" ")}
+            />
           </Field>
 
           <Field label="Explicit Content" hint="Does your song contain strong language or adult content?">
@@ -352,7 +382,7 @@ export default function ReleaseDetails({ state, update, onBack, onContinue }: Pr
         <div className="mt-8">
           <StepActions
             onBack={onBack}
-            onSaveDraft={() => {}}
+            onSaveDraft={onSaveDraft}
             onContinue={onContinue}
           />
         </div>

@@ -1,8 +1,7 @@
 "use client";
 
+import { Release, STATUS_CONFIG } from "@/app/mock/music";
 import Image from "next/image";
-import type { Release } from "../../../app/mock/music";
-import { STATUS_CONFIG } from "../../../app/mock/music";
 
 interface ReleaseCardProps {
   release: Release;
@@ -17,7 +16,11 @@ export default function ReleaseCard({
   onEdit,
   onTakedown,
 }: ReleaseCardProps) {
-  const status = STATUS_CONFIG[release.status];
+  const status = STATUS_CONFIG[release.status as keyof typeof STATUS_CONFIG] ?? {
+    label: release.status ?? "Unknown",
+    color: "#ffffff",
+    bg: "rgba(255,255,255,0.10)",
+  };
 
   return (
     <div
@@ -72,7 +75,7 @@ export default function ReleaseCard({
           </span>
           <span className="font-body text-white/40 text-[10px] flex items-center gap-1">
             <MusicNoteIcon />
-            {release.tracks.length} Track{release.tracks.length > 1 ? "s" : ""}
+            {(release.tracks?.length ?? 1)} Track{(release.tracks?.length ?? 1) > 1 ? "s" : ""}
           </span>
         </div>
 
@@ -110,9 +113,11 @@ export default function ReleaseCard({
 export function DraftCard({
   release,
   onContinue,
+  onDelete,
 }: {
   release: Release;
   onContinue: (r: Release) => void;
+  onDelete?: () => void;
 }) {
   return (
     <div className="rounded-xl overflow-hidden bg-[#180F0F] border border-white/[0.06] flex flex-col">
@@ -147,16 +152,27 @@ export function DraftCard({
             {release.type.charAt(0).toUpperCase() + release.type.slice(1)}
           </span>
           <span className="font-body text-white/40 text-[10px] flex items-center gap-1">
-            <MusicNoteIcon /> {release.tracks.length} Track
+            <MusicNoteIcon /> {(release.tracks?.length ?? 1)} Track
           </span>
         </div>
 
-        <button
-          onClick={() => onContinue(release)}
-          className="w-full mt-1 font-body text-white/60 text-[10px] border border-white/10 hover:border-white/25 rounded-lg py-2 flex items-center justify-center gap-1.5 transition-colors hover:text-white"
-        >
-          <EditIcon /> Continue editing
-        </button>
+        <div className="flex gap-2 mt-1">
+          <button
+            onClick={() => onContinue(release)}
+            className="flex-1 font-body text-white/60 text-[10px] border border-white/10 hover:border-white/25 rounded-lg py-2 flex items-center justify-center gap-1.5 transition-colors hover:text-white"
+          >
+            <EditIcon /> Continue
+          </button>
+          {onDelete && (
+            <button
+              onClick={(e) => { e.stopPropagation(); onDelete(); }}
+              className="font-body text-[10px] rounded-lg px-3 py-2 flex items-center justify-center transition-colors"
+              style={{ color: "#C30100", backgroundColor: "rgba(195,1,0,0.08)", border: "1px solid rgba(195,1,0,0.20)" }}
+            >
+              <TakedownIcon />
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );

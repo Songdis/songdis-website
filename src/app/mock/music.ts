@@ -9,9 +9,10 @@ export type ReleaseStatus =
   | "pending"
   | "delivered"
   | "distributed"
-  | "need_documentation";
+  | "need_documentation"
+  | "draft";
 
-export type ReleaseType = "single" | "album" | "mixtape";
+export type ReleaseType = "single" | "album" | "mixtape" | "album_ep";
 
 export interface Track {
   id: string;
@@ -56,13 +57,14 @@ export const STATUS_CONFIG: Record<
   delivered:          { label: "Delivered",          color: "#60a5fa", bg: "rgba(96,165,250,0.15)"  },
   distributed:        { label: "Distributed",        color: "#2dd4bf", bg: "rgba(45,212,191,0.15)"  },
   need_documentation: { label: "Need Documentation", color: "#facc15", bg: "rgba(250,204,21,0.15)"  },
+  draft:              { label: "Draft",              color: "#ffffff", bg: "rgba(255,255,255,0.15)" },
 };
 
 /* ─── Mock releases ───────────────────────────────────────────── */
 // cover paths point to Figma exports — drop SVGs in /public/images/releases/
 const COVERS = {
   blue: "/images/cover-blue.jpg",
-  dark: "/images/cover-black.jpg",
+  dark: "/images/cover-dark.jpg",
 };
 
 const MOCK_TRACK = (id: string): Track => ({

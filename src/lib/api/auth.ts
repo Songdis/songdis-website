@@ -1,54 +1,31 @@
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "";
+/**
+ * lib/api/auth.ts
+ * All authentication endpoints.
+ *
+ * Endpoint mapping (from Postman collection):
+ *   POST /register
+ *   POST /login
+ *   POST /forgot-password
+ *   POST /reset-password
+ *   GET  /user
+ *   PUT  /change-password
+ *   POST /logout
+ */
 
-/* ─── Shared response wrapper ─────────────────────────────────── */
-export interface ApiResponse<T = unknown> {
-  data: T | null;
-  error: string | null;
-  status: number;
-}
-
-async function request<T>(
-  endpoint: string,
-  options: RequestInit = {}
-): Promise<ApiResponse<T>> {
-  try {
-    const token = getToken();
-
-    const res = await fetch(`${BASE_URL}${endpoint}`, {
-      headers: {
-        "Content-Type": "application/json",
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        ...options.headers,
-      },
-      ...options,
-    });
-
-    const json = await res.json().catch(() => null);
-
-    if (!res.ok) {
-      return {
-        data: null,
-        error: json?.message ?? json?.error ?? "Something went wrong.",
-        status: res.status,
-      };
-    }
-
-    return { data: json as T, error: null, status: res.status };
-  } catch {
-    return { data: null, error: "Network error. Please try again.", status: 0 };
-  }
-}
+import { request, setToken, removeToken, getToken } from "./core";
 
 /* ─── Request / Response types ────────────────────────────────── */
-export interface SignUpPayload {
-  fullName: string;
+
+export interface RegisterPayload {
+  first_name: string;
+  last_name: string;
   email: string;
   password: string;
-  confirmPassword: string;
-  referralCode?: string;
+  password_confirmation: string;
+  referral_code?: string;
 }
 
-export interface SignInPayload {
+export interface LoginPayload {
   email: string;
   password: string;
 }
@@ -57,123 +34,162 @@ export interface ForgotPasswordPayload {
   email: string;
 }
 
-export interface VerifyOtpPayload {
-  email: string;
-  otp: string;
-}
-
 export interface ResetPasswordPayload {
   email: string;
-  otp: string;
-  newPassword: string;
-  confirmPassword: string;
+  password: string;
+  password_confirmation: string;
+  token: string;
 }
 
-export interface AuthTokens {
-  accessToken: string;
-  refreshToken?: string;
+export interface ChangePasswordPayload {
+  current_password: string;
+  new_password: string;
+  new_password_confirmation: string;
 }
 
-export interface User {
-  id: string;
-  fullName: string;
+export interface AuthUser {
+  id: number;
+  first_name: string;
+  last_name: string;
   email: string;
-  isVerified: boolean;
-  createdAt: string;
+  account_type?: string;
+  created_at?: string;
 }
 
 export interface AuthSuccessResponse {
-  user: User;
-  tokens: AuthTokens;
+  token: string;
+  message?: string;
+  user: AuthUser;
 }
 
-/* ─── Auth endpoints ──────────────────────────────────────────── */
+/* ─── Auth functions ──────────────────────────────────────────── */
 
-export async function signUp(
-  payload: SignUpPayload
-): Promise<ApiResponse<AuthSuccessResponse>> {
-  return request<AuthSuccessResponse>("/auth/register", {
+/**
+ * Register a new user.
+ * The API uses first_name + last_name — split fullName here.
+ */
+export async function signUp(payload: {
+  fullName: string;
+  email: string;
+  password: string;
+  confirmPassword: string;
+  referralCode?: string;
+}) {
+  const [first_name, ...rest] = payload.fullName.trim().split(" ");
+  const last_name = rest.join(" ") || first_name;
+
+  return request<AuthSuccessResponse>("/register", {
     method: "POST",
-    body: JSON.stringify(payload),
+    body: JSON.stringify({
+      first_name,
+      last_name,
+      email: payload.email,
+      password: payload.password,
+      password_confirmation: payload.confirmPassword,
+      ...(payload.referralCode ? { referral_code: payload.referralCode } : {}),
+    }),
   });
 }
 
-export async function signIn(
-  payload: SignInPayload
-): Promise<ApiResponse<AuthSuccessResponse>> {
-  const res = await request<AuthSuccessResponse>("/auth/login", {
+/**
+ * Log in. Stores the token on success.
+ */
+export async function signIn(payload: LoginPayload) {
+  const res = await request<AuthSuccessResponse>("/login", {
     method: "POST",
     body: JSON.stringify(payload),
   });
 
-  if (res.data?.tokens.accessToken) {
-    setToken(res.data.tokens.accessToken);
+  if (res.data?.token) {
+    setToken(res.data.token);
+  }
+
+  // Cache the user immediately from the login response
+  // so useUser doesn't need a second GET /user request
+  if (res.data?.user) {
+    try {
+      sessionStorage.setItem("songdis_user", JSON.stringify(res.data.user));
+    } catch {}
   }
 
   return res;
 }
 
-export async function signInWithGoogle(): Promise<void> {
-  // Redirect-based OAuth — adjust to match your backend's OAuth initiation URL
-  window.location.href = `${BASE_URL}/auth/google`;
-}
-
-export async function forgotPassword(
-  payload: ForgotPasswordPayload
-): Promise<ApiResponse<{ message: string }>> {
-  return request<{ message: string }>("/auth/forgot-password", {
+/**
+ * Send forgot-password email.
+ */
+export async function forgotPassword(payload: ForgotPasswordPayload) {
+  return request<{ message: string }>("/forgot-password", {
     method: "POST",
     body: JSON.stringify(payload),
   });
 }
 
-export async function verifyOtp(
-  payload: VerifyOtpPayload
-): Promise<ApiResponse<{ message: string }>> {
-  return request<{ message: string }>("/auth/verify-otp", {
+/**
+ * Reset password using the token from the email link.
+ *
+ * NOTE: The Songdis API uses a reset `token` sent via email link,
+ * not a numeric OTP. The OTP UI we built maps to this token field.
+ * Confirm the exact flow with the backend team — they may send
+ * a 6-digit code or a long token string.
+ */
+export async function resetPassword(payload: {
+  email: string;
+  otp: string;        // maps to `token` in the API body
+  newPassword: string;
+  confirmPassword: string;
+}) {
+  return request<{ message: string }>("/reset-password", {
     method: "POST",
-    body: JSON.stringify(payload),
+    body: JSON.stringify({
+      email: payload.email,
+      token: payload.otp,
+      password: payload.newPassword,
+      password_confirmation: payload.confirmPassword,
+    }),
   });
 }
 
-export async function resendOtp(
-  email: string
-): Promise<ApiResponse<{ message: string }>> {
-  return request<{ message: string }>("/auth/resend-otp", {
-    method: "POST",
-    body: JSON.stringify({ email }),
-  });
+/**
+ * Get the current authenticated user's details.
+ */
+export async function getUser() {
+  return request<AuthUser>("/user", { method: "GET" }, true);
 }
 
-export async function resetPassword(
-  payload: ResetPasswordPayload
-): Promise<ApiResponse<{ message: string }>> {
-  return request<{ message: string }>("/auth/reset-password", {
-    method: "POST",
-    body: JSON.stringify(payload),
-  });
+/**
+ * Change password (authenticated).
+ */
+export async function changePassword(payload: ChangePasswordPayload) {
+  return request<{ message: string }>(
+    "/change-password",
+    {
+      method: "PUT",
+      body: JSON.stringify(payload),
+    },
+    true
+  );
 }
 
-export async function signOut(): Promise<void> {
-  await request("/auth/logout", { method: "POST" });
+/**
+ * Log out. Clears the local token regardless of server response.
+ */
+export async function logout() {
+  const res = await request<{ message: string }>(
+    "/logout",
+    { method: "POST" },
+    true
+  );
   removeToken();
+  return res;
 }
 
-/* ─── Token helpers (swap these for cookie-based auth) ────────── */
-
-const TOKEN_KEY = "songdis_access_token";
-
-export function getToken(): string | null {
-  if (typeof window === "undefined") return null;
-  return localStorage.getItem(TOKEN_KEY);
+/**
+ * Check if the user is currently authenticated.
+ */
+export function isAuthenticated(): boolean {
+  return !!getToken();
 }
 
-export function setToken(token: string): void {
-  if (typeof window === "undefined") return;
-  localStorage.setItem(TOKEN_KEY, token);
-}
-
-export function removeToken(): void {
-  if (typeof window === "undefined") return;
-  localStorage.removeItem(TOKEN_KEY);
-}
+/* ─── Re-export token helpers ─────────────────────────────────── */
+export { getToken, setToken, removeToken };

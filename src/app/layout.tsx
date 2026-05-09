@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Montserrat } from "next/font/google";
 import "./globals.css";
+import { ToastProvider } from "@/components/ui/Toast";
 
 /**
  * Montserrat — loaded via next/font for zero-CLS, automatic subsetting,
@@ -63,7 +64,11 @@ export default function RootLayout({
           crossOrigin="anonymous"
         />
       </head>
-      <body className="bg-[#140C0C] text-white antialiased">{children}</body>
+      <body className="bg-[#140C0C] text-white antialiased">
+        <ToastProvider>
+          {children}
+        </ToastProvider>
+      </body>
     </html>
   );
 }

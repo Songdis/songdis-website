@@ -3,19 +3,35 @@
 import Link from "next/link";
 import Image from "next/image";
 import DashboardLayout from "@/components/dashboard/DashboardLayout";
-import { MOCK_DASHBOARD } from "../mock/dashboard";
+import { useDashboard } from "@/lib/hooks/useDashboard";
 
 export default function DashboardPage() {
-  const { stats, wallet, recentReleases, ayoInsight, analyticsChart, features } = MOCK_DASHBOARD;
+  const { data, isLoading } = useDashboard();
+
+  // While loading, use empty fallbacks so layout never blanks
+  const { stats, wallet, recentReleases, ayoInsight, analyticsChart, features } =
+    data ?? {
+      stats: { activeReleases: 0, totalEarnings: 0 },
+      wallet: { totalEarnings: 0, period: "", streams: 0, avgPerStream: 0 },
+      recentReleases: [],
+      ayoInsight: { message: "" },
+      analyticsChart: { months: [], streams: [], revenue: [] },
+      features: [],
+    };
+
+  const userName = data?.user?.name ?? "VJazzy";
 
   return (
-    <DashboardLayout userName="VJazzy">
+    <DashboardLayout userName={isLoading ? "..." : userName}>
       <div className="flex flex-col gap-5">
 
         {/* Ask Ayo bar */}
         <div className="rounded-2xl border border-white/[0.06] bg-[#180F0F] p-5">
           <div className="flex items-center gap-3 mb-3">
-           
+            {/*
+             * Drop your Figma export here:
+             * /public/icons/ayo-icon.svg
+             */}
             <div className="w-9 h-9 rounded-full bg-yellow-500/20 flex items-center justify-center shrink-0 relative">
               <Image
                 src="/images/ayo.svg"
@@ -39,13 +55,13 @@ export default function DashboardPage() {
               { label: "Generate artwork", icon: <ArtworkIcon /> },
               { label: "Ask Ayo anything", icon: <AskIcon /> },
             ].map((action) => (
-              <button
+              <Link href='/dashboard/ayo'
                 key={action.label}
                 className="flex items-center gap-2 font-body text-white/70 text-xs border border-white/[0.08] bg-white/[0.03] hover:bg-white/[0.07] rounded-full px-4 py-2 transition-colors"
               >
                 {action.icon}
                 {action.label}
-              </button>
+              </Link>
             ))}
           </div>
         </div>
@@ -84,8 +100,7 @@ export default function DashboardPage() {
           {/* Artist Spotlight — image left, text right */}
           <div className="col-span-2 rounded-2xl border border-white/[0.06] bg-[#180F0F] overflow-hidden flex flex-row">
             {/* Left: image, takes ~55% width */}
-            <div className="relative w-[55%] shrink-0 min-h-[220px]">
-              <Image
+             <div className="relative w-[55%] shrink-0 min-h-[220px]">              <Image
                 src="/images/into-the-night.svg"
                 alt="Artist spotlight"
                 fill

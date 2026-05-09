@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 import type { UploadState } from "../UploadModal";
 import { StepHeader, StepProgress, StepActions } from "../UploadModal";
 
@@ -35,20 +35,76 @@ interface Props {
   update: (patch: Partial<UploadState>) => void;
   onBack: () => void;
   onContinue: () => void;
+  onSaveDraft?: () => void;
 }
 
-export default function UploadTrack({ state, update, onBack, onContinue }: Props) {
-  const audioRef = useRef<HTMLInputElement>(null);
-  const [audioFile, setAudioFile] = useState<File | null>(null);
-  const [playing, setPlaying] = useState(false);
+export default function UploadTrack({ state, update, onBack, onContinue, onSaveDraft }: Props) {
+  const audioInputRef = useRef<HTMLInputElement>(null);
+  const audioElRef = useRef<HTMLAudioElement>(null);
 
-  const titleLabel = state.releaseType === "single" ? "Upload Single" :
-    state.releaseType === "album" ? "Upload Album" : "Upload Mixtape";
+  const [audioFile, setAudioFile] = useState<File | null>(null);
+  const [audioUrl, setAudioUrl] = useState<string | null>(null);
+  const [playing, setPlaying] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const [tiktokStamp, setTiktokStamp] = useState("");
+
+  /* Revoke old object URL when file changes to avoid memory leak */
+  useEffect(() => {
+    if (!audioFile) return;
+    const url = URL.createObjectURL(audioFile);
+    setAudioUrl(url);
+    setCurrentTime(0);
+    setDuration(0);
+    setPlaying(false);
+    return () => URL.revokeObjectURL(url);
+  }, [audioFile]);
+
+  /* Sync playing state with audio element */
+  useEffect(() => {
+    const el = audioElRef.current;
+    if (!el) return;
+    if (playing) {
+      el.play().catch(() => setPlaying(false));
+    } else {
+      el.pause();
+    }
+  }, [playing]);
 
   const handleAudio = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) setAudioFile(file);
+    if (!file) {
+      return;
+    }
+    setAudioFile(file);
+    update({ audioFile: file });
   };
+
+  const handleSeek = (e: React.MouseEvent<HTMLDivElement>) => {
+    const el = audioElRef.current;
+    if (!el || !duration) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const pct = (e.clientX - rect.left) / rect.width;
+    el.currentTime = pct * duration;
+  };
+
+  const setTikTokStampFromCurrent = () => {
+    const mins = Math.floor(currentTime / 60);
+    const secs = Math.floor(currentTime % 60);
+    const stamp = `${mins}:${String(secs).padStart(2, "0")}`;
+    setTiktokStamp(stamp);
+    update({ tiktokTimestamp: Math.floor(currentTime) });
+  };
+
+  const fmt = (s: number) => {
+    const m = Math.floor(s / 60);
+    const sec = Math.floor(s % 60);
+    return `${m}:${String(sec).padStart(2, "0")}`;
+  };
+
+  const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
+  const titleLabel = state.releaseType === "single" ? "Upload Single" :
+    state.releaseType === "album" ? "Upload Album" : "Upload Mixtape";
 
   return (
     <div className="p-8 max-h-[90vh] overflow-y-auto">
@@ -81,7 +137,7 @@ export default function UploadTrack({ state, update, onBack, onContinue }: Props
 
         {/* Audio drop zone */}
         <button
-          onClick={() => audioRef.current?.click()}
+          onClick={() => audioInputRef.current?.click()}
           className={[
             "w-full border-2 border-dashed rounded-xl py-10 flex flex-col items-center gap-2 transition-colors",
             audioFile
@@ -95,7 +151,26 @@ export default function UploadTrack({ state, update, onBack, onContinue }: Props
           </p>
           <p className="font-body text-white/25 text-xs">WAV, MP3, FLAC · Max 500MB · 24-bit recommended</p>
         </button>
-        <input ref={audioRef} type="file" accept="audio/*" className="hidden" onChange={handleAudio} />
+        <input ref={audioInputRef} type="file" accept="audio/*" className="hidden" onChange={handleAudio} />
+
+        {/* Hidden audio element — controlled by our custom player UI */}
+        {audioUrl && (
+          <audio
+            ref={audioElRef}
+            src={audioUrl}
+            onTimeUpdate={() => setCurrentTime(audioElRef.current?.currentTime ?? 0)}
+            onLoadedMetadata={() => {
+              const dur = audioElRef.current?.duration ?? 0;
+              setDuration(dur);
+              // Save formatted duration to UploadState for API submission
+              const m = Math.floor(dur / 60);
+              const s = Math.floor(dur % 60);
+              update({ audioDuration: `${m}:${String(s).padStart(2, "0")}` });
+            }}
+            onEnded={() => setPlaying(false)}
+            preload="metadata"
+          />
+        )}
 
         {/* Add track button (for albums) */}
         {state.releaseType !== "single" && (
@@ -127,14 +202,13 @@ export default function UploadTrack({ state, update, onBack, onContinue }: Props
         </div>
 
         {/* Artist Details */}
-        <SectionBox label="Artist Details" actionLabel="+ Add Artist">
-          <div className="flex gap-2">
-            <div className="flex-1 bg-[#0E0808] border border-white/10 rounded-lg px-4 py-3">
-              <DashSelect value="" onChange={() => {}} options={["Vjazzy"]} placeholder="Search artist..." />
-            </div>
-            <DashSelect value="Primary artist" onChange={() => {}} options={["Primary artist", "Featured"]} />
-            <button className="text-white/40 hover:text-white/60 transition-colors px-2">×</button>
-          </div>
+        <SectionBox label="Artist Details" noAction>
+          <input
+            value={state.artistDetails}
+            onChange={(e) => update({ artistDetails: e.target.value })}
+            placeholder="e.g. Vjazzy (Main Artist), Davido (Featured)"
+            className="w-full bg-[#0E0808] border border-white/10 rounded-lg px-4 py-3 font-body text-white text-sm placeholder:text-white/25 outline-none focus:border-[#C30100] transition-colors"
+          />
         </SectionBox>
 
         {/* Classification */}
@@ -164,30 +238,33 @@ export default function UploadTrack({ state, update, onBack, onContinue }: Props
         </SectionBox>
 
         {/* Writers */}
-        <SectionBox label="Writers" actionLabel="+ Add Writer">
-          <div className="flex gap-2">
-            <div className="flex-1"><DashSelect value="" onChange={() => {}} placeholder="Search writer..." options={[]} /></div>
-            <DashSelect value="" onChange={() => {}} placeholder="Select role" options={["Composer", "Lyricist", "Co-writer"]} />
-            <button className="text-white/40 hover:text-white/60 px-2">×</button>
-          </div>
+        <SectionBox label="Writers" noAction>
+          <input
+            value={state.writers}
+            onChange={(e) => update({ writers: e.target.value })}
+            placeholder="e.g. John Doe (Composer), Jane Smith (Lyricist)"
+            className="w-full bg-[#0E0808] border border-white/10 rounded-lg px-4 py-3 font-body text-white text-sm placeholder:text-white/25 outline-none focus:border-[#C30100] transition-colors"
+          />
         </SectionBox>
 
         {/* Production */}
-        <SectionBox label="Production" actionLabel="+ Add Production Credit">
-          <div className="flex gap-2">
-            <div className="flex-1"><DashSelect value="" onChange={() => {}} placeholder="Search..." options={[]} /></div>
-            <DashSelect value="" onChange={() => {}} placeholder="Select role" options={["Producer", "Co-producer", "Executive Producer"]} />
-            <button className="text-white/40 hover:text-white/60 px-2">×</button>
-          </div>
+        <SectionBox label="Production" noAction>
+          <input
+            value={state.producers}
+            onChange={(e) => update({ producers: e.target.value })}
+            placeholder="e.g. Sarz (Producer), Krizbeatz (Co-producer)"
+            className="w-full bg-[#0E0808] border border-white/10 rounded-lg px-4 py-3 font-body text-white text-sm placeholder:text-white/25 outline-none focus:border-[#C30100] transition-colors"
+          />
         </SectionBox>
 
         {/* Performer */}
-        <SectionBox label="Performer" actionLabel="+ Add Performer">
-          <div className="flex gap-2">
-            <div className="flex-1"><DashSelect value="" onChange={() => {}} placeholder="Search performer..." options={[]} /></div>
-            <DashSelect value="" onChange={() => {}} placeholder="Select role" options={["Main Artist", "Featured", "Backing Vocal"]} />
-            <button className="text-white/40 hover:text-white/60 px-2">×</button>
-          </div>
+        <SectionBox label="Performer" noAction>
+          <input
+            value={state.performers}
+            onChange={(e) => update({ performers: e.target.value })}
+            placeholder="e.g. Vjazzy (Lead Vocals), Fireboy (Backing Vocal)"
+            className="w-full bg-[#0E0808] border border-white/10 rounded-lg px-4 py-3 font-body text-white text-sm placeholder:text-white/25 outline-none focus:border-[#C30100] transition-colors"
+          />
         </SectionBox>
 
         {/* Lyrics */}
@@ -203,34 +280,62 @@ export default function UploadTrack({ state, update, onBack, onContinue }: Props
 
         {/* Audio Preview */}
         <SectionBox label="Audio Preview" noAction>
-          <div className="flex items-center gap-3">
-            <button onClick={() => setPlaying(!playing)} className="w-8 h-8 rounded-full border border-white/20 flex items-center justify-center text-white/60 hover:text-white transition-colors shrink-0">
-              {playing ? <PauseIcon /> : <PlayIcon />}
-            </button>
-            <div className="flex-1 flex items-center gap-2">
-              <span className="font-body text-white/40 text-xs shrink-0">0:25 / 1:47</span>
-              <div className="flex-1 h-1 bg-white/10 rounded-full">
-                <div className="h-full w-[27%] bg-[#C30100] rounded-full" />
+          {!audioFile ? (
+            <p className="font-body text-white/30 text-xs">Upload an audio file above to preview it here.</p>
+          ) : (
+            <>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => setPlaying(!playing)}
+                  className="w-8 h-8 rounded-full border border-white/20 flex items-center justify-center text-white/60 hover:text-white transition-colors shrink-0"
+                >
+                  {playing ? <PauseIcon /> : <PlayIcon />}
+                </button>
+                <div className="flex-1 flex items-center gap-2">
+                  <span className="font-body text-white/40 text-xs shrink-0 tabular-nums">
+                    {fmt(currentTime)} / {fmt(duration)}
+                  </span>
+                  {/* Seekable progress bar */}
+                  <div
+                    className="flex-1 h-1.5 bg-white/10 rounded-full cursor-pointer relative"
+                    onClick={handleSeek}
+                  >
+                    <div
+                      className="h-full bg-[#C30100] rounded-full pointer-events-none transition-all"
+                      style={{ width: `${progress}%` }}
+                    />
+                  </div>
+                </div>
+                <button className="text-white/30 hover:text-white/50 transition-colors">
+                  <VolumeIcon />
+                </button>
               </div>
-            </div>
-            <button className="text-white/30 hover:text-white/50 transition-colors">
-              <VolumeIcon />
-            </button>
-          </div>
-          <button className="w-full mt-4 font-heading text-white uppercase text-xs tracking-widest rounded-full border border-[#C30100] py-3 hover:bg-[#C30100] transition-colors">
-            Set Current Time as TikTok Stamp
-          </button>
+              <button
+                onClick={setTikTokStampFromCurrent}
+                className="w-full mt-4 font-heading text-white uppercase text-xs tracking-widest rounded-full border border-[#C30100] py-3 hover:bg-[#C30100] transition-colors"
+              >
+                Set Current Time as TikTok Stamp
+              </button>
+            </>
+          )}
         </SectionBox>
 
         {/* TikTok Timestamp */}
         <SectionBox label="TikTok Preview Timestamp (Optional)" noAction>
-          <p className="font-body text-white/30 text-xs mb-2">Specify the start time for TikTok preview (format: mm:ss) · Use the audio player above to preview and select the best timestamp</p>
-          <input placeholder="·:··" className="w-24 bg-transparent border-b border-white/20 font-body text-white text-sm outline-none pb-1 placeholder:text-white/25" />
+          <p className="font-body text-white/30 text-xs mb-2">
+            Specify the start time for TikTok preview (format: mm:ss) · Use the audio player above to preview and select the best timestamp
+          </p>
+          <input
+            value={tiktokStamp}
+            onChange={(e) => setTiktokStamp(e.target.value)}
+            placeholder="0:00"
+            className="w-24 bg-transparent border-b border-white/20 font-body text-white text-sm outline-none pb-1 placeholder:text-white/25"
+          />
         </SectionBox>
       </div>
 
       <div className="mt-8">
-        <StepActions onBack={onBack} onSaveDraft={() => {}} onContinue={onContinue} />
+        <StepActions onBack={onBack} onSaveDraft={onSaveDraft} onContinue={onContinue} />
       </div>
     </div>
   );
