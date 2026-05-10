@@ -970,8 +970,7 @@ export default function SettingsPage() {
   const isArtistProfile = activeTab === "artist-profile";
 
   return (
-    <DashboardLayout
-      userName="VJazzy"
+    <DashboardLayout 
       customCta={
         isArtistProfile
           ? { label: "+ Create New Profile", onClick: () => setShowNewProfileModal(true) }

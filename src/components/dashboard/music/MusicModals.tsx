@@ -79,22 +79,22 @@ export function ReleaseDetailModal({
             </div>
             <div className="flex items-center gap-4 mt-1 font-body text-white/40 text-xs">
               <span className="flex items-center gap-1"><CalendarIcon /> {release.releaseDate}</span>
-              <span className="flex items-center gap-1"><MusicIcon /> {release.tracks.length} Track</span>
+              <span className="flex items-center gap-1"><MusicIcon /> {release.tracks?.length ?? 0} Track</span>
             </div>
-            <p className="font-body text-white/30 text-xs">UPC: {release.upc}</p>
+            <p className="font-body text-white/30 text-xs">UPC: {release.upc ?? "—"}</p>
           </div>
         </div>
 
         {/* Audio player for first track */}
-        {release.tracks[0] && (
+        {release.tracks?.[0] && (
           <div className="rounded-xl bg-[#0E0808] border border-white/[0.06] p-4 mb-5">
             <div className="flex items-center gap-3 mb-3">
               <div className="relative w-12 h-12 rounded-lg overflow-hidden shrink-0">
                 <Image src={release.cover} alt={release.tracks[0].title} fill className="object-cover" unoptimized />
               </div>
               <div>
-                <p className="font-heading text-white uppercase text-sm">{release.tracks[0].title}</p>
-                <p className="font-body text-white/50 text-xs">{release.tracks[0].artist}</p>
+                <p className="font-heading text-white uppercase text-sm">{release.tracks?.[0]?.title}</p>
+                <p className="font-body text-white/50 text-xs">{release.tracks?.[0]?.artist}</p>
               </div>
             </div>
             {/* Waveform bar */}
@@ -102,7 +102,7 @@ export function ReleaseDetailModal({
               <button onClick={() => setPlaying(!playing)} className="w-8 h-8 rounded-full border border-white/20 flex items-center justify-center text-white/60 hover:text-white transition-colors shrink-0">
                 {playing ? <PauseIcon /> : <PlayIcon />}
               </button>
-              <span className="font-body text-white/40 text-xs shrink-0">0:25 / {release.tracks[0].duration}</span>
+              <span className="font-body text-white/40 text-xs shrink-0">0:25 / {release.tracks?.[0]?.duration}</span>
               <div className="flex-1 h-1.5 bg-white/10 rounded-full">
                 <div className="h-full w-[27%] bg-[#C30100] rounded-full" />
               </div>
@@ -119,7 +119,7 @@ export function ReleaseDetailModal({
           </button>
         </div>
 
-        {release.tracks.map((track) => (
+        {(release.tracks ?? []).map((track) => (
           <div key={track.id} className="flex items-center gap-3 rounded-xl border border-white/[0.06] bg-[#0E0808] p-3">
             <button className="w-7 h-7 rounded-full border border-white/20 flex items-center justify-center text-white/60 hover:text-white transition-colors shrink-0">
               <PlayIcon />
@@ -145,10 +145,12 @@ export function RequestEditModal({
   release,
   onClose,
   onSubmit,
+  isLoading,
 }: {
   release: Release;
   onClose: () => void;
-  onSubmit: () => void;
+  onSubmit: (reason: string, changes: Array<{ field: string; current_value: string; new_value: string }>) => void;
+  isLoading?: boolean;
 }) {
   const [reason, setReason] = useState("");
   const [field, setField] = useState("");
@@ -214,11 +216,11 @@ export function RequestEditModal({
               Cancel
             </button>
             <button
-              onClick={onSubmit}
-              disabled={!reason.trim()}
+              onClick={() => onSubmit(reason, field ? [{ field, current_value: "", new_value: "" }] : [])}
+              disabled={!reason.trim() || isLoading}
               className="flex-1 font-heading text-white uppercase text-xs tracking-widest rounded-full border border-[#C30100] bg-[#C30100]/10 hover:bg-[#C30100] py-3.5 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
             >
-              Submit Request
+              {isLoading ? "Submitting..." : "Submit Request"}
             </button>
           </div>
         </div>
@@ -232,10 +234,12 @@ export function TakedownModal({
   release,
   onClose,
   onSubmit,
+  isLoading,
 }: {
   release: Release;
   onClose: () => void;
-  onSubmit: () => void;
+  onSubmit: (reason: string) => void;
+  isLoading?: boolean;
 }) {
   const [reason, setReason] = useState("");
   const [confirmed, setConfirmed] = useState(false);
@@ -314,11 +318,11 @@ export function TakedownModal({
               Cancel
             </button>
             <button
-              onClick={onSubmit}
-              disabled={!reason.trim() || !confirmed}
+              onClick={() => onSubmit(reason)}
+              disabled={!reason.trim() || !confirmed || isLoading}
               className="flex-1 font-heading text-white uppercase text-xs tracking-widest rounded-full border border-[#C30100] bg-[#C30100]/10 hover:bg-[#C30100] py-3.5 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
             >
-              Submit Takedown Request
+              {isLoading ? "Submitting..." : "Submit Takedown Request"}
             </button>
           </div>
         </div>

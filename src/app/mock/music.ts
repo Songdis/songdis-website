@@ -31,10 +31,13 @@ export interface Release {
   artist: string;
   type: ReleaseType;
   status: ReleaseStatus;
-  cover: string; // path to Figma-exported SVG in /public/images/releases/
-  upc: string;
+  cover: string;
+  upc?: string;
   releaseDate: string;
-  tracks: Track[];
+  tracks?: Track[];
+  streams?: number;
+  earnings?: number;
+  platforms?: string[];
 }
 
 export interface EditHistoryItem {
@@ -63,8 +66,8 @@ export const STATUS_CONFIG: Record<
 /* ─── Mock releases ───────────────────────────────────────────── */
 // cover paths point to Figma exports — drop SVGs in /public/images/releases/
 const COVERS = {
-  blue: "/images/cover-blue.jpg",
-  dark: "/images/cover-dark.jpg",
+  blue: "/images/releases/cover-blue.svg",
+  dark: "/images/releases/cover-dark.svg",
 };
 
 const MOCK_TRACK = (id: string): Track => ({

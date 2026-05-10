@@ -331,7 +331,6 @@ export default function AmplifyPage() {
 
   return (
     <DashboardLayout
-      userName="VJazzy"
       customCta={{ label: "+ New Campaign", onClick: () => setShowNew(true) }}
     >
       <div className="flex flex-col gap-5">

@@ -199,7 +199,7 @@ export default function AyoAIPage() {
   };
 
   return (
-    <DashboardLayout userName="VJazzy">
+    <DashboardLayout>
       {/*
        * Ayo AI is a full-height chat — it needs to escape the normal
        * scrollable content area and fill the remaining viewport height.

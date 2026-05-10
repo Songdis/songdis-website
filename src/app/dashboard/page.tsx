@@ -22,16 +22,13 @@ export default function DashboardPage() {
   const userName = data?.user?.name ?? "VJazzy";
 
   return (
-    <DashboardLayout userName={isLoading ? "..." : userName}>
+    <DashboardLayout>
       <div className="flex flex-col gap-5">
 
         {/* Ask Ayo bar */}
         <div className="rounded-2xl border border-white/[0.06] bg-[#180F0F] p-5">
           <div className="flex items-center gap-3 mb-3">
-            {/*
-             * Drop your Figma export here:
-             * /public/icons/ayo-icon.svg
-             */}
+            
             <div className="w-9 h-9 rounded-full bg-yellow-500/20 flex items-center justify-center shrink-0 relative">
               <Image
                 src="/images/ayo.svg"

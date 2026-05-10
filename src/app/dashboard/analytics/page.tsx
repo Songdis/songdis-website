@@ -1367,7 +1367,7 @@ export default function AnalyticsPage() {
         <div className="rounded-2xl border border-white/[0.06] bg-[#180F0F] p-5">
           <div className="flex items-start gap-3">
             <div className="w-9 h-9 rounded-full bg-yellow-500/20 flex items-center justify-center shrink-0 mt-0.5">
-              <Image src="/icons/ayo-icon.svg" alt="Ayo" width={20} height={20} unoptimized />
+              <Image src="/images/ayo.svg" alt="Ayo" width={20} height={20} unoptimized />
             </div>
             <div className="flex-1">
               <p className="font-body text-[#C30100] text-xs font-semibold mb-2">Ayo AI · Analytics Summary</p>

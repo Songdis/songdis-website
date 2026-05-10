@@ -223,7 +223,6 @@ export default function ReleaseLinksPage() {
 
   return (
     <DashboardLayout
-      userName="VJazzy"
       customCta={{ label: "+ Create Link", onClick: () => setShowCreate(true) }}
     >
       <div className="flex flex-col gap-5">

@@ -256,7 +256,7 @@ export default function PlaylistPortalPage() {
   const [showSuccess, setShowSuccess] = useState(false);
 
   return (
-    <DashboardLayout userName="VJazzy" customCta={{ label: "+ Submit Track", onClick: () => setShowSubmit(true) }}>
+    <DashboardLayout  customCta={{ label: "+ Submit Track", onClick: () => setShowSubmit(true) }}>
       <div className="flex flex-col gap-5">
 
         {/* Ayo insight */}

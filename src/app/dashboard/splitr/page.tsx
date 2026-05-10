@@ -287,7 +287,6 @@ export default function SplitrPage() {
 
   return (
     <DashboardLayout
-      userName="VJazzy"
       customCta={{ label: "+ New Split", onClick: () => setModal("new") }}
     >
       <div className="flex flex-col gap-5">
