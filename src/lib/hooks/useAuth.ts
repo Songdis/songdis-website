@@ -68,23 +68,23 @@ export function useResetPassword() {
 }
 
 /* ─── useVerifyOtp ────────────────────────────────────────────── */
-/**
- * No standalone verify-otp endpoint exists in the collection yet.
- * For the reset flow the token is forwarded to reset-password.
- * For signup, verification appears to be automatic server-side.
- * TODO: confirm with backend team.
- */
 export function useVerifyOtp() {
   const [isLoading, setIsLoading] = useState(false);
-  const [error] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const mutate = useCallback(
     async (
-      _payload: { email: string; otp: string },
+      payload: { email: string; otp: string },
       onSuccess?: () => void
     ) => {
       setIsLoading(true);
-      onSuccess?.();
+      setError(null);
+      const res = await authApi.verifyOtp(payload);
+      if (res.error) {
+        setError(res.error);
+      } else {
+        onSuccess?.();
+      }
       setIsLoading(false);
     },
     []
@@ -94,18 +94,20 @@ export function useVerifyOtp() {
 }
 
 /* ─── useResendOtp ────────────────────────────────────────────── */
-/**
- * TODO: confirm POST /resend-otp endpoint with backend team.
- */
 export function useResendOtp() {
   const [isLoading, setIsLoading] = useState(false);
-  const [error] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const trigger = useCallback(
-    async (_email: string, onSuccess?: () => void) => {
+    async (email: string, onSuccess?: () => void) => {
       setIsLoading(true);
-      await new Promise((r) => setTimeout(r, 800));
-      onSuccess?.();
+      setError(null);
+      const res = await authApi.resendOtp(email);
+      if (res.error) {
+        setError(res.error);
+      } else {
+        onSuccess?.();
+      }
       setIsLoading(false);
     },
     []
@@ -115,23 +117,30 @@ export function useResendOtp() {
 }
 
 /* ─── useGoogleSignIn ─────────────────────────────────────────── */
-/**
- * TODO: Backend team needs to provide the Google OAuth endpoint.
- * Expected: GET /auth/google → { url: string }
- * Then swap the stub below for the real redirect.
- */
 export function useGoogleSignIn() {
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const trigger = useCallback(async () => {
     setIsLoading(true);
-    // Replace with: const res = await authApi.getGoogleAuthUrl();
-    // if (res?.data?.url) window.location.href = res.data.url;
-    console.warn("Google OAuth endpoint not yet configured.");
-    setIsLoading(false);
+    setError(null);
+    const res = await authApi.getGoogleAuthUrl();
+    if (res.error) {
+      setError(res.error);
+      setIsLoading(false);
+      return;
+    }
+    // Backend returns a redirect URL — navigate to it
+    const url = res.data?.url ?? (res.data as unknown as string);
+    if (url) {
+      window.location.href = url;
+    } else {
+      setError("Google sign-in is not available right now.");
+      setIsLoading(false);
+    }
   }, []);
 
-  return { trigger, isLoading };
+  return { trigger, isLoading, error };
 }
 
 /* ─── useChangePassword ───────────────────────────────────────── */
