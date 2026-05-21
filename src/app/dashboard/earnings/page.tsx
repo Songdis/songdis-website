@@ -18,8 +18,8 @@ function StatCard({ label, value, icon, highlight }: {
       highlight ? "border-[#C30100]/40 bg-[#C30100]/10" : "border-white/[0.06] bg-[#180F0F]"].join(" ")}>
       <div className="flex items-center justify-between">
         <p className="font-body text-white/60 text-xs">{label}</p>
-        <div className="w-8 h-8 rounded-lg bg-white/[0.05] flex items-center justify-center relative">
-          <Image src={icon} alt={label} width={16} height={16} unoptimized />
+        <div className="w-12 h-12 rounded-lg bg-white/[0.05] flex items-center justify-center relative">
+          <Image src={icon} alt={label} width={66} height={66} unoptimized />
         </div>
       </div>
       <p className="font-heading text-white text-2xl font-bold">{value}</p>
