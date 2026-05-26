@@ -64,7 +64,7 @@ export default function RootLayout({
           crossOrigin="anonymous"
         />
       </head>
-      <body className="bg-[#140C0C] text-white antialiased">
+      <body className="bg-[#140C0C] text-white antialiased" suppressHydrationWarning>
         <ToastProvider>
           {children}
         </ToastProvider>

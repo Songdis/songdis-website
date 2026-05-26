@@ -43,7 +43,7 @@ const PLATFORMS: Platform[] = [
   { id: "p2", name: "Meta", logoSrc: "/images/meta.svg" },
   { id: "p3", name: "Musixmatch", logoSrc: "/images/musicmatch.svg" },
   { id: "p4", name: "Spotify", logoSrc: "/images/spotify.svg" },
-  { id: "p5", name: "YouTube Music", logoSrc: "/images/youtube.svg" },
+  { id: "p5", name: "YouTube Music", logoSrc: "/images/youtube-new.svg" },
 ];
 
 const FEATURES: FeatureItem[] = [

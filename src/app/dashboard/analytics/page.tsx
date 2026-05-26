@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Image from "next/image";
 import DashboardLayout from "@/components/dashboard/DashboardLayout";
-import { MOCK_ANALYTICS, VIEW_OPTIONS, type AnalyticsView } from "../../mock/analytics";
+import { MOCK_ANALYTICS, VIEW_OPTIONS, type AnalyticsView } from "../../mock/analytics"; // MOCK_ANALYTICS used only for stat card fallbacks while loading
 import { useAnalytics, type AnalyticsPageData } from "@/lib/hooks/useAnalytics";
 import {
   AreaChart, Area, BarChart, Bar,
@@ -26,7 +26,7 @@ function StatCard({ label, value, sub, icon, highlight, badge }: {
     ].join(" ")}>
       <div className="flex items-center justify-between">
         <p className="font-body text-white/60 text-xs">{label}</p>
-        <div className="w-12 h-12 rounded-lg flex items-center justify-center">
+        <div className="w-12 h-12 rounded-lg  flex items-center justify-center">
           <Image src={icon} alt={label} width={66} height={66} unoptimized />
         </div>
       </div>
@@ -122,34 +122,42 @@ function GreenChart({ months, data, height = 180 }: { months: string[]; data: nu
 }
 
 /* ─── Overview view ───────────────────────────────────────────── */
+/* ─── Empty state for views with no API endpoint ─────────────── */
+function ComingSoonView({ title }: { title: string }) {
+  return (
+    <div className="rounded-2xl border border-dashed border-white/[0.06] bg-[#180F0F] p-5">
+      <p className="font-body text-white text-sm font-medium mb-6">{title}</p>
+      <div className="flex flex-col items-center justify-center py-12 gap-3">
+        <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-white/15">
+          <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+        </svg>
+        <p className="font-body text-white/30 text-sm">No data available</p>
+        <p className="font-body text-white/20 text-xs text-center max-w-xs">
+          This section will populate once the backend analytics endpoint is available.
+        </p>
+      </div>
+    </div>
+  );
+}
+
 function OverviewView({ data }: { data: AnalyticsPageData | null }) {
-  const streamsOverTime = data?.streamsOverTime ?? MOCK_ANALYTICS.streamsOverTime;
-  const topSongs = data?.topReleases.length
-    ? data.topReleases.map(r => ({ id: r.id, rank: r.rank, title: r.title, year: "", cover: r.cover, streams: r.streams }))
-    : MOCK_ANALYTICS.topSongs;
-  const platformBreakdown = data?.platformBreakdown.length
-    ? data.platformBreakdown
-    : MOCK_ANALYTICS.platformBreakdown;
-  const listenerTrends = MOCK_ANALYTICS.listenerTrends;
+  const streamsOverTime = data?.streamsOverTime ?? { months: [], streams: [], revenue: [] };
+  const topSongs = data?.topReleases ?? [];
+  const platformBreakdown = data?.platformBreakdown ?? [];
   const barData = platformBreakdown.map(p => ({ name: p.name, streams: p.streams }));
 
   return (
     <div className="flex flex-col gap-5">
-      {/* Monthly listeners highlight */}
-      <div className="rounded-2xl border border-white/[0.06] bg-[#0F2010] p-5">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="font-body text-green-400 text-xs uppercase tracking-widest flex items-center gap-1.5 mb-2">
-              <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" /> Monthly Listeners
-            </p>
-            <p className="font-heading text-white text-4xl font-bold">{MOCK_ANALYTICS.monthlyListeners.value}</p>
-            <p className="font-body text-white/40 text-xs mt-1">
-              {MOCK_ANALYTICS.monthlyListeners.platform} · {MOCK_ANALYTICS.monthlyListeners.period}
-            </p>
-          </div>
-          <span className="font-body text-xs rounded-full px-3 py-1.5" style={{ color: "#22c55e", backgroundColor: "rgba(34,197,94,0.15)" }}>
-            {MOCK_ANALYTICS.monthlyListeners.change}
-          </span>
+      {/* Monthly listeners highlight — no endpoint yet */}
+      <div className="rounded-2xl border border-white/[0.06] bg-[#180F0F] p-5">
+        <div className="flex items-center justify-between mb-3">
+          <p className="font-body text-green-400 text-xs uppercase tracking-widest flex items-center gap-1.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-green-500" /> Monthly Listeners
+          </p>
+        </div>
+        <div className="flex flex-col items-center justify-center py-4 gap-1">
+          <p className="font-body text-white/30 text-sm">No data available</p>
+          <p className="font-body text-white/20 text-xs">Monthly listener data will appear here once available.</p>
         </div>
       </div>
 
@@ -177,9 +185,10 @@ function OverviewView({ data }: { data: AnalyticsPageData | null }) {
             <p className="font-body text-white text-sm font-medium">Top Songs</p>
             <button className="font-body text-white/50 text-xs flex items-center gap-1 hover:text-white transition-colors">View All <span>→</span></button>
           </div>
-          <p className="font-body text-white/30 text-xs mb-4">20 Tracks</p>
           <div className="flex flex-col gap-2">
-            {topSongs.map((song) => (
+            {topSongs.length === 0 ? (
+              <p className="font-body text-white/30 text-sm text-center py-6">No data available</p>
+            ) : topSongs.map((song) => (
               <div key={song.id} className="flex items-center gap-3 py-2 border-b border-white/[0.04] last:border-0">
                 <span className="font-body text-white/30 text-xs w-4 shrink-0">{song.rank}</span>
                 <div className="relative w-8 h-8 rounded-lg overflow-hidden shrink-0">
@@ -187,7 +196,7 @@ function OverviewView({ data }: { data: AnalyticsPageData | null }) {
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="font-body text-white text-xs truncate">{song.title}</p>
-                  <p className="font-body text-white/30 text-[10px]">{song.year}</p>
+                  
                 </div>
                 <p className="font-body text-white/60 text-xs shrink-0">{song.streams}</p>
               </div>
@@ -200,6 +209,9 @@ function OverviewView({ data }: { data: AnalyticsPageData | null }) {
             <p className="font-body text-white text-sm font-medium">Platform Breakdown</p>
             <button className="font-body text-white/50 text-xs flex items-center gap-1 hover:text-white transition-colors">All Platforms <span>→</span></button>
           </div>
+          {barData.length === 0 ? (
+            <p className="font-body text-white/30 text-sm text-center py-10">No data available</p>
+          ) : (
           <ResponsiveContainer width="100%" height={220}>
             <BarChart data={barData} margin={{ top: 5, right: 5, bottom: 20, left: -20 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" vertical={false} />
@@ -207,375 +219,46 @@ function OverviewView({ data }: { data: AnalyticsPageData | null }) {
               <YAxis tick={{ fill: "rgba(255,255,255,0.2)", fontSize: 9 }} axisLine={false} tickLine={false} tickFormatter={(v) => `${(v/1000).toFixed(0)}k`} />
               <Tooltip contentStyle={{ background: "#1A0808", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 8, fontSize: 11 }} />
               <Bar dataKey="streams" radius={[4, 4, 0, 0]}>
-                {barData.map((_, i) => <Cell key={i} fill={platformBreakdown[i].color} />)}
+                {barData.map((_, i) => <Cell key={i} fill={platformBreakdown[i]?.color ?? "#C30100"} />)}
               </Bar>
             </BarChart>
           </ResponsiveContainer>
+          )}
         </div>
-      </div>
-
-      {/* Listener trends */}
-      <div className="rounded-2xl border border-white/[0.06] bg-[#180F0F] p-5">
-        <div className="flex items-center justify-between mb-4">
-          <p className="font-body text-white text-sm font-medium">Listener Trends</p>
-          <div className="flex items-center gap-6">
-            <div className="text-right"><p className="font-heading text-white text-sm font-bold">{listenerTrends.latest}</p><p className="font-body text-white/30 text-[10px]">Latest</p></div>
-            <div className="text-right"><p className="font-heading text-white text-sm font-bold">{listenerTrends.peak}</p><p className="font-body text-white/30 text-[10px]">Peak</p></div>
-            <div className="text-right"><p className="font-heading text-white text-sm font-bold">{listenerTrends.average}</p><p className="font-body text-white/30 text-[10px]">Average</p></div>
-          </div>
-        </div>
-        <GreenChart months={listenerTrends.months} data={listenerTrends.data} height={160} />
       </div>
     </div>
   );
 }
 
 /* ─── Tracks view ─────────────────────────────────────────────── */
-function TracksView() {
-  return (
-    <div className="rounded-2xl border border-dashed border-[#C30100]/25 bg-[#180F0F] p-5">
-      <div className="flex items-center justify-between mb-4">
-        <p className="font-body text-white text-sm font-medium">Top Tracks</p>
-        <p className="font-body text-white/40 text-xs">20 Tracks</p>
-      </div>
-      <div className="flex flex-col gap-3">
-        {MOCK_ANALYTICS.topTracks.map((track) => (
-          <div key={track.id} className="flex items-center gap-3">
-            <span className="font-body text-white/30 text-xs w-5 shrink-0">{track.rank}</span>
-            <div className="relative w-9 h-9 rounded-lg overflow-hidden shrink-0">
-              <Image src={track.cover} alt={track.title} fill className="object-cover" unoptimized />
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="font-body text-white text-xs">{track.title}</p>
-              <p className="font-body text-white/30 text-[10px]">{track.year}</p>
-              <div className="mt-1 h-1 bg-white/[0.06] rounded-full overflow-hidden w-full">
-                <div className="h-full bg-[#C30100] rounded-full" style={{ width: `${track.progress}%` }} />
-              </div>
-            </div>
-            <p className="font-body text-white/60 text-xs shrink-0">{track.streams}</p>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
+function TracksView() { return <ComingSoonView title="Top Tracks" />; }
 
 /* ─── Platforms view ──────────────────────────────────────────── */
-function PlatformsView() {
-  return (
-    <div className="rounded-2xl border border-dashed border-[#C30100]/25 bg-[#180F0F] p-5">
-      <div className="flex items-center justify-between mb-4">
-        <p className="font-body text-white text-sm font-medium">Streams by Territory</p>
-        <p className="font-body text-white/40 text-xs">$1.5K</p>
-      </div>
-      <div className="flex flex-col gap-3">
-        {MOCK_ANALYTICS.streamsByTerritory.map((p) => (
-          <div key={p.id} className="flex items-center gap-3 py-3 border-b border-white/[0.05] last:border-0">
-            <span className="font-body text-white/30 text-xs w-5 shrink-0">{p.rank}</span>
-            <div className="w-8 h-8 rounded-lg overflow-hidden shrink-0 bg-[#0E0808] flex items-center justify-center">
-              <Image src={p.logo} alt={p.name} width={20} height={20} unoptimized />
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="font-body text-white text-sm font-medium">{p.name}</p>
-              <p className="font-body text-white/40 text-[11px]">{p.territories} territories · avg {p.avgPerStream}/stream</p>
-            </div>
-            <div className="text-right shrink-0">
-              <p className="font-body text-white text-xs">{p.streams} · <span className="text-white/40">{p.change}</span></p>
-              <p className="font-body text-[#C30100] text-xs">{p.revenue}</p>
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
+function PlatformsView() { return <ComingSoonView title="Streams by Platform" />; }
 
 /* ─── Geography view ──────────────────────────────────────────── */
-function GeographyView() {
-  const maxStreams = Math.max(...MOCK_ANALYTICS.territoryBar.map(t => t.streams));
-  return (
-    <div className="grid grid-cols-2 gap-4">
-      <div className="rounded-2xl border border-dashed border-[#C30100]/25 bg-[#180F0F] p-5">
-        <p className="font-body text-white text-sm font-medium mb-4">Streams by Territory</p>
-        <div className="flex flex-col gap-3">
-          {MOCK_ANALYTICS.territoryBar.map((t) => (
-            <div key={t.country} className="flex items-center gap-3">
-              <span className="text-base w-6 shrink-0">{t.flag}</span>
-              <p className="font-body text-white/60 text-xs w-24 shrink-0 truncate">{t.country}</p>
-              <div className="flex-1 h-5 bg-white/[0.04] rounded-sm overflow-hidden">
-                <div className="h-full bg-[#C30100] rounded-sm" style={{ width: `${(t.streams / maxStreams) * 100}%` }} />
-              </div>
-            </div>
-          ))}
-          {/* X axis labels */}
-          <div className="flex justify-between mt-1 pl-[120px]">
-            {["0","700k","1.4M","2.1M","2.8M"].map(l => (
-              <span key={l} className="font-body text-white/20 text-[9px]">{l}</span>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      <div className="rounded-2xl border border-dashed border-[#C30100]/25 bg-[#180F0F] p-5">
-        <p className="font-body text-white text-sm font-medium mb-4">Platform Streams</p>
-        <div className="flex flex-col gap-2">
-          {MOCK_ANALYTICS.platformStreams.map((p) => (
-            <div key={p.id} className="flex items-center gap-3 py-2 border-b border-white/[0.04] last:border-0">
-              <span className="font-body text-white/30 text-xs w-4 shrink-0">{p.rank}</span>
-              <div className="w-7 h-7 rounded-full overflow-hidden shrink-0 bg-[#0E0808] flex items-center justify-center">
-                <Image src={p.logo} alt={p.name} width={16} height={16} unoptimized />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="font-body text-white text-xs">{p.name}</p>
-                <p className="font-body text-white/30 text-[10px]">avg {p.avgPerStream}/stream</p>
-              </div>
-              <p className="font-body text-white/60 text-xs shrink-0">{p.streams}</p>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
+/* ─── GeographyView ─────────────────────────────────────────────── */
+function GeographyView() { return <ComingSoonView title="Streams by Geography" />; }
 
 /* ─── Trends view ─────────────────────────────────────────────── */
-function TrendsView() {
-  const { streamingTrends, platformMiniCards } = MOCK_ANALYTICS;
-  const platforms = ["All", "Amazon", "Apple Music", "Spotify", "Audiomack", "Boomplay", "Deezer"];
-  const [activePlatform, setActivePlatform] = useState("Amazon");
-
-  return (
-    <div className="flex flex-col gap-5">
-      <div className="rounded-2xl border border-white/[0.06] bg-[#180F0F] p-5">
-        <p className="font-body text-white text-sm font-medium mb-4">Streaming Trends</p>
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex gap-2 flex-wrap">
-            {platforms.map((p) => (
-              <button key={p} onClick={() => setActivePlatform(p)}
-                className={["font-body text-xs rounded-full px-3 py-1 border transition-colors",
-                  activePlatform === p ? "border-[#C30100] bg-[#C30100]/20 text-white" : "border-white/10 text-white/40 hover:border-white/20"].join(" ")}>
-                {p}
-              </button>
-            ))}
-          </div>
-          <div className="flex items-center gap-4 shrink-0">
-            <div className="text-right"><p className="font-heading text-white text-sm font-bold">{streamingTrends.latest}</p><p className="font-body text-white/30 text-[10px]">Latest</p></div>
-            <div className="text-right"><p className="font-heading text-white text-sm font-bold">{streamingTrends.peak}</p><p className="font-body text-white/30 text-[10px]">Peak</p></div>
-            <div className="text-right"><p className="font-heading text-white text-sm font-bold">{streamingTrends.average}</p><p className="font-body text-white/30 text-[10px]">Average</p></div>
-          </div>
-        </div>
-        <GreenChart months={streamingTrends.months} data={streamingTrends.data} height={200} />
-      </div>
-
-      <div className="grid grid-cols-3 gap-3">
-        {platformMiniCards.map((card, i) => (
-          <div key={i} className="rounded-xl border border-white/[0.06] bg-[#180F0F] p-4">
-            <p className="font-body text-white/60 text-xs mb-1">{card.name}</p>
-            <div className="flex items-center gap-2 mb-2">
-              <p className="font-heading text-white text-lg font-bold">{card.streams}</p>
-              <span className="font-body text-[10px]" style={{ color: card.positive ? "#22c55e" : "#C30100" }}>{card.change}</span>
-            </div>
-            <Sparkline data={MOCK_ANALYTICS.streamingTrends.data} color={card.color} />
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-/* ─── Live stats cards (shared by Charts/Playlists/Radio) ─────── */
-function LiveStats() {
-  const { liveStats } = MOCK_ANALYTICS;
-  return (
-    <div className="grid grid-cols-3 gap-4">
-      {[
-        { label: "Chart Entries", value: liveStats.chartEntries.toString(), sub: "Active positions" },
-        { label: "Peak Position", value: liveStats.peakPosition, sub: liveStats.peakSub },
-        { label: "New This Week", value: liveStats.newThisWeek.toString(), sub: "NEW debuts" },
-      ].map((s) => (
-        <div key={s.label} className="rounded-xl border border-white/[0.06] bg-[#180F0F] p-4">
-          <p className="font-body text-white/60 text-xs mb-2">{s.label}</p>
-          <p className="font-heading text-white text-3xl font-bold mb-1">{s.value}</p>
-          <p className="font-body text-white/30 text-[11px]">{s.sub}</p>
-        </div>
-      ))}
-    </div>
-  );
-}
+/* ─── TrendsView ─────────────────────────────────────────────── */
+function TrendsView() { return <ComingSoonView title="Streaming Trends" />; }
 
 /* ─── Charts view ─────────────────────────────────────────────── */
-function ChartsView() {
-  return (
-    <div className="flex flex-col gap-4">
-      <LiveStats />
-      <div className="rounded-2xl border border-dashed border-[#C30100]/25 bg-[#180F0F] p-5">
-        <p className="font-body text-white text-sm font-medium mb-4">Chart Positions</p>
-        <div className="flex flex-col gap-0">
-          {MOCK_ANALYTICS.chartPositions.map((cp) => (
-            <div key={cp.id} className="flex items-center gap-3 py-3 border-b border-white/[0.05] last:border-0">
-              <div className="w-10 h-10 rounded-full bg-[#C30100]/20 border border-[#C30100]/40 flex items-center justify-center shrink-0">
-                <span className="font-heading text-[#C30100] text-sm font-bold">{cp.position}</span>
-              </div>
-              <div className="relative w-9 h-9 rounded-lg overflow-hidden shrink-0">
-                <Image src={cp.cover} alt={cp.title} fill className="object-cover" unoptimized />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="font-body text-white text-sm">{cp.title}</p>
-                <p className="font-body text-white/40 text-xs">{cp.chart}</p>
-              </div>
-              <div className="flex items-center gap-1.5 shrink-0">
-                <div className="w-1.5 h-1.5 rounded-full bg-green-500" />
-                <span className="font-body text-white/50 text-xs">{cp.country}</span>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
+/* ─── ChartsView ─────────────────────────────────────────────── */
+function ChartsView() { return <ComingSoonView title="Chart Positions" />; }
 
 /* ─── Playlists view ──────────────────────────────────────────── */
-function PlaylistsView() {
-  const [filter, setFilter] = useState<"all" | "active" | "pending">("all");
-  const filtered = MOCK_ANALYTICS.playlistPlacements.filter(p =>
-    filter === "all" || p.status === filter
-  );
-
-  return (
-    <div className="flex flex-col gap-4">
-      <LiveStats />
-      <div className="rounded-2xl border border-dashed border-[#C30100]/25 bg-[#180F0F] p-5">
-        <div className="flex items-center justify-between mb-4">
-          <p className="font-body text-white text-sm font-medium">Playlist Placements</p>
-          <div className="flex gap-1.5">
-            {(["all", "active", "pending"] as const).map((f) => (
-              <button key={f} onClick={() => setFilter(f)}
-                className={["font-body text-[10px] rounded-full px-2.5 py-1 capitalize border transition-colors",
-                  filter === f ? "border-[#C30100] bg-[#C30100]/20 text-white" : "border-white/10 text-white/40"].join(" ")}>
-                {f}
-              </button>
-            ))}
-          </div>
-        </div>
-        <div className="grid grid-cols-4 gap-2 mb-2 px-2">
-          <span className="font-body text-white/30 text-[10px] col-span-2">Playlist</span>
-          <span className="font-body text-white/30 text-[10px] text-right">Followers</span>
-          <span className="font-body text-white/30 text-[10px] text-right">Streams</span>
-        </div>
-        {filtered.map((p) => (
-          <div key={p.id} className="flex items-center gap-3 py-3 border-b border-white/[0.04] last:border-0">
-            <div className="relative w-9 h-9 rounded-lg overflow-hidden shrink-0">
-              <Image src={p.cover} alt={p.name} fill className="object-cover" unoptimized />
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="font-body text-white text-sm">{p.name}</p>
-              <p className="font-body text-white/40 text-xs">{p.platform} · "{p.track}"</p>
-            </div>
-            <p className="font-body text-white/60 text-xs w-16 text-right shrink-0">{p.followers}</p>
-            <p className="font-body text-white/60 text-xs w-14 text-right shrink-0">{p.streams.toLocaleString()}</p>
-            <span className="font-body text-[10px] rounded-full px-2.5 py-1 shrink-0 w-16 text-center"
-              style={p.status === "active"
-                ? { color: "#22c55e", backgroundColor: "rgba(34,197,94,0.12)" }
-                : { color: "#f97316", backgroundColor: "rgba(249,115,22,0.12)" }}>
-              {p.status === "active" ? "Active" : "Pending"}
-            </span>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
+/* ─── PlaylistsView ─────────────────────────────────────────────── */
+function PlaylistsView() { return <ComingSoonView title="Playlist Placements" />; }
 
 /* ─── Radio view ──────────────────────────────────────────────── */
-function RadioView() {
-  return (
-    <div className="flex flex-col gap-4">
-      <LiveStats />
-      <div className="rounded-2xl border border-dashed border-[#C30100]/25 bg-[#180F0F] p-5">
-        <p className="font-body text-white text-sm font-medium mb-4">Radio Appearances</p>
-        <div className="grid grid-cols-4 gap-2 mb-3 px-1">
-          <span className="font-body text-white/30 text-[10px] col-span-2">Station</span>
-          <span className="font-body text-white/30 text-[10px]">Track</span>
-          <div className="grid grid-cols-3 gap-1">
-            <span className="font-body text-white/30 text-[10px] text-right">Plays</span>
-            <span className="font-body text-white/30 text-[10px] text-right">Reach</span>
-            <span className="font-body text-white/30 text-[10px] text-right">Region</span>
-          </div>
-        </div>
-        {MOCK_ANALYTICS.radioAppearances.map((r) => (
-          <div key={r.id} className="grid grid-cols-4 gap-2 items-center py-3 border-b border-white/[0.04] last:border-0">
-            <div className="col-span-2">
-              <p className="font-body text-white text-sm">{r.station}</p>
-              <p className="font-body text-white/40 text-xs">{r.genre}</p>
-            </div>
-            <p className="font-body text-white/70 text-sm">{r.track}</p>
-            <div className="grid grid-cols-3 gap-1">
-              <p className="font-body text-white/60 text-xs text-right">{r.plays}</p>
-              <p className="font-body text-white/60 text-xs text-right">{r.reach}</p>
-              <p className="font-body text-white/60 text-xs text-right">{r.region}</p>
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
+/* ─── RadioView ─────────────────────────────────────────────── */
+function RadioView() { return <ComingSoonView title="Radio Appearances" />; }
 
 /* ─── Socials view ────────────────────────────────────────────── */
-function SocialsView() {
-  const { socials, socialGrowth } = MOCK_ANALYTICS;
-  const platforms = ["TikTok", "Instagram", "Facebook", "Twitter", "Deezer", "Boomplay"];
-  const [activePlatform, setActivePlatform] = useState("Instagram");
-  const [metric, setMetric] = useState("Followers");
-
-  return (
-    <div className="flex flex-col gap-5">
-      <div className="grid grid-cols-4 gap-4">
-        {socials.map((s) => (
-          <div key={s.platform} className="rounded-xl border border-white/[0.06] bg-[#180F0F] p-4">
-            <div className="flex items-center justify-between mb-2">
-              <p className="font-body text-white/60 text-xs">{s.platform}</p>
-              <span className="font-body text-[10px]" style={{ color: s.positive ? "#22c55e" : "#C30100" }}>{s.change}</span>
-            </div>
-            <p className="font-heading text-white text-2xl font-bold mb-0.5">{s.followers}</p>
-            <p className="font-body text-white/30 text-[10px]">Followers</p>
-          </div>
-        ))}
-      </div>
-
-      <div className="rounded-2xl border border-white/[0.06] bg-[#180F0F] p-5">
-        <p className="font-body text-white text-sm font-medium mb-4">Social Growth</p>
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex gap-2 flex-wrap items-center">
-            {platforms.map((p) => (
-              <button key={p} onClick={() => setActivePlatform(p)}
-                className={["font-body text-xs rounded-full px-2.5 py-1 border transition-colors",
-                  activePlatform === p ? "border-[#C30100] bg-[#C30100]/20 text-white" : "border-white/10 text-white/40"].join(" ")}>
-                {p}
-              </button>
-            ))}
-          </div>
-          <div className="flex items-center gap-4 shrink-0">
-            <div className="text-right"><p className="font-heading text-white text-sm font-bold">{socialGrowth.latest}</p><p className="font-body text-white/30 text-[10px]">Latest</p></div>
-            <div className="text-right"><p className="font-heading text-white text-sm font-bold">{socialGrowth.peak}</p><p className="font-body text-white/30 text-[10px]">Peak</p></div>
-            <div className="text-right"><p className="font-heading text-white text-sm font-bold">{socialGrowth.average}</p><p className="font-body text-white/30 text-[10px]">Average</p></div>
-          </div>
-        </div>
-        <div className="flex gap-2 mb-4">
-          {["Followers", "Likes", "Posts"].map((m) => (
-            <button key={m} onClick={() => setMetric(m)}
-              className={["font-body text-xs rounded-full px-3 py-1.5 border transition-colors",
-                metric === m ? "border-white/30 text-white" : "border-white/10 text-white/40"].join(" ")}>
-              {m}
-            </button>
-          ))}
-        </div>
-        <GreenChart months={socialGrowth.months} data={socialGrowth.data} height={200} />
-      </div>
-    </div>
-  );
-}
+/* ─── SocialsView ─────────────────────────────────────────────── */
+function SocialsView() { return <ComingSoonView title="Social Media" />; }
 
 /* ─── View switcher dropdown ──────────────────────────────────── */
 function ViewDropdown({ value, onChange }: { value: AnalyticsView; onChange: (v: AnalyticsView) => void }) {
@@ -593,7 +276,7 @@ function ViewDropdown({ value, onChange }: { value: AnalyticsView; onChange: (v:
         <>
           <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
           <div className="absolute right-0 top-full mt-1 z-20 bg-[#1A0808] border border-white/[0.08] rounded-xl overflow-hidden shadow-xl min-w-[160px]">
-            {VIEW_OPTIONS.map((opt) => (
+            {VIEW_OPTIONS.map((opt: { label: string; value: AnalyticsView; live?: boolean }) => (
               <button key={opt.value}
                 onClick={() => { onChange(opt.value); setOpen(false); }}
                 className={["w-full text-left px-4 py-2.5 font-body text-sm transition-colors hover:bg-white/[0.05] flex items-center justify-between gap-2",

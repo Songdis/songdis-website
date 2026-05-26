@@ -37,8 +37,9 @@ export function useUser() {
 
   useEffect(() => {
     // Step 1 — check sessionStorage first (written by signIn)
+    // Must have a real user id to be considered valid — not just { google: true }
     const cached = getCached();
-    if (cached) {
+    if (cached?.id) {
       setUser(cached);
       setIsLoading(false);
       return;
@@ -50,8 +51,6 @@ export function useUser() {
 
     getUser().then((res) => {
       if (cancelled) return;
-
-      console.log("Fetched user from API:", res, "Error:", res.error);
 
       // GET /user may return user directly or nested under .user
       const raw = res.data as Record<string, unknown> | null;

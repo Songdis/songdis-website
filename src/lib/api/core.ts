@@ -8,7 +8,10 @@
  */
 
 export const BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL ?? "https://pssckrm3zr.eu-west-2.awsapprunner.com/api";
+  process.env.NEXT_PUBLIC_API_URL ?? "https://api.songdis.com";
+
+export const AYO_BASE_URL =
+  process.env.NEXT_PUBLIC_AYO_URL ?? "https://ayo.songdis.com";
 
 /* ─── Token helpers (localStorage) ───────────────────────────── */
 const TOKEN_KEY = "songdis_token";

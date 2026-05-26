@@ -36,6 +36,7 @@ interface Testimonial {
   name: string;
   flag: string;
   country: string;
+  avatar?: string;
 }
 
 /* ─────────────────────────────────────────────────────────
@@ -48,6 +49,7 @@ const LEFT_TESTIMONIALS: Testimonial[] = [
     name: "Reechdee",
     flag: "🇳🇬",
     country: "Nigeria",
+    avatar: "/images/rechdee.jpg",
   },
   {
     quote:
@@ -55,6 +57,7 @@ const LEFT_TESTIMONIALS: Testimonial[] = [
     name: "Kdiv Coco",
     flag: "🇳🇬",
     country: "Nigeria",
+    avatar: "/images/kdiv.jpg",
   },
   {
     quote:
@@ -62,6 +65,7 @@ const LEFT_TESTIMONIALS: Testimonial[] = [
     name: "Switorla",
     flag: "🇬🇭",
     country: "Ghana",
+    avatar: "/images/swirtola.jpg",
   },
 ];
 
@@ -72,6 +76,7 @@ const CENTER_TESTIMONIALS: Testimonial[] = [
     name: "Emmybrown",
     flag: "🇳🇬",
     country: "Nigeria",
+    avatar: "/images/emmy.svg",
   },
   {
     quote:
@@ -79,6 +84,7 @@ const CENTER_TESTIMONIALS: Testimonial[] = [
     name: "Switorla",
     flag: "🇬🇭",
     country: "Ghana",
+    avatar: "/images/swirtola.jpg",
   },
   {
     quote:
@@ -86,6 +92,7 @@ const CENTER_TESTIMONIALS: Testimonial[] = [
     name: "Bri Tse",
     flag: "🇳🇬",
     country: "Nigeria",
+    avatar: "/images/bri.jpg",
   },
   {
     quote:
@@ -93,6 +100,7 @@ const CENTER_TESTIMONIALS: Testimonial[] = [
     name: "Emmybrown",
     flag: "🇳🇬",
     country: "Nigeria",
+    avatar: "/images/emmy.svg",
   },
 ];
 
@@ -103,6 +111,7 @@ const RIGHT_TESTIMONIALS: Testimonial[] = [
     name: "R33nzo",
     flag: "🇳🇬",
     country: "Nigeria",
+    avatar: "/images/rezzno.jpg",
   },
   {
     quote:
@@ -110,6 +119,7 @@ const RIGHT_TESTIMONIALS: Testimonial[] = [
     name: "Reechdee",
     flag: "🇳🇬",
     country: "Nigeria",
+    avatar: "/images/rechdee.jpg",
   },
   {
     quote:
@@ -117,6 +127,7 @@ const RIGHT_TESTIMONIALS: Testimonial[] = [
     name: "Reechdee",
     flag: "🇳🇬",
     country: "Nigeria",
+    avatar: "/images/rechdee.jpg",
   },
 ];
 
@@ -161,10 +172,10 @@ const TestimonialCard: React.FC<{ testimonial: Testimonial }> = ({
       <div className="flex items-center gap-3">
         <div className="relative w-10 h-10 rounded-full overflow-hidden shrink-0 border border-white/10">
           <Image
-            src="/images/avatar-artiste.svg"
+            src={testimonial.avatar ?? "/images/avatar-artiste.svg"}
             alt={testimonial.name}
             fill
-            className="object-cover"
+            className="object-cover object-top"
             loading="lazy"
           />
         </div>
