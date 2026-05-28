@@ -76,7 +76,7 @@ const CENTER_TESTIMONIALS: Testimonial[] = [
     name: "Emmybrown",
     flag: "🇳🇬",
     country: "Nigeria",
-    avatar: "/images/emmy.svg",
+    avatar: "/images/emmy.webp",
   },
   {
     quote:
@@ -100,7 +100,7 @@ const CENTER_TESTIMONIALS: Testimonial[] = [
     name: "Emmybrown",
     flag: "🇳🇬",
     country: "Nigeria",
-    avatar: "/images/emmy.svg",
+    avatar: "/images/emmy.webp",
   },
 ];
 
