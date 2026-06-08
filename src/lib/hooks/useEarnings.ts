@@ -1,3 +1,7 @@
+/**
+ * lib/hooks/useEarnings.ts
+ */
+
 import { useState, useEffect, useCallback } from "react";
 import {
   getBalance,
@@ -36,41 +40,59 @@ export function useEarningsBalance() {
 
   useEffect(() => { load(); }, [load]);
 
-  // Derived display values
-  const totalBalance   = balance?.balance_usd ?? balance?.total_earnings ?? 0;
-  const thisMonth      = balance?.this_month ?? 0;
-  const fromReleases   = balance?.from_releases ?? 0;
-  const fromSplits     = balance?.from_splits ?? 0;
+  // Map confirmed API fields:
+  // data.total_available_usd  → Total Balance
+  // data.breakdown.from_my_releases → This Month (best proxy available)
+  // data.breakdown.from_my_releases → From Releases
+  // data.split_earnings_usd   → From Splits
+  const d = balance as Record<string, unknown> | null;
+  const breakdown = (d?.breakdown as Record<string, unknown>) ?? {};
+  const totalBalance = (d?.total_available_usd ?? d?.balance_usd ?? d?.total_earnings ?? 0) as number;
+  const thisMonth    = (d?.this_month ?? breakdown?.this_month ?? 0) as number;
+  const fromReleases = (breakdown?.from_my_releases ?? d?.from_releases ?? 0) as number;
+  const fromSplits   = (d?.split_earnings_usd ?? breakdown?.from_splits ?? d?.from_splits ?? 0) as number;
 
   return { balance, totalBalance, thisMonth, fromReleases, fromSplits, isLoading, error, refresh: load };
 }
 
 /* ─── useWithdrawalHistory ────────────────────────────────────── */
-export function useWithdrawalHistory() {
+export function useWithdrawalHistory(pageSize = 10) {
   const [history, setHistory] = useState<WithdrawalRecord[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (p = 1) => {
     setIsLoading(true);
     const res = await getWithdrawalHistory();
     if (res.error) {
       setError(res.error);
     } else {
-      const raw = res.data;
-      const list = Array.isArray(raw)
-        ? raw
-        : Array.isArray((raw as unknown as Record<string, unknown>)?.data)
-        ? ((raw as unknown as Record<string, unknown>).data as WithdrawalRecord[])
-        : [];
-      setHistory(list);
+      const raw = res.data as Record<string, unknown> | null;
+      let list: WithdrawalRecord[] = [];
+      let total = 1;
+
+      if (Array.isArray(raw)) {
+        list = raw as WithdrawalRecord[];
+        total = Math.ceil(list.length / pageSize);
+      } else if (Array.isArray(raw?.data)) {
+        list = raw.data as WithdrawalRecord[];
+        total = Math.ceil(((raw.total as number) ?? list.length) / pageSize);
+      }
+
+      setHistory(list.slice((p - 1) * pageSize, p * pageSize));
+      setTotalPages(Math.max(1, total));
+      setPage(p);
     }
     setIsLoading(false);
-  }, []);
+  }, [pageSize]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => { load(1); }, [load]);
 
-  return { history, isLoading, error, refresh: load };
+  const goToPage = (p: number) => { if (p >= 1 && p <= totalPages) load(p); };
+
+  return { history, isLoading, error, refresh: () => load(page), page, totalPages, goToPage };
 }
 
 /* ─── useBanks ────────────────────────────────────────────────── */

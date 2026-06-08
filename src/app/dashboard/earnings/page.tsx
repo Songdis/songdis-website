@@ -18,7 +18,7 @@ function StatCard({ label, value, icon, highlight }: {
       highlight ? "border-[#C30100]/40 bg-[#C30100]/10" : "border-white/[0.06] bg-[#180F0F]"].join(" ")}>
       <div className="flex items-center justify-between">
         <p className="font-body text-white/60 text-xs">{label}</p>
-        <div className="w-12 h-12 rounded-lg bg-white/[0.05] flex items-center justify-center relative">
+        <div className="w-12 h-12 rounded-lg flex items-center justify-center relative">
           <Image src={icon} alt={label} width={66} height={66} unoptimized />
         </div>
       </div>
@@ -53,10 +53,10 @@ export default function EarningsPage() {
 
   /* Real API data */
   const { totalBalance, thisMonth, fromReleases, fromSplits, isLoading: balanceLoading, refresh: refreshBalance } = useEarningsBalance();
-  const { history, isLoading: historyLoading } = useWithdrawalHistory();
+  const { history, isLoading: historyLoading, page: txPage, totalPages: txTotalPages, goToPage: txGoToPage } = useWithdrawalHistory(10);
 
   /* Still mock — split earnings and revenue by platform need dedicated endpoints */
-  const { revenueByPlatform, withdrawalInfo } = MOCK_EARNINGS;
+  const { withdrawalInfo } = MOCK_EARNINGS;
   const { earnings: splitEarningsData, isLoading: splitsLoading } = useSplitEarnings();
 
   return (
@@ -64,7 +64,13 @@ export default function EarningsPage() {
       <div className="flex flex-col gap-5">
 
         {/* Stat cards */}
-        <div className="grid grid-cols-4 gap-4">
+        {/* <div className="grid grid-cols-4 gap-4">
+          <StatCard label="Total Balance"  value={balanceLoading ? "..." : fmt(totalBalance)}  icon="/icons/earnings/balance.svg"  highlight />
+          <StatCard label="This Month"     value={balanceLoading ? "..." : fmt(thisMonth)}     icon="/icons/earnings/month.svg" />
+          <StatCard label="From Releases"  value={balanceLoading ? "..." : fmt(fromReleases)}  icon="/icons/earnings/releases.svg" />
+          <StatCard label="From Splits"    value={balanceLoading ? "..." : fmt(fromSplits)}    icon="/icons/earnings/splits.svg" />
+        </div> */}
+         <div className="grid grid-cols-4 gap-4">
           <StatCard label="Total Balance"  value={balanceLoading ? "..." : fmt(totalBalance)}  icon="/images/balance.svg"  highlight />
           <StatCard label="This Month"     value={balanceLoading ? "..." : fmt(thisMonth)}     icon="/images/month.svg" />
           <StatCard label="From Releases"  value={balanceLoading ? "..." : fmt(fromReleases)}  icon="/images/releases.svg" />
@@ -156,45 +162,75 @@ export default function EarningsPage() {
           )}
         </div>
 
-        {/* Revenue by Platform — still mock */}
+        {/* Revenue by Platform — pending endpoint */}
         <div className="rounded-2xl border border-white/[0.06] bg-[#180F0F] p-5">
           <p className="font-body text-white text-sm font-medium mb-5">Revenue by platform</p>
-          <div className="flex flex-col gap-3">
-            {revenueByPlatform.map((p) => <RevenueBar key={p.platform} {...p} />)}
+          <div className="flex flex-col items-center justify-center py-8 gap-2">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-white/20">
+              <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+            </svg>
+            <p className="font-body text-white/30 text-sm">No data available</p>
+            <p className="font-body text-white/20 text-xs">Platform revenue breakdown will appear once the endpoint is available.</p>
           </div>
         </div>
 
-        {/* Transaction History — real API */}
+        {/* Transaction History — real API with pagination */}
         <div className="rounded-2xl border border-white/[0.06] bg-[#180F0F] p-5">
-          <p className="font-body text-white text-sm font-medium mb-4">Transaction History</p>
+          <div className="flex items-center justify-between mb-4">
+            <p className="font-body text-white text-sm font-medium">Transaction History</p>
+            {txTotalPages > 1 && (
+              <p className="font-body text-white/40 text-xs">Page {txPage} of {txTotalPages}</p>
+            )}
+          </div>
           {historyLoading ? (
             <p className="font-body text-white/30 text-sm text-center py-6">Loading transactions...</p>
           ) : history.length === 0 ? (
             <p className="font-body text-white/30 text-sm text-center py-6">No transactions yet.</p>
           ) : (
-            <div className="flex flex-col">
-              {history.map((tx, i) => (
-                <div key={tx.id}
-                  className={["flex items-center justify-between py-4",
-                    i < history.length - 1 ? "border-b border-white/[0.05]" : ""].join(" ")}>
-                  <div>
-                    <p className="font-body text-white text-sm">
-                      Withdrawal — {tx.target_currency}
-                    </p>
-                    <p className="font-body text-white/40 text-xs mt-0.5">
-                      {new Date(tx.created_at).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })}
-                      {" · "}
-                      <span className={tx.status === "completed" ? "text-green-400" : "text-yellow-400"}>
-                        {tx.status}
-                      </span>
+            <>
+              <div className="flex flex-col">
+                {history.map((tx, i) => (
+                  <div key={tx.id}
+                    className={["flex items-center justify-between py-4",
+                      i < history.length - 1 ? "border-b border-white/[0.05]" : ""].join(" ")}>
+                    <div>
+                      <p className="font-body text-white text-sm">
+                        Withdrawal — {tx.target_currency}
+                      </p>
+                      <p className="font-body text-white/40 text-xs mt-0.5">
+                        {new Date(tx.created_at as string).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })}
+                        {" · "}
+                        <span className={(tx.status as string) === "completed" ? "text-green-400" : "text-yellow-400"}>
+                          {tx.status as string}
+                        </span>
+                      </p>
+                    </div>
+                    <p className="font-heading text-[#C30100] text-sm font-bold">
+                      {fmt((tx.amount_usd as number) ?? 0)}
                     </p>
                   </div>
-                  <p className="font-heading text-[#C30100] text-sm font-bold">
-                    {fmt(tx.amount_usd)}
-                  </p>
+                ))}
+              </div>
+              {txTotalPages > 1 && (
+                <div className="flex items-center justify-center gap-3 mt-4 pt-4 border-t border-white/[0.05]">
+                  <button
+                    onClick={() => txGoToPage(txPage - 1)}
+                    disabled={txPage === 1}
+                    className="font-body text-white/50 text-xs border border-white/10 hover:border-white/25 rounded-full px-4 py-1.5 transition-colors disabled:opacity-30"
+                  >
+                    Previous
+                  </button>
+                  <span className="font-body text-white/30 text-xs">{txPage} / {txTotalPages}</span>
+                  <button
+                    onClick={() => txGoToPage(txPage + 1)}
+                    disabled={txPage === txTotalPages}
+                    className="font-body text-white/50 text-xs border border-white/10 hover:border-white/25 rounded-full px-4 py-1.5 transition-colors disabled:opacity-30"
+                  >
+                    Next
+                  </button>
                 </div>
-              ))}
-            </div>
+              )}
+            </>
           )}
         </div>
 

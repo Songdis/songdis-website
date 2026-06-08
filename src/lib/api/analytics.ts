@@ -26,6 +26,7 @@ export interface DateRangeParams {
   start_date?: string;
   end_date?: string;
   platform?: string;
+  [key: string]: unknown;
 }
 
 function buildQs(params: DateRangeParams & Record<string, unknown>): string {
@@ -93,7 +94,7 @@ export interface AnalyticsSummary {
 
 export async function getStreams(params: DateRangeParams = {}) {
   return request<AnalyticsSummary>(
-    `/streams${buildQs(params as DateRangeParams & Record<string, unknown>)}`,
+    `/streams${buildQs(params)}`,
     { method: "GET" },
     true
   );
@@ -101,7 +102,7 @@ export async function getStreams(params: DateRangeParams = {}) {
 
 export async function getStreamsData(params: DateRangeParams = {}) {
   return request<StreamsData>(
-    `/streams-data${buildQs(params as DateRangeParams & Record<string, unknown>)}`,
+    `/streams-data${buildQs(params)}`,
     { method: "GET" },
     true
   );
@@ -109,7 +110,7 @@ export async function getStreamsData(params: DateRangeParams = {}) {
 
 export async function getDailyStreams(params: DateRangeParams = {}) {
   return request<StreamsData>(
-    `/daily-streams${buildQs(params as DateRangeParams & Record<string, unknown>)}`,
+    `/daily-streams${buildQs(params)}`,
     { method: "GET" },
     true
   );
@@ -117,7 +118,7 @@ export async function getDailyStreams(params: DateRangeParams = {}) {
 
 export async function getWeeklyStreams(params: DateRangeParams = {}) {
   return request<StreamsData>(
-    `/weekly-streams${buildQs(params as DateRangeParams & Record<string, unknown>)}`,
+    `/weekly-streams${buildQs(params)}`,
     { method: "GET" },
     true
   );
@@ -125,7 +126,7 @@ export async function getWeeklyStreams(params: DateRangeParams = {}) {
 
 export async function getMonthlyStreams(params: DateRangeParams = {}) {
   return request<StreamsData>(
-    `/monthly-streams${buildQs(params as DateRangeParams & Record<string, unknown>)}`,
+    `/monthly-streams${buildQs(params)}`,
     { method: "GET" },
     true
   );
@@ -141,7 +142,7 @@ export async function getTopPlatforms() {
 
 export async function getGeographic(params: DateRangeParams & { platform?: string } = {}) {
   return request<GeographicData[]>(
-    `/geographic${buildQs(params as DateRangeParams & Record<string, unknown>)}`,
+    `/geographic${buildQs(params)}`,
     { method: "GET" },
     true
   );
@@ -157,7 +158,7 @@ export async function getCountry(code: string) {
 
 export async function getPlatforms(params: DateRangeParams = {}) {
   return request<TopPlatform[]>(
-    `/platforms${buildQs(params as DateRangeParams & Record<string, unknown>)}`,
+    `/platforms${buildQs(params)}`,
     { method: "GET" },
     true
   );
@@ -185,7 +186,7 @@ export async function compareReleases(payload: {
 
 export async function getMonthlyReport(params: DateRangeParams & { platform?: string } = {}) {
   return request<Record<string, unknown>>(
-    `/monthly-report${buildQs(params as DateRangeParams & Record<string, unknown>)}`,
+    `/monthly-report${buildQs(params)}`,
     { method: "GET" },
     true
   );
@@ -194,6 +195,23 @@ export async function getMonthlyReport(params: DateRangeParams & { platform?: st
 export async function getYearlyReport() {
   return request<Record<string, unknown>>(
     "/yearly-report",
+    { method: "GET" },
+    true
+  );
+}
+
+export async function getSoundchartsDashboard() {
+  return request<Record<string, unknown>>(
+    "/soundcharts/dashboard",
+    { method: "GET" },
+    true
+  );
+}
+
+export async function getSoundchartsStreamingHistory(linkId?: number | string) {
+  const qs = linkId ? `?link_id=${linkId}` : "";
+  return request<Record<string, unknown>>(
+    `/soundcharts/streaming/history${qs}`,
     { method: "GET" },
     true
   );

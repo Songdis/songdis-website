@@ -3,13 +3,14 @@
 import { useState } from "react";
 import Image from "next/image";
 import DashboardLayout from "@/components/dashboard/DashboardLayout";
-import { MOCK_ANALYTICS, VIEW_OPTIONS, type AnalyticsView } from "../../mock/analytics"; // MOCK_ANALYTICS used only for stat card fallbacks while loading
+// import { MOCK_ANALYTICS, VIEW_OPTIONS, type AnalyticsView } from "@/lib/mock/analytics"; // MOCK_ANALYTICS used only for stat card fallbacks while loading
 import { useAnalytics, type AnalyticsPageData } from "@/lib/hooks/useAnalytics";
 import {
   AreaChart, Area, BarChart, Bar,
   XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, Cell,
 } from "recharts";
+import { AnalyticsView, MOCK_ANALYTICS, VIEW_OPTIONS } from "@/app/mock/analytics";
 
 type Period = "30D" | "60D" | "90D" | "1YR" | "Custom Range";
 const PERIODS: Period[] = ["30D", "60D", "90D", "1YR", "Custom Range"];
@@ -26,7 +27,7 @@ function StatCard({ label, value, sub, icon, highlight, badge }: {
     ].join(" ")}>
       <div className="flex items-center justify-between">
         <p className="font-body text-white/60 text-xs">{label}</p>
-        <div className="w-12 h-12 rounded-lg  flex items-center justify-center">
+        <div className="w-12 h-12 rounded-lg flex items-center justify-center">
           <Image src={icon} alt={label} width={66} height={66} unoptimized />
         </div>
       </div>
@@ -148,17 +149,32 @@ function OverviewView({ data }: { data: AnalyticsPageData | null }) {
 
   return (
     <div className="flex flex-col gap-5">
-      {/* Monthly listeners highlight — no endpoint yet */}
+      {/* Monthly listeners highlight */}
       <div className="rounded-2xl border border-white/[0.06] bg-[#180F0F] p-5">
         <div className="flex items-center justify-between mb-3">
           <p className="font-body text-green-400 text-xs uppercase tracking-widest flex items-center gap-1.5">
             <span className="w-1.5 h-1.5 rounded-full bg-green-500" /> Monthly Listeners
           </p>
+          {data?.monthlyListeners.available && data.monthlyListeners.change && (
+            <span className="font-body text-xs rounded-full px-3 py-1"
+              style={{ color: "#22c55e", backgroundColor: "rgba(34,197,94,0.15)" }}>
+              {data.monthlyListeners.change}
+            </span>
+          )}
         </div>
-        <div className="flex flex-col items-center justify-center py-4 gap-1">
-          <p className="font-body text-white/30 text-sm">No data available</p>
-          <p className="font-body text-white/20 text-xs">Monthly listener data will appear here once available.</p>
-        </div>
+        {data?.monthlyListeners.available ? (
+          <div>
+            <p className="font-heading text-white text-4xl font-bold">{data.monthlyListeners.value}</p>
+            <p className="font-body text-white/40 text-xs mt-1">
+              {data.monthlyListeners.platform} · {data.monthlyListeners.period}
+            </p>
+          </div>
+        ) : (
+          <div className="flex flex-col items-center justify-center py-4 gap-1">
+            <p className="font-body text-white/30 text-sm">No data available</p>
+            <p className="font-body text-white/20 text-xs">Monthly listener data will appear here once available.</p>
+          </div>
+        )}
       </div>
 
       {/* Streams over time */}
@@ -263,7 +279,7 @@ function SocialsView() { return <ComingSoonView title="Social Media" />; }
 /* ─── View switcher dropdown ──────────────────────────────────── */
 function ViewDropdown({ value, onChange }: { value: AnalyticsView; onChange: (v: AnalyticsView) => void }) {
   const [open, setOpen] = useState(false);
-  const current = VIEW_OPTIONS.find(o => o.value === value);
+  const current = VIEW_OPTIONS.find((o: { label: string; value: AnalyticsView; live?: boolean }) => o.value === value);
 
   return (
     <div className="relative">
