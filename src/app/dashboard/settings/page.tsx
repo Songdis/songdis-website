@@ -5,6 +5,7 @@ import { useToast } from "@/components/ui/Toast";
 import { useState } from "react";
 import Image from "next/image";
 import DashboardLayout from "@/components/dashboard/DashboardLayout";
+import { GeneralTab } from "@/components/dashboard/settings/GeneralTab";
 
 /* ─── Types ───────────────────────────────────────────────────── */
 type Tab = "general" | "artist-profile" | "ayo-ai" | "notification" | "security" | "subscription";
@@ -265,138 +266,138 @@ function Toggle({ checked, onChange }: { checked: boolean; onChange: () => void 
 //   );
 // }
 
-function GeneralTab() {
-  const [firstName, setFirstName] = useState("");
-  const [lastName, setLastName] = useState("");
-  const [email, setEmail] = useState("");
-  const [accountType, setAccountType] = useState("");
-  const [address, setAddress] = useState("");
-  const [city, setCity] = useState("");
-  const [state, setState] = useState("");
-  const [zip, setZip] = useState("");
-  const [isSaving, setIsSaving] = useState(false);
-  const { success, error: toastError } = useToast();
+// function GeneralTab() {
+//   const [firstName, setFirstName] = useState("");
+//   const [lastName, setLastName] = useState("");
+//   const [email, setEmail] = useState("");
+//   const [accountType, setAccountType] = useState("");
+//   const [address, setAddress] = useState("");
+//   const [city, setCity] = useState("");
+//   const [state, setState] = useState("");
+//   const [zip, setZip] = useState("");
+//   const [isSaving, setIsSaving] = useState(false);
+//   const { success, error: toastError } = useToast();
 
-  // Load current user on mount from GET /user
-  useEffect(() => {
-    request<Record<string, unknown>>("/user", { method: "GET" }, true).then((res) => {
-      if (!res.error && res.data) {
-        const u = res.data as Record<string, unknown>;
-        const user = (u.user ?? u) as Record<string, unknown>;
-        setFirstName((user.first_name ?? "") as string);
-        setLastName((user.last_name ?? "") as string);
-        setEmail((user.email ?? "") as string);
-        setAccountType((user.account_type ?? "") as string);
-        setAddress((user.address ?? "") as string);
-        setCity((user.city ?? "") as string);
-        setState((user.state ?? "") as string);
-        setZip((user.zip_code ?? "") as string);
-      }
-    });
-  }, []);
+//   // Load current user on mount from GET /user
+//   useEffect(() => {
+//     request<Record<string, unknown>>("/user", { method: "GET" }, true).then((res) => {
+//       if (!res.error && res.data) {
+//         const u = res.data as Record<string, unknown>;
+//         const user = (u.user ?? u) as Record<string, unknown>;
+//         setFirstName((user.first_name ?? "") as string);
+//         setLastName((user.last_name ?? "") as string);
+//         setEmail((user.email ?? "") as string);
+//         setAccountType((user.account_type ?? "") as string);
+//         setAddress((user.address ?? "") as string);
+//         setCity((user.city ?? "") as string);
+//         setState((user.state ?? "") as string);
+//         setZip((user.zip_code ?? "") as string);
+//       }
+//     });
+//   }, []);
 
-  const handleSave = async () => {
-    setIsSaving(true);
-    const res = await request<Record<string, unknown>>(
-      "/update-profile",
-      {
-        method: "PUT",
-        body: JSON.stringify({
-          first_name: firstName,
-          last_name: lastName,
-          email,
-          address,
-          city,
-          state,
-          zip_code: zip,
-        }),
-      },
-      true
-    );
-    if (res.error) {
-      toastError("Update failed", res.error);
-    } else {
-      success("Profile updated!", "Your changes have been saved.");
-    }
-    setIsSaving(false);
-  };
+//   const handleSave = async () => {
+//     setIsSaving(true);
+//     const res = await request<Record<string, unknown>>(
+//       "/update-profile",
+//       {
+//         method: "PUT",
+//         body: JSON.stringify({
+//           first_name: firstName,
+//           last_name: lastName,
+//           email,
+//           address,
+//           city,
+//           state,
+//           zip_code: zip,
+//         }),
+//       },
+//       true
+//     );
+//     if (res.error) {
+//       toastError("Update failed", res.error);
+//     } else {
+//       success("Profile updated!", "Your changes have been saved.");
+//     }
+//     setIsSaving(false);
+//   };
 
-  return (
-    <div className="rounded-2xl border border-dashed border-[#C30100]/30 bg-[#180F0F] p-6">
-      {/* Photo */}
-      <div className="flex items-center gap-5 mb-7">
-        <div className="relative w-16 h-16 rounded-full overflow-hidden shrink-0 border border-white/10">
-          <Image src="/images/avatar-artiste.svg" alt="avatar" fill className="object-cover" unoptimized />
-        </div>
-        <div>
-          <button className="flex items-center gap-2 font-montserrat text-white text-sm border border-white/20 rounded-full px-4 py-2 hover:border-white/40 transition-colors">
-            <CameraIcon />
-            Change Photo
-          </button>
-          <p className="font-montserrat text-white/30 text-xs mt-2">JPG or PNG. 5MB max.</p>
-        </div>
-      </div>
+//   return (
+//     <div className="rounded-2xl border border-dashed border-[#C30100]/30 bg-[#180F0F] p-6">
+//       {/* Photo */}
+//       <div className="flex items-center gap-5 mb-7">
+//         <div className="relative w-16 h-16 rounded-full overflow-hidden shrink-0 border border-white/10">
+//           <Image src="/images/avatar-artiste.svg" alt="avatar" fill className="object-cover" unoptimized />
+//         </div>
+//         <div>
+//           <button className="flex items-center gap-2 font-montserrat text-white text-sm border border-white/20 rounded-full px-4 py-2 hover:border-white/40 transition-colors">
+//             <CameraIcon />
+//             Change Photo
+//           </button>
+//           <p className="font-montserrat text-white/30 text-xs mt-2">JPG or PNG. 5MB max.</p>
+//         </div>
+//       </div>
 
-      <div className="flex flex-col gap-4">
-        <div className="grid grid-cols-2 gap-4">
-          <Field label="First Name">
-            <Input value={firstName} onChange={setFirstName} placeholder="Enter first name" />
-          </Field>
-          <Field label="Last Name">
-            <Input value={lastName} onChange={setLastName} placeholder="Enter last name" />
-          </Field>
-        </div>
+//       <div className="flex flex-col gap-4">
+//         <div className="grid grid-cols-2 gap-4">
+//           <Field label="First Name">
+//             <Input value={firstName} onChange={setFirstName} placeholder="Enter first name" />
+//           </Field>
+//           <Field label="Last Name">
+//             <Input value={lastName} onChange={setLastName} placeholder="Enter last name" />
+//           </Field>
+//         </div>
 
-        <div className="grid grid-cols-2 gap-4">
-          <Field label="Email">
-            <Input value={email} onChange={setEmail} placeholder="your@email.com" type="email" />
-          </Field>
-          <Field label="Account Type">
-            <div className="relative">
-              <select
-                value={accountType}
-                onChange={(e) => setAccountType(e.target.value)}
-                className="w-full appearance-none bg-[#0E0808] border border-white/10 rounded-lg px-4 py-3 font-montserrat text-white text-sm outline-none focus:border-[#C30100] transition-colors pr-8"
-              >
-                <option value="">Select type</option>
-                <option value="artist">Artist</option>
-                <option value="label">Label</option>
-                <option value="manager">Manager</option>
-              </select>
-              <ChevronDownIcon className="absolute right-3 top-1/2 -translate-y-1/2 text-white/30 pointer-events-none" />
-            </div>
-          </Field>
-        </div>
+//         <div className="grid grid-cols-2 gap-4">
+//           <Field label="Email">
+//             <Input value={email} onChange={setEmail} placeholder="your@email.com" type="email" />
+//           </Field>
+//           <Field label="Account Type">
+//             <div className="relative">
+//               <select
+//                 value={accountType}
+//                 onChange={(e) => setAccountType(e.target.value)}
+//                 className="w-full appearance-none bg-[#0E0808] border border-white/10 rounded-lg px-4 py-3 font-montserrat text-white text-sm outline-none focus:border-[#C30100] transition-colors pr-8"
+//               >
+//                 <option value="">Select type</option>
+//                 <option value="artist">Artist</option>
+//                 <option value="label">Label</option>
+//                 <option value="manager">Manager</option>
+//               </select>
+//               <ChevronDownIcon className="absolute right-3 top-1/2 -translate-y-1/2 text-white/30 pointer-events-none" />
+//             </div>
+//           </Field>
+//         </div>
 
-        <Field label="Address">
-          <Input value={address} onChange={setAddress} placeholder="Enter your address" />
-        </Field>
+//         <Field label="Address">
+//           <Input value={address} onChange={setAddress} placeholder="Enter your address" />
+//         </Field>
 
-        <div className="grid grid-cols-3 gap-4">
-          <Field label="City">
-            <Input value={city} onChange={setCity} placeholder="City" />
-          </Field>
-          <Field label="State">
-            <Input value={state} onChange={setState} placeholder="State" />
-          </Field>
-          <Field label="Zip Code">
-            <Input value={zip} onChange={setZip} placeholder="Zip" />
-          </Field>
-        </div>
+//         <div className="grid grid-cols-3 gap-4">
+//           <Field label="City">
+//             <Input value={city} onChange={setCity} placeholder="City" />
+//           </Field>
+//           <Field label="State">
+//             <Input value={state} onChange={setState} placeholder="State" />
+//           </Field>
+//           <Field label="Zip Code">
+//             <Input value={zip} onChange={setZip} placeholder="Zip" />
+//           </Field>
+//         </div>
 
-        <div className="flex justify-end mt-2">
-          <button
-            onClick={handleSave}
-            disabled={isSaving}
-            className="font-nulshock text-white uppercase text-xs tracking-widest rounded-full border border-[#C30100] bg-[#C30100]/10 hover:bg-[#C30100] px-8 py-3.5 transition-all disabled:opacity-40"
-          >
-            {isSaving ? "Saving..." : "Update Changes"}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
+//         <div className="flex justify-end mt-2">
+//           <button
+//             onClick={handleSave}
+//             disabled={isSaving}
+//             className="font-nulshock text-white uppercase text-xs tracking-widest rounded-full border border-[#C30100] bg-[#C30100]/10 hover:bg-[#C30100] px-8 py-3.5 transition-all disabled:opacity-40"
+//           >
+//             {isSaving ? "Saving..." : "Update Changes"}
+//           </button>
+//         </div>
+//       </div>
+//     </div>
+//   );
+// }
 
 /* ─── Tab: Artist Profile ─────────────────────────────────────── */
 function ArtistProfileTab() {
