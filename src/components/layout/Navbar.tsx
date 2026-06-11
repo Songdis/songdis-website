@@ -256,7 +256,7 @@ const Navbar: React.FC = () => {
           {/* Mobile CTAs */}
           <div className="mt-8 flex flex-col gap-3">
             <Link
-              href="/login"
+              href="/sign-in"
               onClick={() => setMobileOpen(false)}
               className="
                 font-heading text-xs text-center text-white/80 tracking-widest uppercase
@@ -270,7 +270,7 @@ const Navbar: React.FC = () => {
 
             {/* Gradient border button in mobile drawer */}
             <GradientBorderButton
-              href="/signup"
+              href="/sign-up"
               onClick={() => setMobileOpen(false)}
               className="text-xs tracking-widest py-3 w-full text-center"
             >
