@@ -31,64 +31,6 @@ interface ArtistProfile {
   avatar: string;
 }
 
-/* ─── Mock data ───────────────────────────────────────────────── */
-const MOCK_PROFILES: ArtistProfile[] = [
-  {
-    id: "1",
-    stageName: "KDIV COCO",
-    fullName: "Gbejewoh Okivie Divine",
-    email: "kdvicoco@gmail.com",
-    phone: "+234 803 222 1184",
-    dob: "Jul 15, 2002",
-    location: "Ikeja, Lagos",
-    bio: "",
-    instagram: "",
-    twitter: "",
-    facebook: "",
-    tiktok: "",
-    appleMusic: "",
-    spotify: "",
-    cover: "",
-    avatar: "/images/avatar-artiste.svg",
-  },
-  {
-    id: "2",
-    stageName: "KDIV COCO",
-    fullName: "Gbejewoh Okivie Divine",
-    email: "kdvicoco@gmail.com",
-    phone: "+234 803 222 1184",
-    dob: "Jul 15, 2002",
-    location: "Ikeja, Lagos",
-    bio: "",
-    instagram: "",
-    twitter: "",
-    facebook: "",
-    tiktok: "",
-    appleMusic: "",
-    spotify: "",
-    cover: "",
-    avatar: "/images/avatar-artiste.svg",
-  },
-  {
-    id: "3",
-    stageName: "KDIV COCO",
-    fullName: "Gbejewoh Okivie Divine",
-    email: "kdvicoco@gmail.com",
-    phone: "+234 803 222 1184",
-    dob: "Jul 15, 2002",
-    location: "Ikeja, Lagos",
-    bio: "",
-    instagram: "",
-    twitter: "",
-    facebook: "",
-    tiktok: "",
-    appleMusic: "",
-    spotify: "",
-    cover: "",
-    avatar: "/images/avatar-artiste.svg",
-  },
-];
-
 const PLAN_FEATURES = {
   starter: [
     "1 Artist Account",
@@ -150,7 +92,8 @@ function Input({
         value={value}
         onChange={(e) => onChange?.(e.target.value)}
         placeholder={placeholder}
-        className="w-full bg-[#0E0808] border border-white/10 rounded-lg px-4 py-3 font-montserrat text-white text-sm placeholder:text-white/25 outline-none focus:border-[#C30100] transition-colors"
+        /* MOB-004: min-h-[48px] for touch targets */
+        className="w-full min-h-[48px] bg-[#0E0808] border border-white/10 rounded-lg px-4 py-3 font-montserrat text-white text-sm placeholder:text-white/25 outline-none focus:border-[#C30100] transition-colors"
         style={icon ? { paddingRight: "2.5rem" } : {}}
       />
       {icon && (
@@ -181,255 +124,69 @@ function Toggle({ checked, onChange }: { checked: boolean; onChange: () => void 
   );
 }
 
-/* ─── Tab: General ────────────────────────────────────────────── */
-// function GeneralTab() {
-//   const [firstName, setFirstName] = useState("");
-//   const [lastName, setLastName] = useState("");
-//   const [email, setEmail] = useState("");
-//   const [accountType, setAccountType] = useState("");
-//   const [address, setAddress] = useState("");
-//   const [city, setCity] = useState("");
-//   const [state, setState] = useState("");
-//   const [zip, setZip] = useState("");
-
-//   return (
-//     <div className="rounded-2xl border border-dashed border-[#C30100]/30 bg-[#180F0F] p-6">
-//       {/* Photo */}
-//       <div className="flex items-center gap-5 mb-7">
-//         <div className="relative w-16 h-16 rounded-full overflow-hidden shrink-0 border border-white/10">
-//           <Image src="/images/avatar-artiste.svg" alt="avatar" fill className="object-cover" unoptimized />
-//         </div>
-//         <div>
-//           <button className="flex items-center gap-2 font-montserrat text-white text-sm border border-white/20 rounded-full px-4 py-2 hover:border-white/40 transition-colors">
-//             <CameraIcon />
-//             Change Photo
-//           </button>
-//           <p className="font-montserrat text-white/30 text-xs mt-2">JPG or PNG. 5MB max.</p>
-//         </div>
-//       </div>
-
-//       {/* Fields */}
-//       <div className="flex flex-col gap-4">
-//         <div className="grid grid-cols-2 gap-4">
-//           <Field label="First Name">
-//             <Input value={firstName} onChange={setFirstName} placeholder="Enter first name" />
-//           </Field>
-//           <Field label="Last Name">
-//             <Input value={lastName} onChange={setLastName} placeholder="Enter last name" />
-//           </Field>
-//         </div>
-
-//         <div className="grid grid-cols-2 gap-4">
-//           <Field label="Email">
-//             <Input value={email} onChange={setEmail} placeholder="your@email.com" type="email" />
-//           </Field>
-//           <Field label="Account Type">
-//             <div className="relative">
-//               <select
-//                 value={accountType}
-//                 onChange={(e) => setAccountType(e.target.value)}
-//                 className="w-full appearance-none bg-[#0E0808] border border-white/10 rounded-lg px-4 py-3 font-montserrat text-white text-sm outline-none focus:border-[#C30100] transition-colors pr-8"
-//               >
-//                 <option value="">Select type</option>
-//                 <option value="artist">Artist</option>
-//                 <option value="label">Label</option>
-//                 <option value="manager">Manager</option>
-//               </select>
-//               <ChevronDownIcon className="absolute right-3 top-1/2 -translate-y-1/2 text-white/30 pointer-events-none" />
-//             </div>
-//           </Field>
-//         </div>
-
-//         <Field label="Address">
-//           <Input value={address} onChange={setAddress} placeholder="Enter your address" />
-//         </Field>
-
-//         <div className="grid grid-cols-3 gap-4">
-//           <Field label="City">
-//             <Input value={city} onChange={setCity} placeholder="City" />
-//           </Field>
-//           <Field label="State">
-//             <Input value={state} onChange={setState} placeholder="State" />
-//           </Field>
-//           <Field label="Zip Code">
-//             <Input value={zip} onChange={setZip} placeholder="Zip" />
-//           </Field>
-//         </div>
-
-//         <div className="flex justify-end mt-2">
-//           <button className="font-nulshock text-white uppercase text-xs tracking-widest rounded-full border border-[#C30100] bg-[#C30100]/10 hover:bg-[#C30100] px-8 py-3.5 transition-all">
-//             Update Changes
-//           </button>
-//         </div>
-//       </div>
-//     </div>
-//   );
-// }
-
-// function GeneralTab() {
-//   const [firstName, setFirstName] = useState("");
-//   const [lastName, setLastName] = useState("");
-//   const [email, setEmail] = useState("");
-//   const [accountType, setAccountType] = useState("");
-//   const [address, setAddress] = useState("");
-//   const [city, setCity] = useState("");
-//   const [state, setState] = useState("");
-//   const [zip, setZip] = useState("");
-//   const [isSaving, setIsSaving] = useState(false);
-//   const { success, error: toastError } = useToast();
-
-//   // Load current user on mount from GET /user
-//   useEffect(() => {
-//     request<Record<string, unknown>>("/user", { method: "GET" }, true).then((res) => {
-//       if (!res.error && res.data) {
-//         const u = res.data as Record<string, unknown>;
-//         const user = (u.user ?? u) as Record<string, unknown>;
-//         setFirstName((user.first_name ?? "") as string);
-//         setLastName((user.last_name ?? "") as string);
-//         setEmail((user.email ?? "") as string);
-//         setAccountType((user.account_type ?? "") as string);
-//         setAddress((user.address ?? "") as string);
-//         setCity((user.city ?? "") as string);
-//         setState((user.state ?? "") as string);
-//         setZip((user.zip_code ?? "") as string);
-//       }
-//     });
-//   }, []);
-
-//   const handleSave = async () => {
-//     setIsSaving(true);
-//     const res = await request<Record<string, unknown>>(
-//       "/update-profile",
-//       {
-//         method: "PUT",
-//         body: JSON.stringify({
-//           first_name: firstName,
-//           last_name: lastName,
-//           email,
-//           address,
-//           city,
-//           state,
-//           zip_code: zip,
-//         }),
-//       },
-//       true
-//     );
-//     if (res.error) {
-//       toastError("Update failed", res.error);
-//     } else {
-//       success("Profile updated!", "Your changes have been saved.");
-//     }
-//     setIsSaving(false);
-//   };
-
-//   return (
-//     <div className="rounded-2xl border border-dashed border-[#C30100]/30 bg-[#180F0F] p-6">
-//       {/* Photo */}
-//       <div className="flex items-center gap-5 mb-7">
-//         <div className="relative w-16 h-16 rounded-full overflow-hidden shrink-0 border border-white/10">
-//           <Image src="/images/avatar-artiste.svg" alt="avatar" fill className="object-cover" unoptimized />
-//         </div>
-//         <div>
-//           <button className="flex items-center gap-2 font-montserrat text-white text-sm border border-white/20 rounded-full px-4 py-2 hover:border-white/40 transition-colors">
-//             <CameraIcon />
-//             Change Photo
-//           </button>
-//           <p className="font-montserrat text-white/30 text-xs mt-2">JPG or PNG. 5MB max.</p>
-//         </div>
-//       </div>
-
-//       <div className="flex flex-col gap-4">
-//         <div className="grid grid-cols-2 gap-4">
-//           <Field label="First Name">
-//             <Input value={firstName} onChange={setFirstName} placeholder="Enter first name" />
-//           </Field>
-//           <Field label="Last Name">
-//             <Input value={lastName} onChange={setLastName} placeholder="Enter last name" />
-//           </Field>
-//         </div>
-
-//         <div className="grid grid-cols-2 gap-4">
-//           <Field label="Email">
-//             <Input value={email} onChange={setEmail} placeholder="your@email.com" type="email" />
-//           </Field>
-//           <Field label="Account Type">
-//             <div className="relative">
-//               <select
-//                 value={accountType}
-//                 onChange={(e) => setAccountType(e.target.value)}
-//                 className="w-full appearance-none bg-[#0E0808] border border-white/10 rounded-lg px-4 py-3 font-montserrat text-white text-sm outline-none focus:border-[#C30100] transition-colors pr-8"
-//               >
-//                 <option value="">Select type</option>
-//                 <option value="artist">Artist</option>
-//                 <option value="label">Label</option>
-//                 <option value="manager">Manager</option>
-//               </select>
-//               <ChevronDownIcon className="absolute right-3 top-1/2 -translate-y-1/2 text-white/30 pointer-events-none" />
-//             </div>
-//           </Field>
-//         </div>
-
-//         <Field label="Address">
-//           <Input value={address} onChange={setAddress} placeholder="Enter your address" />
-//         </Field>
-
-//         <div className="grid grid-cols-3 gap-4">
-//           <Field label="City">
-//             <Input value={city} onChange={setCity} placeholder="City" />
-//           </Field>
-//           <Field label="State">
-//             <Input value={state} onChange={setState} placeholder="State" />
-//           </Field>
-//           <Field label="Zip Code">
-//             <Input value={zip} onChange={setZip} placeholder="Zip" />
-//           </Field>
-//         </div>
-
-//         <div className="flex justify-end mt-2">
-//           <button
-//             onClick={handleSave}
-//             disabled={isSaving}
-//             className="font-nulshock text-white uppercase text-xs tracking-widest rounded-full border border-[#C30100] bg-[#C30100]/10 hover:bg-[#C30100] px-8 py-3.5 transition-all disabled:opacity-40"
-//           >
-//             {isSaving ? "Saving..." : "Update Changes"}
-//           </button>
-//         </div>
-//       </div>
-//     </div>
-//   );
-// }
-
 /* ─── Tab: Artist Profile ─────────────────────────────────────── */
+/* MOB-001: Wired to real API GET /profile instead of MOCK_PROFILES */
 function ArtistProfileTab() {
-  const [profiles, setProfiles] = useState<ArtistProfile[]>(MOCK_PROFILES);
-  const [showAddInfo, setShowAddInfo] = useState(false);
+  const [profiles, setProfiles] = useState<ArtistProfile[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingProfile, setEditingProfile] = useState<ArtistProfile | null>(null);
   const [showLimitInfo, setShowLimitInfo] = useState(false);
 
-  const isAtLimit = profiles.length >= 3;
+  /* Load real profiles from GET /profile */
+  useEffect(() => {
+    setIsLoading(true);
+    request<unknown>("/profile", { method: "GET" }, true).then((res) => {
+      if (!res.error && res.data) {
+        const raw = res.data as Record<string, unknown>;
+        const list = Array.isArray(res.data)
+          ? res.data
+          : Array.isArray(raw.data)
+          ? raw.data
+          : [];
+        setProfiles(
+          (list as Record<string, unknown>[]).map((p) => ({
+            id: String(p.id ?? ""),
+            stageName: (p.stage_name ?? p.stageName ?? "") as string,
+            fullName: (p.full_name ?? p.fullName ?? "") as string,
+            email: (p.email ?? "") as string,
+            phone: (p.phone ?? "") as string,
+            dob: (p.dob ?? "") as string,
+            location: (p.location ?? "") as string,
+            bio: (p.bio ?? "") as string,
+            instagram: (p.instagram_url ?? p.instagram ?? "") as string,
+            twitter: (p.twitter_url ?? p.twitter ?? "") as string,
+            facebook: (p.facebook_url ?? p.facebook ?? "") as string,
+            tiktok: (p.tiktok_url ?? p.tiktok ?? "") as string,
+            appleMusic: (p.apple_music_url ?? p.appleMusic ?? "") as string,
+            spotify: (p.spotify_url ?? p.spotify ?? "") as string,
+            cover: (p.cover ?? "") as string,
+            avatar: (p.avatar_url ?? p.avatar ?? "/images/avatar-artiste.svg") as string,
+          }))
+        );
+      }
+      setIsLoading(false);
+    });
+  }, []);
 
-  const handleCreateNew = () => {
-    if (isAtLimit) {
-      setShowLimitInfo(true);
-    } else {
-      setEditingProfile(null);
-      setShowEditModal(true);
-    }
-  };
+  const isAtLimit = profiles.length >= 3;
 
   const handleEdit = (profile: ArtistProfile) => {
     setEditingProfile(profile);
     setShowEditModal(true);
   };
 
+  const handleDelete = async (id: string) => {
+    await request(`/profile/${id}`, { method: "DELETE" }, true);
+    setProfiles((prev) => prev.filter((p) => p.id !== id));
+  };
+
   return (
     <>
-      {/* Plan info banner */}
       <div className="rounded-2xl border border-dashed border-[#C30100]/30 bg-[#180F0F] p-5">
-        <div className="flex items-center justify-between mb-5">
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-[#C30100]/10 border border-[#C30100]/20 flex items-center justify-center">
+            <div className="w-8 h-8 rounded-lg bg-[#C30100]/10 border border-[#C30100]/20 flex items-center justify-center shrink-0">
               <UserGroupIcon />
             </div>
             <div>
@@ -446,34 +203,43 @@ function ArtistProfileTab() {
               </p>
             </div>
           </div>
-          <button className="font-nulshock text-white uppercase text-xs tracking-widest rounded-full border border-white/20 px-5 py-2.5 hover:border-white/40 transition-colors">
+          <button className="font-nulshock text-white uppercase text-xs tracking-widest rounded-full border border-white/20 px-5 py-2.5 hover:border-white/40 transition-colors shrink-0">
             Learn More
           </button>
         </div>
 
-        {/* Profile cards grid */}
-        <div className="grid grid-cols-3 gap-4 mb-4">
-          {profiles.map((profile) => (
-            <ProfileCard key={profile.id} profile={profile} onEdit={() => handleEdit(profile)} />
-          ))}
-        </div>
+        {/* MOB-002: Profile cards - responsive grid */}
+        {isLoading ? (
+          <p className="font-montserrat text-white/30 text-sm text-center py-8">Loading profiles...</p>
+        ) : profiles.length === 0 ? (
+          <p className="font-montserrat text-white/30 text-sm text-center py-8">No artist profiles yet.</p>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mb-4">
+            {profiles.map((profile) => (
+              <ProfileCard
+                key={profile.id}
+                profile={profile}
+                onEdit={() => handleEdit(profile)}
+                onDelete={() => handleDelete(profile.id)}
+              />
+            ))}
+          </div>
+        )}
 
-        {/* Add another artist */}
         <button
           onClick={() => { setEditingProfile(null); setShowEditModal(true); }}
           className="w-full rounded-xl border border-dashed border-[#C30100]/30 bg-transparent hover:bg-[#C30100]/5 transition-colors p-5 flex flex-col items-center gap-1.5"
         >
           <span className="text-white/40 text-2xl leading-none">+</span>
           <span className="font-montserrat text-white/50 text-sm">Add Another Artist</span>
-          <span className="font-montserrat text-white/30 text-xs">₦30,000 per artist · billed annually · activates immediately after payment</span>
+          <span className="font-montserrat text-white/30 text-xs text-center">₦30,000 per artist · billed annually · activates immediately after payment</span>
         </button>
       </div>
 
-      {/* Create New CTA in header area handled via customCta */}
       {showLimitInfo && (
         <LimitInfoModal
           onClose={() => setShowLimitInfo(false)}
-          onAddArtist={() => { setShowLimitInfo(false); /* trigger payment flow */ }}
+          onAddArtist={() => setShowLimitInfo(false)}
         />
       )}
 
@@ -495,14 +261,16 @@ function ArtistProfileTab() {
   );
 }
 
-function ProfileCard({ profile, onEdit }: { profile: ArtistProfile; onEdit: () => void }) {
+/* MOB-003: Fixed avatar overflow — changed overflow-hidden on card to overflow-visible,
+   use z-index on avatar so it renders above the red header correctly */
+function ProfileCard({ profile, onEdit, onDelete }: { profile: ArtistProfile; onEdit: () => void; onDelete?: () => void }) {
   return (
-    <div className="rounded-2xl overflow-hidden border border-white/[0.06] bg-[#0E0808]">
+    <div className="rounded-2xl border border-white/[0.06] bg-[#0E0808] overflow-hidden">
       {/* Red header */}
-      <div className="h-20 bg-[#C30100] relative" />
+      <div className="h-20 bg-[#C30100]" />
 
-      {/* Avatar overlapping */}
-      <div className="flex flex-col items-center px-4 pb-4 -mt-8">
+      {/* Avatar — negative margin pulls it up over the header cleanly */}
+      <div className="flex flex-col items-center px-4 pb-4 -mt-8 relative z-10">
         <div className="relative w-16 h-16 rounded-full overflow-hidden border-4 border-[#0E0808] shrink-0 mb-3">
           <Image src={profile.avatar} alt={profile.stageName} fill className="object-cover" unoptimized />
         </div>
@@ -514,21 +282,26 @@ function ProfileCard({ profile, onEdit }: { profile: ArtistProfile; onEdit: () =
             <MailIcon />
             <span className="font-montserrat text-[11px] truncate">{profile.email}</span>
           </div>
-          <div className="flex items-center gap-2 text-white/40">
-            <PhoneIcon />
-            <span className="font-montserrat text-[11px]">{profile.phone}</span>
-          </div>
-          <div className="flex items-center gap-2 text-white/40">
-            <CalendarIcon />
-            <span className="font-montserrat text-[11px]">{profile.dob}</span>
-          </div>
-          <div className="flex items-center gap-2 text-white/40">
-            <PinIcon />
-            <span className="font-montserrat text-[11px]">{profile.location}</span>
-          </div>
+          {profile.phone && (
+            <div className="flex items-center gap-2 text-white/40">
+              <PhoneIcon />
+              <span className="font-montserrat text-[11px]">{profile.phone}</span>
+            </div>
+          )}
+          {profile.dob && (
+            <div className="flex items-center gap-2 text-white/40">
+              <CalendarIcon />
+              <span className="font-montserrat text-[11px]">{profile.dob}</span>
+            </div>
+          )}
+          {profile.location && (
+            <div className="flex items-center gap-2 text-white/40">
+              <PinIcon />
+              <span className="font-montserrat text-[11px]">{profile.location}</span>
+            </div>
+          )}
         </div>
 
-        {/* Social icons */}
         <div className="flex items-center gap-3 mt-3">
           <InstagramIcon />
           <SpotifyIcon />
@@ -537,7 +310,7 @@ function ProfileCard({ profile, onEdit }: { profile: ArtistProfile; onEdit: () =
 
         <button
           onClick={onEdit}
-          className="mt-4 w-full flex items-center justify-center gap-2 font-montserrat text-white text-xs border border-white/20 rounded-full py-2.5 hover:border-white/40 transition-colors"
+          className="mt-4 w-full flex items-center justify-center gap-2 font-montserrat text-white text-xs border border-white/20 rounded-full py-2.5 hover:border-white/40 transition-colors min-h-[44px]"
         >
           <EditIcon />
           Edit Profile
@@ -560,25 +333,21 @@ function LimitInfoModal({ onClose, onAddArtist }: { onClose: () => void; onAddAr
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
       <div aria-hidden className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative z-10 w-full max-w-[620px] rounded-2xl bg-[#140C0C] border border-white/[0.07] p-8 max-h-[90vh] overflow-y-auto">
+      <div className="relative z-10 w-full max-w-[620px] rounded-2xl bg-[#140C0C] border border-white/[0.07] p-6 sm:p-8 max-h-[90vh] overflow-y-auto mx-2 sm:mx-0">
         <button onClick={onClose} className="absolute top-5 right-5 text-white/40 hover:text-white transition-colors">
           <CloseIcon />
         </button>
-
         <div className="text-center mb-7">
           <h2 className="font-nulshock text-white uppercase text-lg tracking-wide">Adding Artists to Your Label Plan</h2>
           <p className="font-montserrat text-white/50 text-sm mt-2">Create your professional artist profile</p>
         </div>
-
         <div className="rounded-xl bg-[#0E0808] border border-white/[0.06] p-4 mb-5">
           <p className="font-montserrat text-white text-sm font-semibold">Your Label Plan includes 3 artist profiles</p>
           <p className="font-montserrat text-white/40 text-xs mt-1">
             Each additional seat costs <span className="text-[#C30100]">₦30,000</span> per artist, per year — charged immediately and billed with your renewal.
           </p>
         </div>
-
         <p className="font-nulshock text-white/50 uppercase text-xs tracking-widest mb-4">How to Add a New Artist</p>
-
         <div className="flex flex-col gap-0">
           {steps.map((step, i) => (
             <div key={i} className="flex gap-4">
@@ -595,19 +364,17 @@ function LimitInfoModal({ onClose, onAddArtist }: { onClose: () => void; onAddAr
             </div>
           ))}
         </div>
-
         <div className="rounded-xl border border-dashed border-[#C30100]/30 p-4 mb-6">
           <p className="font-montserrat text-white/50 text-xs leading-relaxed">
             All prices in Nigerian Naira (₦). For billing support contact{" "}
             <span className="text-[#C30100]">billing@songdis.com</span>. Extra seat fees are non-refundable once payment is processed.
           </p>
         </div>
-
         <div className="flex gap-3">
-          <button onClick={onClose} className="flex-1 font-nulshock text-white uppercase text-xs tracking-widest rounded-full border border-white/20 py-3.5 hover:border-white/40 transition-colors">
+          <button onClick={onClose} className="flex-1 font-nulshock text-white uppercase text-xs tracking-widest rounded-full border border-white/20 py-3.5 hover:border-white/40 transition-colors min-h-[48px]">
             Cancel
           </button>
-          <button onClick={onAddArtist} className="flex-1 font-nulshock text-white uppercase text-xs tracking-widest rounded-full border border-[#C30100] bg-[#C30100]/10 hover:bg-[#C30100] py-3.5 transition-all">
+          <button onClick={onAddArtist} className="flex-1 font-nulshock text-white uppercase text-xs tracking-widest rounded-full border border-[#C30100] bg-[#C30100]/10 hover:bg-[#C30100] py-3.5 transition-all min-h-[48px]">
             Add Artist
           </button>
         </div>
@@ -618,9 +385,7 @@ function LimitInfoModal({ onClose, onAddArtist }: { onClose: () => void; onAddAr
 
 /* ─── Artist Profile Modal (2-step) ──────────────────────────── */
 function ArtistProfileModal({
-  profile,
-  onClose,
-  onSave,
+  profile, onClose, onSave,
 }: {
   profile: ArtistProfile | null;
   onClose: () => void;
@@ -652,18 +417,8 @@ function ArtistProfileModal({
   const handleSave = () => {
     onSave({
       id: profile?.id ?? "",
-      stageName,
-      fullName,
-      email,
-      phone,
-      dob,
-      location,
-      bio,
-      instagram,
-      twitter,
-      facebook,
-      tiktok,
-      appleMusic,
+      stageName, fullName, email, phone, dob, location, bio,
+      instagram, twitter, facebook, tiktok, appleMusic,
       spotify: spotifyUrl,
       cover: profile?.cover ?? "",
       avatar: profile?.avatar ?? "/images/avatar-artiste.svg",
@@ -673,12 +428,11 @@ function ArtistProfileModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center px-4 py-6">
       <div aria-hidden className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative z-10 w-full max-w-[660px] rounded-2xl bg-[#140C0C] border border-white/[0.07] max-h-[90vh] overflow-y-auto">
+      <div className="relative z-10 w-full max-w-[660px] rounded-2xl bg-[#140C0C] border border-white/[0.07] max-h-[90vh] overflow-y-auto mx-2 sm:mx-0">
         <button onClick={onClose} className="absolute top-5 right-5 text-white/40 hover:text-white transition-colors z-10">
           <CloseIcon />
         </button>
-
-        <div className="p-8">
+        <div className="p-6 sm:p-8">
           <div className="text-center mb-6">
             <h2 className="font-nulshock text-white uppercase text-lg tracking-wide">Artist Profile Setup</h2>
             <p className="font-montserrat text-white/50 text-sm mt-1">Create your professional artist profile</p>
@@ -686,7 +440,7 @@ function ArtistProfileModal({
 
           {/* Step indicator */}
           <div className="flex items-center justify-center mb-7">
-            <div className="flex items-center gap-0 bg-[#0E0808] border border-white/[0.06] rounded-2xl px-8 py-4 w-full max-w-xs">
+            <div className="flex items-center bg-[#0E0808] border border-white/[0.06] rounded-2xl px-6 sm:px-8 py-4 w-full max-w-xs">
               <div className="flex-1 flex flex-col items-center gap-1">
                 <div className={["w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-nulshock transition-colors", step === "info" ? "bg-[#C30100] text-white" : "bg-white/10 text-white/40"].join(" ")}>1</div>
                 <span className="font-montserrat text-white/40 text-[10px]">Personal Info</span>
@@ -701,39 +455,33 @@ function ArtistProfileModal({
 
           {step === "info" && (
             <div className="flex flex-col gap-5">
-              {/* Spotify search */}
               <div className="rounded-xl border border-dashed border-[#C30100]/30 p-4">
                 <p className="font-montserrat text-white text-xs font-semibold mb-0.5">Find Your Spotify Profile (Optional)</p>
                 <p className="font-montserrat text-white/50 text-[11px] mb-3">Search For Your Artist Name On Spotify To Auto-Fill Your Profile And Get A Verified Badge.</p>
                 <Input value={spotifySearch} onChange={setSpotifySearch} placeholder="E.g Burna boy, Wizkid, your artist name" />
               </div>
-
               <div className="rounded-xl border border-dashed border-[#C30100]/30 p-4">
                 <p className="font-montserrat text-white text-xs font-semibold mb-0.5">OR paste your Spotify artist URL</p>
-                <p className="font-montserrat text-white/50 text-[11px] mb-3">Can't find yourself in the search above? Paste your Spotify artist page URL directly</p>
+                <p className="font-montserrat text-white/50 text-[11px] mb-3">Can&apos;t find yourself in the search above? Paste your Spotify artist page URL directly</p>
                 <div className="flex gap-2">
                   <Input value={spotifyUrl} onChange={setSpotifyUrl} placeholder="https://open.spotify.com/artist/" />
-                  <button className="shrink-0 font-nulshock text-white uppercase text-[10px] tracking-widest rounded-full border border-[#C30100] bg-[#C30100]/10 hover:bg-[#C30100] px-4 py-2.5 transition-all flex items-center gap-1.5 whitespace-nowrap">
+                  <button className="shrink-0 font-nulshock text-white uppercase text-[10px] tracking-widest rounded-full border border-[#C30100] bg-[#C30100]/10 hover:bg-[#C30100] px-4 py-2.5 transition-all flex items-center gap-1.5 whitespace-nowrap min-h-[48px]">
                     <CheckSmallIcon />
                     Verify
                   </button>
                 </div>
               </div>
-
               <p className="font-montserrat text-white text-sm font-semibold">Personal Information</p>
-
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <Field label="Full Name"><Input value={fullName} onChange={setFullName} placeholder="Your full legal name" /></Field>
                 <Field label="Stage Name"><Input value={stageName} onChange={setStageName} placeholder="Your artist name" /></Field>
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <Field label="Email"><Input value={email} onChange={setEmail} placeholder="Email" type="email" /></Field>
                 <Field label="Phone number"><Input value={phone} onChange={setPhone} placeholder="Phone number" /></Field>
               </div>
-              <div className="grid grid-cols-2 gap-4">
-                <Field label="Date of birth">
-                  <Input value={dob} onChange={setDob} placeholder="mm/dd/yyyy" type="date" icon={<CalendarIcon />} />
-                </Field>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <Field label="Date of birth"><Input value={dob} onChange={setDob} placeholder="mm/dd/yyyy" type="date" icon={<CalendarIcon />} /></Field>
                 <Field label="Location"><Input value={location} onChange={setLocation} placeholder="City, Country" /></Field>
               </div>
               <Field label="Bio">
@@ -746,10 +494,9 @@ function ArtistProfileModal({
                 />
                 <p className="font-montserrat text-white/30 text-[11px]">{bio.length}/1000 Characters</p>
               </Field>
-
               <div className="flex gap-3 mt-2">
-                <button onClick={onClose} className="flex-1 font-nulshock text-white uppercase text-xs tracking-widest rounded-full border border-white/20 py-3.5 hover:border-white/40 transition-colors">Cancel</button>
-                <button onClick={() => setStep("social")} className="flex-1 font-nulshock text-white uppercase text-xs tracking-widest rounded-full border border-[#C30100] bg-[#C30100]/10 hover:bg-[#C30100] py-3.5 transition-all">Continue</button>
+                <button onClick={onClose} className="flex-1 font-nulshock text-white uppercase text-xs tracking-widest rounded-full border border-white/20 py-3.5 hover:border-white/40 transition-colors min-h-[48px]">Cancel</button>
+                <button onClick={() => setStep("social")} className="flex-1 font-nulshock text-white uppercase text-xs tracking-widest rounded-full border border-[#C30100] bg-[#C30100]/10 hover:bg-[#C30100] py-3.5 transition-all min-h-[48px]">Continue</button>
               </div>
             </div>
           )}
@@ -757,68 +504,53 @@ function ArtistProfileModal({
           {step === "social" && (
             <div className="flex flex-col gap-5">
               <div className="rounded-xl border border-dashed border-[#C30100]/30 p-3">
-                <p className="font-montserrat text-white/50 text-xs">
-                  All social links are optional. You can add them now or update your profile later. Just tick the checkbox next to any platform you don't use.
-                </p>
+                <p className="font-montserrat text-white/50 text-xs">All social links are optional. You can add them now or update your profile later.</p>
               </div>
-
               <p className="font-montserrat text-white text-sm font-semibold">Social Media</p>
-
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <Field label="Twitter">
-                    <Input value={twitter} onChange={noTwitter ? undefined : setTwitter} placeholder="Twitter handle" />
-                  </Field>
+                  <Field label="Twitter"><Input value={twitter} onChange={noTwitter ? undefined : setTwitter} placeholder="Twitter handle" /></Field>
                   <label className="flex items-center gap-2 mt-2 cursor-pointer">
                     <input type="checkbox" checked={noTwitter} onChange={() => setNoTwitter(!noTwitter)} className="accent-[#C30100]" />
-                    <span className="font-montserrat text-white/40 text-xs">I don't have twitter</span>
+                    <span className="font-montserrat text-white/40 text-xs">I don&apos;t have twitter</span>
                   </label>
                 </div>
                 <div>
-                  <Field label="Instagram">
-                    <Input value={instagram} onChange={noInstagram ? undefined : setInstagram} placeholder="Instagram handle" />
-                  </Field>
+                  <Field label="Instagram"><Input value={instagram} onChange={noInstagram ? undefined : setInstagram} placeholder="Instagram handle" /></Field>
                   <label className="flex items-center gap-2 mt-2 cursor-pointer">
                     <input type="checkbox" checked={noInstagram} onChange={() => setNoInstagram(!noInstagram)} className="accent-[#C30100]" />
-                    <span className="font-montserrat text-white/40 text-xs">I don't have Instagram</span>
+                    <span className="font-montserrat text-white/40 text-xs">I don&apos;t have Instagram</span>
                   </label>
                 </div>
               </div>
-
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <Field label="Facebook">
-                    <Input value={facebook} onChange={noFacebook ? undefined : setFacebook} placeholder="Facebook handle" />
-                  </Field>
+                  <Field label="Facebook"><Input value={facebook} onChange={noFacebook ? undefined : setFacebook} placeholder="Facebook handle" /></Field>
                   <label className="flex items-center gap-2 mt-2 cursor-pointer">
                     <input type="checkbox" checked={noFacebook} onChange={() => setNoFacebook(!noFacebook)} className="accent-[#C30100]" />
-                    <span className="font-montserrat text-white/40 text-xs">I don't have Facebook</span>
+                    <span className="font-montserrat text-white/40 text-xs">I don&apos;t have Facebook</span>
                   </label>
                 </div>
                 <div>
-                  <Field label="TikTok">
-                    <Input value={tiktok} onChange={noTiktok ? undefined : setTiktok} placeholder="TikTok handle" />
-                  </Field>
+                  <Field label="TikTok"><Input value={tiktok} onChange={noTiktok ? undefined : setTiktok} placeholder="TikTok handle" /></Field>
                   <label className="flex items-center gap-2 mt-2 cursor-pointer">
                     <input type="checkbox" checked={noTiktok} onChange={() => setNoTiktok(!noTiktok)} className="accent-[#C30100]" />
-                    <span className="font-montserrat text-white/40 text-xs">I don't have TikTok</span>
+                    <span className="font-montserrat text-white/40 text-xs">I don&apos;t have TikTok</span>
                   </label>
                 </div>
               </div>
-
               <div>
-                <Field label="Apple Music (Go to your Apple Music artist page and copy the full URL from your browser's address bar).">
+                <Field label="Apple Music (paste your artist page URL)">
                   <Input value={appleMusic} onChange={noAppleMusic ? undefined : setAppleMusic} placeholder="Apple Music artist URL" />
                 </Field>
                 <label className="flex items-center gap-2 mt-2 cursor-pointer">
                   <input type="checkbox" checked={noAppleMusic} onChange={() => setNoAppleMusic(!noAppleMusic)} className="accent-[#C30100]" />
-                  <span className="font-montserrat text-white/40 text-xs">I don't have Apple Music</span>
+                  <span className="font-montserrat text-white/40 text-xs">I don&apos;t have Apple Music</span>
                 </label>
               </div>
-
               <div className="flex gap-3 mt-2">
-                <button onClick={() => setStep("info")} className="flex-1 font-nulshock text-white uppercase text-xs tracking-widest rounded-full border border-white/20 py-3.5 hover:border-white/40 transition-colors">Cancel</button>
-                <button onClick={handleSave} className="flex-1 font-nulshock text-white uppercase text-xs tracking-widest rounded-full border border-[#C30100] bg-[#C30100]/10 hover:bg-[#C30100] py-3.5 transition-all">
+                <button onClick={() => setStep("info")} className="flex-1 font-nulshock text-white uppercase text-xs tracking-widest rounded-full border border-white/20 py-3.5 hover:border-white/40 transition-colors min-h-[48px]">Back</button>
+                <button onClick={handleSave} className="flex-1 font-nulshock text-white uppercase text-xs tracking-widest rounded-full border border-[#C30100] bg-[#C30100]/10 hover:bg-[#C30100] py-3.5 transition-all min-h-[48px]">
                   {isEdit ? "Save Changes" : "Create Profile"}
                 </button>
               </div>
@@ -836,21 +568,19 @@ function AyoAITab() {
   const [autoDraft, setAutoDraft] = useState(true);
   const [trendAlerts, setTrendAlerts] = useState(true);
   const [artworkSuggestions, setArtworkSuggestions] = useState(true);
-
   const items = [
     { label: "Proactive Insights", desc: "Show Ayo tips across all pages", checked: proactive, toggle: () => setProactive(!proactive) },
     { label: "Pitch Auto-Draft", desc: "Auto-generate pitches for new releases", checked: autoDraft, toggle: () => setAutoDraft(!autoDraft) },
     { label: "Trend Alerts", desc: "Notify when genre trends match your style", checked: trendAlerts, toggle: () => setTrendAlerts(!trendAlerts) },
     { label: "Artwork Suggestions", desc: "Suggest themes when you upload", checked: artworkSuggestions, toggle: () => setArtworkSuggestions(!artworkSuggestions) },
   ];
-
   return (
     <div className="rounded-2xl border border-dashed border-[#C30100]/30 bg-[#180F0F] p-6">
       <p className="font-nulshock text-white uppercase text-sm tracking-wide mb-5">Ayo AI Preferences</p>
       <div className="flex flex-col gap-0 divide-y divide-white/[0.04]">
         {items.map((item) => (
-          <div key={item.label} className="flex items-center justify-between py-4">
-            <div>
+          <div key={item.label} className="flex items-center justify-between py-4 gap-3">
+            <div className="min-w-0">
               <p className="font-montserrat text-white text-sm">{item.label}</p>
               <p className="font-montserrat text-white/40 text-xs mt-0.5">{item.desc}</p>
             </div>
@@ -867,20 +597,18 @@ function NotificationTab() {
   const [streamMilestones, setStreamMilestones] = useState(true);
   const [earningsUpdates, setEarningsUpdates] = useState(true);
   const [playlistApprovals, setPlaylistApprovals] = useState(true);
-
   const items = [
     { label: "Stream Milestones", desc: "At 100, 1K, 10K streams", checked: streamMilestones, toggle: () => setStreamMilestones(!streamMilestones) },
     { label: "Earnings Updates", desc: "Weekly summary email", checked: earningsUpdates, toggle: () => setEarningsUpdates(!earningsUpdates) },
     { label: "Playlist Approvals", desc: "When your track gets added", checked: playlistApprovals, toggle: () => setPlaylistApprovals(!playlistApprovals) },
   ];
-
   return (
     <div className="rounded-2xl border border-dashed border-[#C30100]/30 bg-[#180F0F] p-6">
       <p className="font-nulshock text-white uppercase text-sm tracking-wide mb-5">Notifications</p>
       <div className="flex flex-col gap-0 divide-y divide-white/[0.04]">
         {items.map((item) => (
-          <div key={item.label} className="flex items-center justify-between py-4">
-            <div>
+          <div key={item.label} className="flex items-center justify-between py-4 gap-3">
+            <div className="min-w-0">
               <p className="font-montserrat text-white text-sm">{item.label}</p>
               <p className="font-montserrat text-white/40 text-xs mt-0.5">{item.desc}</p>
             </div>
@@ -900,43 +628,22 @@ function SecurityTab() {
   const [showCurrent, setShowCurrent] = useState(false);
   const [showNew, setShowNew] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
-
   return (
     <div className="rounded-2xl border border-dashed border-[#C30100]/30 bg-[#180F0F] p-6">
       <p className="font-nulshock text-white uppercase text-sm tracking-wide mb-1">Password & Security</p>
       <p className="font-montserrat text-white/40 text-xs mb-6">Manage your account security settings</p>
-
       <div className="flex flex-col gap-4">
         <Field label="Current Password">
-          <Input
-            value={current}
-            onChange={setCurrent}
-            placeholder="Enter password"
-            type={showCurrent ? "text" : "password"}
-            icon={<EyeToggle show={showCurrent} onToggle={() => setShowCurrent(!showCurrent)} />}
-          />
+          <Input value={current} onChange={setCurrent} placeholder="Enter password" type={showCurrent ? "text" : "password"} icon={<EyeToggle show={showCurrent} onToggle={() => setShowCurrent(!showCurrent)} />} />
         </Field>
         <Field label="New Password">
-          <Input
-            value={newPass}
-            onChange={setNewPass}
-            placeholder="Enter password"
-            type={showNew ? "text" : "password"}
-            icon={<EyeToggle show={showNew} onToggle={() => setShowNew(!showNew)} />}
-          />
+          <Input value={newPass} onChange={setNewPass} placeholder="Enter password" type={showNew ? "text" : "password"} icon={<EyeToggle show={showNew} onToggle={() => setShowNew(!showNew)} />} />
         </Field>
         <Field label="Confirm New Password">
-          <Input
-            value={confirm}
-            onChange={setConfirm}
-            placeholder="Enter password"
-            type={showConfirm ? "text" : "password"}
-            icon={<EyeToggle show={showConfirm} onToggle={() => setShowConfirm(!showConfirm)} />}
-          />
+          <Input value={confirm} onChange={setConfirm} placeholder="Enter password" type={showConfirm ? "text" : "password"} icon={<EyeToggle show={showConfirm} onToggle={() => setShowConfirm(!showConfirm)} />} />
         </Field>
-
         <div className="flex justify-end mt-2">
-          <button className="font-nulshock text-white uppercase text-xs tracking-widest rounded-full border border-[#C30100] bg-[#C30100]/10 hover:bg-[#C30100] px-8 py-3.5 transition-all w-full">
+          <button className="font-nulshock text-white uppercase text-xs tracking-widest rounded-full border border-[#C30100] bg-[#C30100]/10 hover:bg-[#C30100] px-8 py-3.5 transition-all w-full min-h-[48px]">
             Update Changes
           </button>
         </div>
@@ -948,87 +655,34 @@ function SecurityTab() {
 function EyeToggle({ show, onToggle }: { show: boolean; onToggle: () => void }) {
   return (
     <button onClick={onToggle} className="text-white/30 hover:text-white/60 transition-colors">
-      {show ? <EyeOffIcon /> : <EyeOffIcon />}
+      <EyeOffIcon />
     </button>
   );
 }
 
 /* ─── Tab: Subscription ───────────────────────────────────────── */
+/* MOB-005: Cards stack on mobile, MOB-006: price nowrap */
 function SubscriptionTab() {
   const [billing, setBilling] = useState<BillingCycle>("yearly");
-
   const plans = [
-    {
-      id: "starter",
-      name: "Starter",
-      tagline: "Best for: New & independent artists starting out",
-      priceMonthly: "₦4,000.00",
-      priceYearly: "₦44,000.00",
-      features: PLAN_FEATURES.starter,
-      current: false,
-      cta: "Get Help & Support",
-      ctaVariant: "outline" as const,
-    },
-    {
-      id: "growth",
-      name: "Growth Plan",
-      tagline: "Best for: Serious independent artists & growing teams",
-      priceMonthly: "₦14,000.00",
-      priceYearly: "₦140,000.00",
-      features: PLAN_FEATURES.growth,
-      current: true,
-      cta: "Upgrade to Growth",
-      ctaVariant: "red" as const,
-    },
-    {
-      id: "label",
-      name: "Label Plan",
-      tagline: "Best for: Small labels, managers & collectives",
-      priceMonthly: "₦16,000.00",
-      priceYearly: "₦150,000.00",
-      features: PLAN_FEATURES.label,
-      current: false,
-      cta: "Start a Label",
-      ctaVariant: "outline" as const,
-      addons: ["Add extra artist: ₦30,000 Per artist / year"],
-    },
+    { id: "starter", name: "Starter", tagline: "Best for: New & independent artists starting out", priceMonthly: "₦4,000.00", priceYearly: "₦44,000.00", features: PLAN_FEATURES.starter, current: false, cta: "Get Help & Support", ctaVariant: "outline" as const },
+    { id: "growth", name: "Growth Plan", tagline: "Best for: Serious independent artists & growing teams", priceMonthly: "₦14,000.00", priceYearly: "₦140,000.00", features: PLAN_FEATURES.growth, current: true, cta: "Upgrade to Growth", ctaVariant: "red" as const },
+    { id: "label", name: "Label Plan", tagline: "Best for: Small labels, managers & collectives", priceMonthly: "₦16,000.00", priceYearly: "₦150,000.00", features: PLAN_FEATURES.label, current: false, cta: "Start a Label", ctaVariant: "outline" as const, addons: ["Add extra artist: ₦30,000 Per artist / year"] },
   ];
-
   return (
     <div className="rounded-2xl border border-dashed border-[#C30100]/30 bg-[#180F0F] p-6">
       <p className="font-nulshock text-white uppercase text-sm tracking-wide mb-1">Subscription</p>
-      <p className="font-montserrat text-white/40 text-xs mb-6">Manage your account security settings</p>
-
-      {/* Billing toggle */}
+      <p className="font-montserrat text-white/40 text-xs mb-6">Manage your plan and billing</p>
       <div className="flex justify-center mb-6">
         <div className="flex bg-[#0E0808] border border-white/[0.06] rounded-full p-1">
-          <button
-            onClick={() => setBilling("monthly")}
-            className={["font-nulshock uppercase text-xs tracking-widest px-5 py-2 rounded-full transition-all", billing === "monthly" ? "bg-white/10 text-white" : "text-white/40"].join(" ")}
-          >
-            Monthly
-          </button>
-          <button
-            onClick={() => setBilling("yearly")}
-            className={["font-nulshock uppercase text-xs tracking-widest px-5 py-2 rounded-full transition-all", billing === "yearly" ? "bg-[#C30100] text-white" : "text-white/40"].join(" ")}
-          >
-            Yearly
-          </button>
+          <button onClick={() => setBilling("monthly")} className={["font-nulshock uppercase text-xs tracking-widest px-5 py-2 rounded-full transition-all", billing === "monthly" ? "bg-white/10 text-white" : "text-white/40"].join(" ")}>Monthly</button>
+          <button onClick={() => setBilling("yearly")} className={["font-nulshock uppercase text-xs tracking-widest px-5 py-2 rounded-full transition-all", billing === "yearly" ? "bg-[#C30100] text-white" : "text-white/40"].join(" ")}>Yearly</button>
         </div>
       </div>
-
-      {/* Plan cards */}
-      <div className="grid grid-cols-3 gap-4">
+      {/* MOB-005: grid-cols-1 on mobile, 3 on desktop */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {plans.map((plan) => (
-          <div
-            key={plan.id}
-            className={[
-              "rounded-2xl p-5 flex flex-col border transition-colors",
-              plan.current
-                ? "bg-[#1A0808] border-[#C30100]"
-                : "bg-[#0E0808] border-white/[0.06]",
-            ].join(" ")}
-          >
+          <div key={plan.id} className={["rounded-2xl p-5 flex flex-col border transition-colors", plan.current ? "bg-[#1A0808] border-[#C30100]" : "bg-[#0E0808] border-white/[0.06]"].join(" ")}>
             {plan.current && (
               <div className="flex justify-center mb-3">
                 <span className="font-montserrat text-white text-[10px] border border-white/20 rounded-full px-3 py-1">Current Plan</span>
@@ -1036,50 +690,36 @@ function SubscriptionTab() {
             )}
             <p className="font-nulshock text-white uppercase text-sm tracking-wide">{plan.name}</p>
             <p className="font-montserrat text-white/40 text-[11px] mt-1 mb-3 leading-relaxed">{plan.tagline}</p>
-            <p className="font-nulshock text-white text-xl mb-1">
+            {/* MOB-006: whitespace-nowrap prevents price truncation */}
+            <p className="font-nulshock text-white text-xl mb-1 whitespace-nowrap">
               {billing === "yearly" ? plan.priceYearly : plan.priceMonthly}
               <span className="font-montserrat text-white/30 text-xs">/{billing === "yearly" ? "year" : "month"}</span>
             </p>
-
             <div className="flex flex-col gap-2 mt-4 flex-1">
               {plan.features.map((f) => (
                 <div key={f} className="flex items-start gap-2">
-                  <span className="w-4 h-4 rounded-full bg-[#C30100]/20 border border-[#C30100]/40 flex items-center justify-center shrink-0 mt-0.5">
-                    <CheckSmallIcon />
-                  </span>
+                  <span className="w-4 h-4 rounded-full bg-[#C30100]/20 border border-[#C30100]/40 flex items-center justify-center shrink-0 mt-0.5"><CheckSmallIcon /></span>
                   <span className="font-montserrat text-white/60 text-xs">{f}</span>
                 </div>
               ))}
             </div>
-
-            {plan.addons && (
+            {"addons" in plan && plan.addons && (
               <div className="mt-4">
                 <p className="font-nulshock text-white/50 uppercase text-[10px] tracking-widest mb-2">Add-Ons</p>
                 {plan.addons.map((a) => (
                   <div key={a} className="flex items-start gap-2">
-                    <span className="w-4 h-4 rounded-full bg-[#C30100]/20 border border-[#C30100]/40 flex items-center justify-center shrink-0 mt-0.5">
-                      <CheckSmallIcon />
-                    </span>
+                    <span className="w-4 h-4 rounded-full bg-[#C30100]/20 border border-[#C30100]/40 flex items-center justify-center shrink-0 mt-0.5"><CheckSmallIcon /></span>
                     <span className="font-montserrat text-white/60 text-xs">{a}</span>
                   </div>
                 ))}
               </div>
             )}
-
-            <button
-              className={[
-                "mt-5 w-full font-nulshock uppercase text-[10px] tracking-widest rounded-full py-3 transition-all",
-                plan.ctaVariant === "red"
-                  ? "border border-[#C30100] bg-[#C30100]/10 hover:bg-[#C30100] text-white"
-                  : "border border-white/20 text-white hover:border-white/40",
-              ].join(" ")}
-            >
+            <button className={["mt-5 w-full font-nulshock uppercase text-[10px] tracking-widest rounded-full py-3 transition-all min-h-[44px]", plan.ctaVariant === "red" ? "border border-[#C30100] bg-[#C30100]/10 hover:bg-[#C30100] text-white" : "border border-white/20 text-white hover:border-white/40"].join(" ")}>
               {plan.cta}
             </button>
           </div>
         ))}
       </div>
-
       <div className="flex items-center justify-center gap-2 mt-5">
         <span className="w-2 h-2 rounded-full bg-[#C30100]" />
         <p className="font-montserrat text-white/40 text-xs">Need a custom solution? Contact our sales team for enterprise options.</p>
@@ -1102,43 +742,31 @@ const TABS: { id: Tab; label: string }[] = [
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState<Tab>("general");
   const [showNewProfileModal, setShowNewProfileModal] = useState(false);
-
   const isArtistProfile = activeTab === "artist-profile";
 
   return (
-    <DashboardLayout 
-      customCta={
-        isArtistProfile
-          ? { label: "+ Create New Profile", onClick: () => setShowNewProfileModal(true) }
-          : undefined
-      }
+    <DashboardLayout
+      customCta={isArtistProfile ? { label: "+ Create New Profile", onClick: () => setShowNewProfileModal(true) } : undefined}
     >
       <div className="flex flex-col gap-5">
-        {/* Page header */}
         <div>
           <h2 className="font-nulshock text-white uppercase text-2xl tracking-wide">Settings</h2>
           <p className="font-montserrat text-white/50 text-sm mt-1">Manage your account and preferences</p>
         </div>
-
-        {/* Tab bar */}
         <div className="flex gap-1 border border-dashed border-[#C30100]/30 rounded-2xl p-1 overflow-x-auto">
           {TABS.map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
               className={[
-                "font-nulshock uppercase text-xs tracking-widest px-4 py-2.5 rounded-xl whitespace-nowrap transition-all",
-                activeTab === tab.id
-                  ? "bg-white/10 text-white"
-                  : "text-white/40 hover:text-white/70",
+                "font-nulshock uppercase text-xs tracking-widest px-4 py-2.5 rounded-xl whitespace-nowrap transition-all min-h-[40px]",
+                activeTab === tab.id ? "bg-white/10 text-white" : "text-white/40 hover:text-white/70",
               ].join(" ")}
             >
               {tab.label}
             </button>
           ))}
         </div>
-
-        {/* Tab content */}
         {activeTab === "general" && <GeneralTab />}
         {activeTab === "artist-profile" && <ArtistProfileTab />}
         {activeTab === "ayo-ai" && <AyoAITab />}
@@ -1160,8 +788,6 @@ export default function SettingsPage() {
 
 /* ─── Icons ───────────────────────────────────────────────────── */
 function CloseIcon() { return <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>; }
-function CameraIcon() { return <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>; }
-function ChevronDownIcon({ className }: { className?: string }) { return <svg className={className} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="6 9 12 15 18 9"/></svg>; }
 function CheckSmallIcon() { return <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>; }
 function EyeOffIcon() { return <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>; }
 function CalendarIcon() { return <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>; }

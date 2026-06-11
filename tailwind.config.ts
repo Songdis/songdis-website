@@ -1,13 +1,17 @@
 import type { Config } from "tailwindcss";
 
 const config: Config = {
-   content: [
+  content: [
     "./src/pages/**/*.{js,ts,jsx,tsx,mdx}",
     "./src/components/**/*.{js,ts,jsx,tsx,mdx}",
     "./src/app/**/*.{js,ts,jsx,tsx,mdx}",
   ],
   theme: {
     extend: {
+      /* MOB-011: xs breakpoint for upload type card grid at ~400px */
+      screens: {
+        xs: "400px",
+      },
       colors: {
         brand: {
           bg: "#140C0C",

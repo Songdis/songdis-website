@@ -2,7 +2,6 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Nulshock — used for headings, subheadings, buttons */
 @font-face {
   font-family: "Nulshock";
   src: url("/fonts/Nulshock Bd.otf") format("opentype");
@@ -11,20 +10,6 @@
   font-display: swap;
 }
 
-
-
-/* @font-face {
-  font-family: "Nulshock";
-  src: url("/fonts/nulshock-rg.woff2") format("woff2"),
-    url("/fonts/nulshock-rg.woff") format("woff");
-  font-weight: 400;
-  font-style: normal;
-  font-display: swap;
-} */
-
-/* ─────────────────────────────────────────
-   BASE RESET & GLOBALS
-   ───────────────────────────────────────── */
 *,
 *::before,
 *::after {
@@ -46,9 +31,6 @@ body {
   overflow-x: hidden;
 }
 
-/* ─────────────────────────────────────────
-   UTILITY CLASSES
-   ───────────────────────────────────────── */
 @layer utilities {
   .font-heading {
     font-family: "Nulshock", sans-serif;
@@ -58,12 +40,12 @@ body {
     font-family: "Montserrat", sans-serif;
   }
 
-  /* Pause marquee on hover */
+
   .marquee-wrapper:hover .marquee-track {
     animation-play-state: paused;
   }
 
-  /* Gradient overlay for marquee edges */
+
   .marquee-fade-edges {
     -webkit-mask-image: linear-gradient(
       to right,
@@ -80,8 +62,6 @@ body {
       transparent 100%
     );
   }
-
-  /* Noise texture overlay for depth */
   .noise-overlay::after {
     content: "";
     position: absolute;

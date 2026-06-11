@@ -43,8 +43,8 @@ export default function SelectUploadType({ selected, onSelect, onContinue }: Pro
         subtitle="What kind of release are you creating?"
       />
 
-      {/* Type cards */}
-      <div className="grid grid-cols-3 gap-4 mb-6">
+      {/* MOB-011: stack on screens < 400px, horizontal above */}
+      <div className="grid grid-cols-1 xs:grid-cols-3 sm:grid-cols-3 gap-3 sm:gap-4 mb-6">
         {TYPES.map((t) => {
           const isSelected = selected === t.id;
           return (
@@ -52,7 +52,7 @@ export default function SelectUploadType({ selected, onSelect, onContinue }: Pro
               key={t.id}
               onClick={() => onSelect(t.id)}
               className={[
-                "flex flex-col items-center text-center p-6 rounded-xl border transition-all duration-200 focus-visible:outline-none",
+                "flex flex-col items-center text-center p-4 sm:p-6 rounded-xl border transition-all duration-200 focus-visible:outline-none",
                 isSelected
                   ? "border-[#C30100] bg-[#C30100]/10"
                   : "border-white/[0.08] bg-white/[0.03] hover:border-white/20",
