@@ -265,7 +265,7 @@ const HeroSection: React.FC = () => {
           >
             {/* ── Inner button — filled with page bg so gradient border shows ── */}
             <Link
-              href="/signup"
+              href="/sign-up"
               className="font-heading"
               style={{
                 display: "inline-block",
