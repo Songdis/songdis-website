@@ -64,16 +64,9 @@ export default function EarningsPage() {
       <div className="flex flex-col gap-5">
 
         {/* Stat cards */}
-        {/* <div className="grid grid-cols-4 gap-4">
-          <StatCard label="Total Balance"  value={balanceLoading ? "..." : fmt(totalBalance)}  icon="/icons/earnings/balance.svg"  highlight />
-          <StatCard label="This Month"     value={balanceLoading ? "..." : fmt(thisMonth)}     icon="/icons/earnings/month.svg" />
-          <StatCard label="From Releases"  value={balanceLoading ? "..." : fmt(fromReleases)}  icon="/icons/earnings/releases.svg" />
-          <StatCard label="From Splits"    value={balanceLoading ? "..." : fmt(fromSplits)}    icon="/icons/earnings/splits.svg" />
-        </div> */}
-         <div className="grid grid-cols-4 gap-4">
-          <StatCard label="Total Balance"  value={balanceLoading ? "..." : fmt(totalBalance)}  icon="/images/balance.svg"  highlight />
-          <StatCard label="This Month"     value={balanceLoading ? "..." : fmt(thisMonth)}     icon="/images/month.svg" />
-          <StatCard label="From Releases"  value={balanceLoading ? "..." : fmt(fromReleases)}  icon="/images/releases.svg" />
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+           <StatCard label="Total Balance"  value={balanceLoading ? "..." : fmt(totalBalance)}  icon="/images/balance.svg"  highlight />
+           <StatCard label="This Month"     value={balanceLoading ? "..." : fmt(thisMonth)}     icon="/images/month.svg" />           <StatCard label="From Releases"  value={balanceLoading ? "..." : fmt(fromReleases)}  icon="/images/releases.svg" />
           <StatCard label="From Splits"    value={balanceLoading ? "..." : fmt(fromSplits)}    icon="/images/splits.svg" />
         </div>
 
@@ -88,7 +81,7 @@ export default function EarningsPage() {
           <p className="font-body text-white/60 text-sm leading-relaxed mb-4">
             Your per-stream rate reflects early stage streaming. Once your releases hit curated playlists, expect significant growth. Spotify editorial placements average $0.003–$0.005/stream.
           </p>
-          <button className="font-body text-white text-xs bg-[#C30100]/20 border border-[#C30100]/40 hover:bg-[#C30100]/40 rounded-full px-4 py-2 transition-colors">
+          <button className="font-body text-white text-xs bg-[#C30100]/20 border border-[#C30100]/40 hover:bg-[#C30100]/40 rounded-full px-4 py-2 transition-colors inline-block">
             Get playlist placement
           </button>
         </div>
@@ -108,7 +101,7 @@ export default function EarningsPage() {
 
         {/* Split Earnings — real API */}
         <div className="rounded-2xl border border-dashed border-[#C30100]/30 bg-[#180F0F] p-5">
-          <div className="flex items-center justify-between mb-1">
+          <div className="flex flex-wrap items-center justify-between mb-1 gap-2">
             <div className="flex items-center gap-2">
               <p className="font-body text-white text-sm font-medium">Split Earnings</p>
               <span className="font-body text-[10px] text-green-400 bg-green-400/10 border border-green-400/20 rounded-full px-2 py-0.5">
@@ -251,7 +244,7 @@ export default function EarningsPage() {
       {withdrawSuccess && (
         <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
           <div aria-hidden className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={() => setWithdrawSuccess(false)} />
-          <div className="relative z-10 w-full max-w-[440px] rounded-2xl bg-[#1A0808] border border-white/[0.07] p-8 text-center">
+          <div className="relative z-10 w-full max-w-[440px] rounded-2xl bg-[#1A0808] border border-white/[0.07] p-6 sm:p-8 text-center mx-4 sm:mx-0 max-h-[90vh] overflow-y-auto">
             <div className="flex justify-center mb-5">
               <div className="w-16 h-16 rounded-full border-2 border-[#C30100] flex items-center justify-center">
                 <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#C30100" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">

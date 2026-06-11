@@ -93,7 +93,7 @@ function BioGenerator() {
       <div className="rounded-2xl border border-white/[0.06] bg-[#180F0F] p-6">
         <h3 className="font-heading text-white uppercase text-sm tracking-wide mb-5">Artist Bio Generator</h3>
         <div className="flex flex-col gap-4">
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Field label="Artist Name">
               <input value={form.artist_name} onChange={(e) => update("artist_name", e.target.value)}
                 placeholder="e.g. Vjazzy" className={inputCls} />
@@ -339,7 +339,7 @@ function ArtworkGenerator() {
 /* ─── Chat message bubble ─────────────────────────────────────── */
 function AyoMessage({ message, onChipClick }: { message: Message; onChipClick?: (chip: string) => void }) {
   return (
-    <div className="flex items-start gap-3 max-w-[80%]">
+    <div className="flex items-start gap-3 max-w-[90%] sm:max-w-[80%]">
       <div className="w-9 h-9 rounded-full bg-yellow-500/20 flex items-center justify-center shrink-0 mt-1">
         <Image src="/images/ayo.svg" alt="Ayo" width={18} height={18} unoptimized />
       </div>
@@ -365,7 +365,7 @@ function AyoMessage({ message, onChipClick }: { message: Message; onChipClick?: 
 function UserMessage({ message }: { message: Message }) {
   return (
     <div className="flex items-start gap-3 justify-end">
-      <div className="rounded-2xl rounded-tr-none bg-[#C30100]/15 border border-[#C30100]/20 px-5 py-4 max-w-[75%]">
+      <div className="rounded-2xl rounded-tr-none bg-[#C30100]/15 border border-[#C30100]/20 px-4 sm:px-5 py-3 sm:py-4 max-w-[90%] sm:max-w-[75%]">
         <p className="font-body text-white/80 text-sm leading-relaxed">{message.content}</p>
       </div>
     </div>
@@ -374,7 +374,7 @@ function UserMessage({ message }: { message: Message }) {
 
 function TypingIndicator() {
   return (
-    <div className="flex items-start gap-3 max-w-[80%]">
+    <div className="flex items-start gap-3 max-w-[90%] sm:max-w-[80%]">
       <div className="w-9 h-9 rounded-full bg-yellow-500/20 flex items-center justify-center shrink-0">
         <Image src="/images/ayo.svg" alt="Ayo" width={18} height={18} unoptimized />
       </div>
@@ -458,7 +458,7 @@ function ChatTab() {
   };
 
   return (
-    <div className="flex flex-col h-[calc(100vh-280px)] min-h-[500px]">
+    <div className="flex flex-col h-[calc(100vh-240px)] sm:h-[calc(100vh-280px)] min-h-[400px] sm:min-h-[500px]">
       {/* Messages */}
       <div className="flex-1 overflow-y-auto flex flex-col gap-5 pr-2 pb-4">
         {messages.map((m) =>
@@ -532,7 +532,7 @@ export default function AyoAIPage() {
         </div>
 
         {/* Tabs */}
-        <div className="flex items-center gap-6 border-b border-white/[0.06]">
+        <div className="flex items-center gap-4 sm:gap-6 border-b border-white/[0.06] overflow-x-auto">
           {tabs.map((t) => (
             <button
               key={t.id}

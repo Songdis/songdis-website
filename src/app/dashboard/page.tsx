@@ -19,8 +19,6 @@ export default function DashboardPage() {
       features: [],
     };
 
-  const userName = data?.user?.name ?? "VJazzy";
-
   return (
     <DashboardLayout>
       <div className="flex flex-col gap-5">
@@ -28,7 +26,10 @@ export default function DashboardPage() {
         {/* Ask Ayo bar */}
         <div className="rounded-2xl border border-white/[0.06] bg-[#180F0F] p-5">
           <div className="flex items-center gap-3 mb-3">
-            
+            {/*
+             * Drop your Figma export here:
+             * /public/icons/ayo-icon.svg
+             */}
             <div className="w-9 h-9 rounded-full bg-yellow-500/20 flex items-center justify-center shrink-0 relative">
               <Image
                 src="/images/ayo.svg"
@@ -52,21 +53,21 @@ export default function DashboardPage() {
               { label: "Generate artwork", icon: <ArtworkIcon /> },
               { label: "Ask Ayo anything", icon: <AskIcon /> },
             ].map((action) => (
-              <Link href='/dashboard/ayo'
+              <button
                 key={action.label}
                 className="flex items-center gap-2 font-body text-white/70 text-xs border border-white/[0.08] bg-white/[0.03] hover:bg-white/[0.07] rounded-full px-4 py-2 transition-colors"
               >
                 {action.icon}
                 {action.label}
-              </Link>
+              </button>
             ))}
           </div>
         </div>
 
         {/* Stats row + Artist Spotlight */}
-        <div className="grid grid-cols-5 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
           {/* Left stats column — 60% (3 of 5) */}
-          <div className="col-span-3 grid grid-rows-2 gap-4">
+          <div className="col-span-1 md:col-span-3 grid grid-rows-2 gap-4">
             {/* Active Releases */}
             <div className="rounded-2xl border border-white/[0.06] bg-[#180F0F] p-5 relative overflow-hidden">
               <div className="flex items-center justify-between mb-3">
@@ -95,9 +96,10 @@ export default function DashboardPage() {
           </div>
 
           {/* Artist Spotlight — image left, text right */}
-          <div className="col-span-2 rounded-2xl border border-white/[0.06] bg-[#180F0F] overflow-hidden flex flex-row">
+          <div className="col-span-1 md:col-span-2 rounded-2xl border border-white/[0.06] bg-[#180F0F] overflow-hidden flex flex-row">
             {/* Left: image, takes ~55% width */}
-             <div className="relative w-[55%] shrink-0 min-h-[220px]">              <Image
+            <div className="relative w-[55%] shrink-0 min-h-[220px]">
+              <Image
                 src="/images/into-the-night.svg"
                 alt="Artist spotlight"
                 fill
@@ -117,7 +119,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Recent Releases + Wallet */}
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Recent Releases */}
           <div className="rounded-2xl border border-white/[0.06] bg-[#180F0F] p-5 flex flex-col">
             <div className="flex items-center justify-between mb-4">
@@ -195,7 +197,7 @@ export default function DashboardPage() {
 
         {/* Performance Analytics */}
         <div className="rounded-2xl border border-white/[0.06] bg-[#180F0F] p-5">
-          <div className="flex items-center justify-between mb-5">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-5 gap-3">
             <p className="font-body text-white text-sm font-medium">Performance Analytics</p>
             <Link href="/dashboard/analytics" className="font-body text-white/50 text-xs hover:text-white transition-colors flex items-center gap-1">
               Detailed Analytics <span>→</span>
@@ -203,7 +205,7 @@ export default function DashboardPage() {
           </div>
 
           {/* Platform tabs */}
-          <div className="flex items-center justify-between mb-5">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-5 gap-3">
             <div className="flex gap-3">
               {[
                 { label: "Spotify", active: false },
@@ -246,7 +248,7 @@ export default function DashboardPage() {
         {/* Features grid */}
         <div>
           <p className="font-body text-white text-sm font-medium mb-4">Features</p>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-3">
             {features.map((f) => (
               <div key={f.id} className="rounded-xl border border-white/[0.06] bg-[#180F0F] p-4 hover:border-white/[0.12] transition-colors">
                 <div className="w-8 h-8 rounded-lg bg-white/[0.05] flex items-center justify-center mb-3">

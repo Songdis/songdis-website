@@ -258,7 +258,7 @@ export function GeneralTab() {
 
         {/* Show name fields only when editing — email is never editable */}
         {isEditingIdentity && (
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Field label="First Name">
               <Input value={firstName} onChange={setFirstName} placeholder="Enter first name" />
             </Field>
@@ -289,7 +289,7 @@ export function GeneralTab() {
           <Input value={address} onChange={setAddress} placeholder="Enter your address" />
         </Field>
 
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <Field label="City">
             <Input value={city} onChange={setCity} placeholder="City" />
           </Field>
