@@ -8,7 +8,7 @@ import {
   type RoyaltyTerritory,
   type RoyaltyPlatform,
 } from "@/lib/api/royalties";
-import { MOCK_ROYALTIES, PLATFORMS } from "../../app/mock/royalties";
+import { PLATFORMS } from "../../app/mock/royalties";
 
 /* ─── Date helpers ────────────────────────────────────────────── */
 function periodToDates(period: string): { start_date: string; end_date: string } {
@@ -48,56 +48,72 @@ export interface RoyaltiesPageData {
     territories:   { value: string; change: string; sub: string; icon: string };
   };
   revenueByPlatform: Array<{ id: string; name: string; logo: string; earnings: number; streams: number }>;
-  topEarningReleases: Array<{ id: string; rank: number; title: string; artist: string; cover: string; plays: string; streams: string; territories: number }>;
-  revenueByTerritory: Array<{ id: string; rank: number; country: string; flag: string; plays: string; streams: string }>;
+  topEarningReleases: Array<{
+    id: string; rank: number; title: string; artist: string;
+    cover: string; streams: string; earnings: string; territories: number;
+  }>;
+  revenueByTerritory: Array<{
+    id: string; rank: number; country: string; flag: string;
+    streams: string; earnings: string; platforms: number;
+  }>;
   socialVsStreaming: {
     socialMediaStats: { avgRate: string; uses: string };
     streamingStats:   { avgRate: string; streams: string };
-    // DES-012: platform bars instead of time-series (API doesn't have monthly breakdown)
     socialPlatforms: Array<{ platform: string; earnings: number; uses: number }>;
     streamingPlatforms: Array<{ platform: string; earnings: number; streams: number }>;
   };
 }
 
-// DES-009: Map to actual image files you have in /images/
+/* ─── Platform logo map ───────────────────────────────────────── */
 const PLATFORM_LOGOS: Record<string, string> = {
-  spotify:           "/images/spotify-frame.svg",
-  apple_music:       "/images/apple-frame.svg",
-  youtube_music:     "/images/color-youtube.svg",
-  youtube_streaming: "/images/color-youtube.svg",
-  youtube_content_id:"/images/color-youtube.svg",
-  audiomack:         "/images/audiomack.svg",
-  boomplay:          "/images/boomplay.svg",
-  amazon_music:      "/images/amazon-music.svg",
+  spotify:            "/images/spotify-frame.svg",
+  apple_music:        "/images/apple-frame.svg",
+  youtube_music:      "/images/color-youtube.svg",
+  youtube_streaming:  "/images/color-youtube.svg",
+  youtube_content_id: "/images/color-youtube.svg",
+  audiomack:          "/images/audiomack.svg",
+  boomplay:           "/images/boomplay.svg",
+  amazon_music:       "/images/amazon-music.svg",
 };
 
-// Platforms with no image file get a generated SVG fallback — no broken img
 function getPlatformLogo(key: string): string {
   return PLATFORM_LOGOS[key] ?? "";
 }
 
-const COUNTRY_FLAGS: Record<string, string> = {
-  Nigeria: "🇳🇬", "United States": "🇺🇸", "United Kingdom": "🇬🇧",
-  Ghana: "🇬🇭", Kenya: "🇰🇪", "South Africa": "🇿🇦",
-  France: "🇫🇷", Germany: "🇩🇪", Canada: "🇨🇦",
+/* ─── Territory ISO → display ─────────────────────────────────── */
+// Confirmed field from API: "territory" is ISO alpha-2 (NG, US, GB...)
+const TERRITORY_NAMES: Record<string, string> = {
+  NG: "Nigeria",   US: "United States", GB: "United Kingdom",
+  GH: "Ghana",     KE: "Kenya",         ZA: "South Africa",
+  FR: "France",    DE: "Germany",       CA: "Canada",
+  BR: "Brazil",    CO: "Colombia",      MX: "Mexico",
+  IT: "Italy",     ES: "Spain",         SE: "Sweden",
+  AR: "Argentina", PE: "Peru",          CL: "Chile",
+  AU: "Australia", NL: "Netherlands",   BE: "Belgium",
+  // alpha-3 fallbacks also seen in API
+  NGA: "Nigeria",  USA: "United States", GBR: "United Kingdom",
+  GHA: "Ghana",    KEN: "Kenya",         ZAF: "South Africa",
+  FRA: "France",   DEU: "Germany",       CAN: "Canada",
+};
+
+const TERRITORY_FLAGS: Record<string, string> = {
+  NG: "🇳🇬",  US: "🇺🇸",  GB: "🇬🇧",  GH: "🇬🇭",  KE: "🇰🇪",
+  ZA: "🇿🇦",  FR: "🇫🇷",  DE: "🇩🇪",  CA: "🇨🇦",  BR: "🇧🇷",
+  CO: "🇨🇴",  MX: "🇲🇽",  IT: "🇮🇹",  ES: "🇪🇸",  SE: "🇸🇪",
+  AR: "🇦🇷",  PE: "🇵🇪",  CL: "🇨🇱",  AU: "🇦🇺",  NL: "🇳🇱",
+  NGA: "🇳🇬", USA: "🇺🇸", GBR: "🇬🇧", GHA: "🇬🇭", KEN: "🇰🇪",
+  ZAF: "🇿🇦", FRA: "🇫🇷", DEU: "🇩🇪", CAN: "🇨🇦",
 };
 
 function normalisePlatformName(key: string): string {
   const names: Record<string, string> = {
-    spotify: "Spotify",
-    apple_music: "Apple Music",
-    youtube_music: "YouTube Music",
-    youtube_streaming: "YouTube",
-    youtube_content_id: "YouTube CID",
-    audiomack: "Audiomack",
-    boomplay: "Boomplay",
-    amazon_music: "Amazon Music",
-    tidal: "Tidal",
-    deezer: "Deezer",
-    facebook: "Facebook",
-    tiktok: "TikTok",
-    snapchat: "Snapchat",
-    snap: "Snapchat",
+    spotify: "Spotify", apple_music: "Apple Music",
+    youtube_music: "YouTube Music", youtube_streaming: "YouTube",
+    youtube_content_id: "YouTube CID", audiomack: "Audiomack",
+    boomplay: "Boomplay", amazon_music: "Amazon Music",
+    tidal: "Tidal", deezer: "Deezer",
+    facebook: "Facebook", tiktok: "TikTok",
+    snapchat: "Snapchat", snap: "Snapchat",
   };
   return names[key] ?? key.charAt(0).toUpperCase() + key.slice(1).replace(/_/g, " ");
 }
@@ -107,6 +123,8 @@ function normalise(
   socialRaw: Record<string, unknown> | null,
   _platformsRaw: Record<string, unknown> | null
 ): RoyaltiesPageData {
+  // API: GET /royalties → { message, data: { overview, platform_breakdown,
+  //   top_earning_releases, territory_breakdown, monthly_trends } }
   const d = (overviewRaw?.data as Record<string, unknown>) ?? overviewRaw ?? {};
   const overview = (d.overview as Record<string, unknown>) ?? d;
 
@@ -116,47 +134,52 @@ function normalise(
   const territories    = (overview.territories_reached as number) ?? (overview.territories as number) ?? 0;
 
   // Revenue by platform
-  const rawPlatforms = (d.platform_breakdown as RoyaltyPlatform[]) ?? [];
+  const rawPlatforms = (d.platform_breakdown as Array<Record<string, unknown>>) ?? [];
   const revenueByPlatform = rawPlatforms.map((p, i) => {
-    const key = (p.platform ?? p.name ?? "").toLowerCase().replace(/\s+/g, "_");
+    const key = ((p.platform ?? p.name ?? "") as string).toLowerCase().replace(/\s+/g, "_");
     return {
       id: String(i),
       name: normalisePlatformName(key),
       logo: getPlatformLogo(key),
-      earnings: (p.earnings as number) ?? 0,
-      streams:  (p.streams  as number) ?? 0,
+      earnings: parseFloat(String(p.total_earnings ?? p.earnings ?? 0)) || 0,
+      streams:  (p.total_streams ?? p.streams ?? 0) as number,
     };
   });
 
-  // Top earning releases
-  const rawReleases = (d.top_earning_releases as RoyaltyRelease[]) ?? [];
-  const topEarningReleases = rawReleases.slice(0, 5).map((r, i) => ({
-    id: String(r.id ?? i),
+  // Top earning releases — confirmed field: top_earning_releases
+  // Fields: track_title, primary_artist, album_art_url, total_earnings,
+  //         total_streams, territories_active, platforms_active
+  const rawReleases = (d.top_earning_releases as Array<Record<string, unknown>>) ?? [];
+  const topEarningReleases = rawReleases.slice(0, 10).map((r, i) => ({
+    id: String(r.isrc ?? r.upc ?? i),
     rank: i + 1,
-    title:  (r.release_title ?? r.title   ?? "") as string,
-    artist: (r.primary_artist ?? r.artist ?? "") as string,
-    cover: "/images/cover-blue.svg",
-    plays:       fmtNum(r.plays),
-    streams:     fmtNum(r.streams),
-    territories: (r.territories as number) ?? 0,
+    title:  (r.track_title   ?? r.release_name ?? "") as string,
+    artist: (r.track_artists ?? r.primary_artist ?? "") as string,
+    cover:  (r.album_art_url ?? "") as string,
+    streams:  fmtNum(r.total_streams as number),
+    earnings: `$${parseFloat(String(r.total_earnings ?? 0)).toFixed(2)}`,
+    territories: (r.territories_active as number) ?? 0,
   }));
 
-  // Revenue by territory
-  const rawTerritories = (d.territory_breakdown as RoyaltyTerritory[]) ?? [];
-  const revenueByTerritory = rawTerritories.slice(0, 5).map((t, i) => {
-    const country = (t.country_name ?? t.country ?? "") as string;
+  // Revenue by territory — confirmed field: territory_breakdown
+  // Fields: territory (ISO alpha-2), total_earnings, total_streams, platforms_active
+  const rawTerritories = (d.territory_breakdown as Array<Record<string, unknown>>) ?? [];
+  const revenueByTerritory = rawTerritories.slice(0, 10).map((t, i) => {
+    const code = (t.territory ?? "") as string;
+    const name = TERRITORY_NAMES[code] ?? code;
     return {
       id: String(i),
       rank: i + 1,
-      country,
-      flag: COUNTRY_FLAGS[country] ?? "🌍",
-      plays:   fmtNum(t.plays),
-      streams: fmtNum(t.streams),
+      country: name,
+      flag: TERRITORY_FLAGS[code] ?? "🌍",
+      streams:  fmtNum(t.total_streams as number),
+      earnings: `$${parseFloat(String(t.total_earnings ?? 0)).toFixed(2)}`,
+      platforms: (t.platforms_active as number) ?? 0,
     };
   });
 
-  // DES-012: social vs streaming — use platform-level data (no monthly breakdown exists)
-  const sm = (socialRaw?.social_platforms   as Record<string, unknown>) ?? {};
+  // Social vs streaming
+  const sm = (socialRaw?.social_platforms    as Record<string, unknown>) ?? {};
   const st = (socialRaw?.streaming_platforms as Record<string, unknown>) ?? {};
 
   const smAvgRate = sm.avg_rate as number | null | undefined;

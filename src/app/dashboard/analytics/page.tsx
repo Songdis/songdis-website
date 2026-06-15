@@ -169,13 +169,18 @@ function OverviewView({ data }: { data: AnalyticsPageData | null }) {
             ) : topSongs.map((song) => (
               <div key={song.id} className="flex items-center gap-3 py-2 border-b border-white/[0.04] last:border-0">
                 <span className="font-body text-white/30 text-xs w-4 shrink-0">{song.rank}</span>
-                <div className="relative w-8 h-8 rounded-lg overflow-hidden bg-[#0E0808] shrink-0">
+                {/* Top Songs cover — API doesn't return images, always show music note fallback */}
+                <div className="w-8 h-8 rounded-lg bg-[#0E0808] border border-white/[0.06] shrink-0 flex items-center justify-center">
                   {song.cover ? (
-                    <Image src={song.cover} alt={song.title} fill className="object-cover" unoptimized />
-                  ) : (
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.2)" strokeWidth="2"><path d="M9 18V5l12-2v13"/></svg>
+                    <div className="relative w-full h-full overflow-hidden rounded-lg">
+                      <Image src={song.cover} alt={song.title} fill className="object-cover" unoptimized />
                     </div>
+                  ) : (
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.25)" strokeWidth="1.5" strokeLinecap="round">
+                      <path d="M9 18V5l12-2v13"/>
+                      <circle cx="6" cy="18" r="3"/>
+                      <circle cx="18" cy="16" r="3"/>
+                    </svg>
                   )}
                 </div>
                 <div className="flex-1 min-w-0">
