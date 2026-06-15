@@ -7,21 +7,12 @@ import { useRoyalties, TIME_PERIODS, PLATFORMS } from "@/lib/hooks/useRoyalties"
 import type { RoyaltiesPageData } from "@/lib/hooks/useRoyalties";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid,
-  Tooltip, ResponsiveContainer,
+  Tooltip, ResponsiveContainer, Legend,
 } from "recharts";
 
 /* ─── Shared dropdown ─────────────────────────────────────────── */
-function Dropdown({
-  value,
-  options,
-  onChange,
-}: {
-  value: string;
-  options: string[];
-  onChange: (v: string) => void;
-}) {
+function Dropdown({ value, options, onChange }: { value: string; options: string[]; onChange: (v: string) => void }) {
   const [open, setOpen] = useState(false);
-
   return (
     <div className="relative">
       <button
@@ -31,7 +22,6 @@ function Dropdown({
         <span className="truncate">{value}</span>
         <ChevronIcon />
       </button>
-
       {open && (
         <>
           <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
@@ -40,10 +30,7 @@ function Dropdown({
               <button
                 key={opt}
                 onClick={() => { onChange(opt); setOpen(false); }}
-                className={[
-                  "w-full text-left px-5 py-3 font-body text-sm transition-colors hover:bg-white/[0.05]",
-                  opt === value ? "text-white font-medium" : "text-white/70",
-                ].join(" ")}
+                className={["w-full text-left px-5 py-3 font-body text-sm transition-colors hover:bg-white/[0.05]", opt === value ? "text-white font-medium" : "text-white/70"].join(" ")}
               >
                 {opt}
               </button>
@@ -56,67 +43,31 @@ function Dropdown({
 }
 
 /* ─── Stat card ───────────────────────────────────────────────── */
-function StatCard({
-  label,
-  value,
-  sub,
-  icon,
-  change,
-  highlight,
-  changePositive,
-}: {
-  label: string;
-  value: string;
-  sub?: string;
-  icon: string;
-  change?: string;
-  highlight?: boolean;
-  changePositive?: boolean;
+function StatCard({ label, value, sub, icon, change, highlight, changePositive }: {
+  label: string; value: string; sub?: string; icon: string;
+  change?: string; highlight?: boolean; changePositive?: boolean;
 }) {
   return (
-    <div
-      className={[
-        "rounded-xl border p-4 flex flex-col gap-2 relative overflow-hidden",
-        highlight
-          ? "border-[#C30100]/40 bg-[#C30100]/10"
-          : "border-white/[0.06] bg-[#180F0F]",
-      ].join(" ")}
-    >
+    <div className={["rounded-xl border p-4 flex flex-col gap-2 relative overflow-hidden", highlight ? "border-[#C30100]/40 bg-[#C30100]/10" : "border-white/[0.06] bg-[#180F0F]"].join(" ")}>
       <div className="flex items-center justify-between">
         <p className="font-body text-white/60 text-xs">{label}</p>
-        
         <div className="w-12 h-12 rounded-lg flex items-center justify-center">
           <Image src={icon} alt={label} width={66} height={66} unoptimized />
         </div>
       </div>
-
       <div className="flex items-end gap-2">
         <p className="font-heading text-white text-2xl font-bold">{value}</p>
         {change && (
-          <span
-            className="font-body text-[10px] rounded-full px-2 py-0.5 mb-0.5"
-            style={
-              changePositive !== false
-                ? { color: "#22c55e", backgroundColor: "rgba(34,197,94,0.15)" }
-                : { color: "#C30100", backgroundColor: "rgba(195,1,0,0.15)" }
-            }
-          >
+          <span className="font-body text-[10px] rounded-full px-2 py-0.5 mb-0.5"
+            style={changePositive !== false ? { color: "#22c55e", backgroundColor: "rgba(34,197,94,0.15)" } : { color: "#C30100", backgroundColor: "rgba(195,1,0,0.15)" }}>
             {change}
           </span>
         )}
       </div>
-
       {sub && <p className="font-body text-white/30 text-[11px]">{sub}</p>}
-
       {highlight && (
-        <div
-          aria-hidden
-          className="absolute bottom-0 right-0 w-24 h-24 pointer-events-none"
-          style={{
-            background: "radial-gradient(circle at bottom right, rgba(195,1,0,0.4) 0%, transparent 70%)",
-            filter: "blur(12px)",
-          }}
-        />
+        <div aria-hidden className="absolute bottom-0 right-0 w-24 h-24 pointer-events-none"
+          style={{ background: "radial-gradient(circle at bottom right, rgba(195,1,0,0.4) 0%, transparent 70%)", filter: "blur(12px)" }} />
       )}
     </div>
   );
@@ -134,40 +85,91 @@ function EmptyState({ message = "No data available" }: { message?: string }) {
   );
 }
 
+/* ─── Platform logo with fallback ─────────────────────────────── */
+function PlatformLogo({ logo, name }: { logo: string; name: string }) {
+  if (logo) {
+    return (
+      <div className="w-8 h-8 rounded-lg bg-[#0E0808] flex items-center justify-center shrink-0 overflow-hidden">
+        <Image
+          src={logo}
+          alt={name}
+          width={20}
+          height={20}
+          unoptimized
+          onError={(e) => {
+            // If image fails, hide it — the fallback below handles it
+            (e.target as HTMLImageElement).style.display = "none";
+          }}
+        />
+      </div>
+    );
+  }
+  // DES-009: Generic fallback icon for platforms without a logo file
+  return (
+    <div className="w-8 h-8 rounded-lg bg-[#C30100]/10 border border-[#C30100]/20 flex items-center justify-center shrink-0">
+      <span className="font-heading text-[#C30100] text-[10px] uppercase">
+        {name.slice(0, 2)}
+      </span>
+    </div>
+  );
+}
+
 /* ─── Page ────────────────────────────────────────────────────── */
 export default function RoyaltyReportPage() {
   const [period, setPeriod] = useState("Last Year");
   const [platform, setPlatform] = useState("All Platforms");
-  const [chartMonth, setChartMonth] = useState("March");
-
   const [exportOpen, setExportOpen] = useState(false);
+
   const { data, isLoading } = useRoyalties(period, platform);
 
   const { stats, revenueByPlatform, topEarningReleases, revenueByTerritory, socialVsStreaming } =
     data ?? {
-       stats: {
+      stats: {
         totalEarnings:  { value: "...", change: "", sub: "", icon: "/images/earnings.svg" },
-         totalStreams:   { value: "...", change: "", sub: "", icon: "/images/streams.svg" },
-         uniqueReleases: { value: "...", change: "", sub: "", icon: "/images/releases.svg" },
-         territories:   { value: "...", change: "", sub: "", icon: "/images/countries.svg" },
-       },
+        totalStreams:   { value: "...", change: "", sub: "", icon: "/images/streams.svg" },
+        uniqueReleases: { value: "...", change: "", sub: "", icon: "/images/releases.svg" },
+        territories:   { value: "...", change: "", sub: "", icon: "/images/countries.svg" },
+      },
       revenueByPlatform: [],
       topEarningReleases: [],
       revenueByTerritory: [],
-      socialVsStreaming: { socialMediaStats: { avgRate: "", uses: "" }, streamingStats: { avgRate: "", streams: "" }, months: [], social: [], streaming: [] },
+      socialVsStreaming: {
+        socialMediaStats: { avgRate: "", uses: "" },
+        streamingStats: { avgRate: "", streams: "" },
+        socialPlatforms: [],
+        streamingPlatforms: [],
+      },
     };
 
-  const chartData = socialVsStreaming.months.map((m, i) => ({
-    month: m,
-    social: socialVsStreaming.social[i] ?? 0,
-    streaming: socialVsStreaming.streaming[i] ?? 0,
+  // DES-012: Build combined bar chart data from platform arrays
+  const socialChartData = socialVsStreaming.socialPlatforms.map((p) => ({
+    name: p.platform,
+    earnings: p.earnings,
   }));
 
+  const streamingChartData = socialVsStreaming.streamingPlatforms.map((p) => ({
+    name: p.platform,
+    earnings: p.earnings,
+  }));
+
+  // Combined view — merge both into one chart
+  const combinedChartData = [
+    ...socialVsStreaming.socialPlatforms.map((p) => ({
+      name: p.platform,
+      social: p.earnings,
+      streaming: 0,
+    })),
+    ...socialVsStreaming.streamingPlatforms.map((p) => ({
+      name: p.platform,
+      social: 0,
+      streaming: p.earnings,
+    })),
+  ];
+
+  const hasChartData = combinedChartData.length > 0 && combinedChartData.some(d => d.social > 0 || d.streaming > 0);
+
   return (
-    <DashboardLayout
-      customCta={{ label: "Export Data", onClick: () => setExportOpen(true) }}
-    >
-      {/* Extra topbar controls — period + platform dropdowns */}
+    <DashboardLayout customCta={{ label: "Export Data", onClick: () => setExportOpen(true) }}>
       <div className="flex items-center gap-3 mb-5 -mt-2">
         <Dropdown value={period} options={TIME_PERIODS} onChange={setPeriod} />
         <Dropdown value={platform} options={PLATFORMS} onChange={setPlatform} />
@@ -177,35 +179,10 @@ export default function RoyaltyReportPage() {
 
         {/* Stat cards */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <StatCard
-            label="Total Earnings"
-            value={stats.totalEarnings.value}
-            sub={stats.totalEarnings.sub}
-            icon={stats.totalEarnings.icon}
-            change={stats.totalEarnings.change}
-            highlight
-          />
-          <StatCard
-            label="Total Streams"
-            value={stats.totalStreams.value}
-            sub={stats.totalStreams.sub}
-            icon={stats.totalStreams.icon}
-            change={stats.totalStreams.change}
-          />
-          <StatCard
-            label="Unique Releases"
-            value={stats.uniqueReleases.value}
-            sub={stats.uniqueReleases.sub}
-            icon={stats.uniqueReleases.icon}
-            change={stats.uniqueReleases.change}
-          />
-          <StatCard
-            label="Territories"
-            value={stats.territories.value}
-            sub={stats.territories.sub}
-            icon={stats.territories.icon}
-            change={stats.territories.change}
-          />
+          <StatCard label="Total Earnings" value={stats.totalEarnings.value} sub={stats.totalEarnings.sub} icon={stats.totalEarnings.icon} change={stats.totalEarnings.change} highlight />
+          <StatCard label="Total Streams"  value={stats.totalStreams.value}  sub={stats.totalStreams.sub}  icon={stats.totalStreams.icon}  change={stats.totalStreams.change} />
+          <StatCard label="Unique Releases" value={stats.uniqueReleases.value} sub={stats.uniqueReleases.sub} icon={stats.uniqueReleases.icon} change={stats.uniqueReleases.change} />
+          <StatCard label="Territories"    value={stats.territories.value}   sub={stats.territories.sub}   icon={stats.territories.icon}   change={stats.territories.change} />
         </div>
 
         {/* Ayo insight */}
@@ -215,19 +192,13 @@ export default function RoyaltyReportPage() {
               <Image src="/images/ayo.svg" alt="Ayo" width={20} height={20} unoptimized />
             </div>
             <div className="flex-1">
-              <p className="font-body text-[#C30100] text-xs font-semibold mb-2">
-                Ayo AI · Analytics Summary
-              </p>
+              <p className="font-body text-[#C30100] text-xs font-semibold mb-2">Ayo AI · Analytics Summary</p>
               <p className="font-body text-white/60 text-sm leading-relaxed mb-4">
                 Your streams peaked in November with 530K+ streams — this correlates with your consistent social activity and a playlist placement on AfroBeats Daily. Nigeria is 61% of your audience. I recommend doubling down with Pidgin/Yoruba content to retain and grow that base while expanding into UK and US diaspora markets.
               </p>
               <div className="flex flex-wrap gap-2">
-                <button className="font-body text-white text-xs bg-[#C30100]/20 border border-[#C30100]/40 hover:bg-[#C30100]/40 rounded-full px-4 py-2 transition-colors">
-                  Plan content with Ayo
-                </button>
-                <button className="font-body text-white/70 text-xs border border-white/10 hover:border-white/25 rounded-full px-4 py-2 transition-colors">
-                  View platform breakdown
-                </button>
+                <button className="font-body text-white text-xs bg-[#C30100]/20 border border-[#C30100]/40 hover:bg-[#C30100]/40 rounded-full px-4 py-2 transition-colors">Plan content with Ayo</button>
+                <button className="font-body text-white/70 text-xs border border-white/10 hover:border-white/25 rounded-full px-4 py-2 transition-colors">View platform breakdown</button>
               </div>
             </div>
           </div>
@@ -240,40 +211,24 @@ export default function RoyaltyReportPage() {
               <p className="font-body text-white text-sm font-medium">Revenue by Platform</p>
               <p className="font-body text-white/40 text-xs mt-0.5">Earnings Distribution</p>
             </div>
-            <button className="font-body text-white/50 text-xs flex items-center gap-1 hover:text-white transition-colors">
-              View All <span>→</span>
-            </button>
+            <button className="font-body text-white/50 text-xs flex items-center gap-1 hover:text-white transition-colors">View All <span>→</span></button>
           </div>
-
           <div className="flex flex-col mt-4">
-            {revenueByPlatform.length === 0 ? <EmptyState message="No platform revenue data yet." /> : revenueByPlatform.map((p, i) => (
+            {revenueByPlatform.length === 0 ? (
+              <EmptyState message="No platform revenue data yet." />
+            ) : revenueByPlatform.map((p, i) => (
               <div
                 key={p.id}
-                className={[
-                  "flex items-center justify-between py-4",
-                  i < revenueByPlatform.length - 1 ? "border-b border-white/[0.05]" : "",
-                ].join(" ")}
+                className={["flex items-center justify-between py-4", i < revenueByPlatform.length - 1 ? "border-b border-white/[0.05]" : ""].join(" ")}
               >
                 <div className="flex items-center gap-3">
-                  {/*
-                   * Platform logos — drop Figma SVG exports at:
-                   * /public/icons/platforms/apple-music.svg
-                   * /public/icons/platforms/boomplay.svg
-                   * /public/icons/platforms/audiomack.svg
-                   * /public/icons/platforms/amazon-music.svg
-                   */}
-                  <div className="w-8 h-8 rounded-lg bg-[#0E0808] flex items-center justify-center shrink-0 overflow-hidden">
-                    <Image src={p.logo} alt={p.name} width={20} height={20} unoptimized />
-                  </div>
+                  {/* DES-009: PlatformLogo handles missing files gracefully */}
+                  <PlatformLogo logo={p.logo} name={p.name} />
                   <p className="font-body text-white text-sm">{p.name}</p>
                 </div>
                 <div className="text-right">
-                  <p className="font-body text-white text-sm font-semibold">
-                    ${p.earnings.toFixed(2)}
-                  </p>
-                  <p className="font-body text-white/40 text-xs">
-                    {p.streams.toLocaleString()} streams
-                  </p>
+                  <p className="font-body text-white text-sm font-semibold">${p.earnings.toFixed(2)}</p>
+                  <p className="font-body text-white/40 text-xs">{p.streams.toLocaleString()} streams</p>
                 </div>
               </div>
             ))}
@@ -287,32 +242,24 @@ export default function RoyaltyReportPage() {
               <p className="font-body text-white text-sm font-medium">Top Earning Releases</p>
               <p className="font-body text-white/40 text-xs mt-0.5">Highest revenue generating tracks</p>
             </div>
-            <span
-              className="font-body text-xs rounded-full px-3 py-1"
-              style={{ color: "#22c55e", backgroundColor: "rgba(34,197,94,0.12)", border: "1px solid rgba(34,197,94,0.2)" }}
-            >
+            <span className="font-body text-xs rounded-full px-3 py-1" style={{ color: "#22c55e", backgroundColor: "rgba(34,197,94,0.12)", border: "1px solid rgba(34,197,94,0.2)" }}>
               Revenue Focused
             </span>
           </div>
-
-          {/* Table header */}
           <div className="hidden sm:grid grid-cols-5 gap-4 mt-5 mb-2 px-1">
             <div className="col-span-2" />
             <p className="font-body text-white/30 text-xs text-right">Plays</p>
             <p className="font-body text-white/30 text-xs text-right">Streams</p>
             <p className="font-body text-white/30 text-xs text-right">Territories</p>
           </div>
-
           <div className="flex flex-col">
-            {topEarningReleases.length === 0 ? <EmptyState message="No earning releases yet." /> : topEarningReleases.map((release, i) => (
+            {topEarningReleases.length === 0 ? (
+              <EmptyState message="No earning releases yet." />
+            ) : topEarningReleases.map((release, i) => (
               <div
                 key={release.id}
-                className={[
-                  "flex flex-wrap sm:grid sm:grid-cols-5 gap-2 sm:gap-4 items-center py-4",
-                  i < topEarningReleases.length - 1 ? "border-b border-white/[0.05]" : "",
-                ].join(" ")}
+                className={["flex flex-wrap sm:grid sm:grid-cols-5 gap-2 sm:gap-4 items-center py-4", i < topEarningReleases.length - 1 ? "border-b border-white/[0.05]" : ""].join(" ")}
               >
-                {/* Rank + title */}
                 <div className="col-span-2 flex items-center gap-3">
                   <div className="w-9 h-9 rounded-full bg-[#C30100]/20 border border-[#C30100]/40 flex items-center justify-center shrink-0">
                     <span className="font-heading text-[#C30100] text-sm font-bold">{release.rank}</span>
@@ -326,9 +273,7 @@ export default function RoyaltyReportPage() {
                 <p className="font-body text-white/60 text-sm text-right">{release.streams}</p>
                 <div className="flex items-center justify-end gap-3">
                   <p className="font-body text-white/60 text-sm">{release.territories}</p>
-                  <button className="font-body text-white text-xs border border-white/15 hover:border-white/30 rounded-full px-3 py-1.5 transition-colors shrink-0">
-                    View
-                  </button>
+                  <button className="font-body text-white text-xs border border-white/15 hover:border-white/30 rounded-full px-3 py-1.5 transition-colors shrink-0">View</button>
                 </div>
               </div>
             ))}
@@ -342,30 +287,23 @@ export default function RoyaltyReportPage() {
               <p className="font-body text-white text-sm font-medium">Revenue by Territory</p>
               <p className="font-body text-white/40 text-xs mt-0.5">Top earning countries and regions</p>
             </div>
-            <span
-              className="font-body text-xs rounded-full px-3 py-1"
-              style={{ color: "#22c55e", backgroundColor: "rgba(34,197,94,0.12)", border: "1px solid rgba(34,197,94,0.2)" }}
-            >
+            <span className="font-body text-xs rounded-full px-3 py-1" style={{ color: "#22c55e", backgroundColor: "rgba(34,197,94,0.12)", border: "1px solid rgba(34,197,94,0.2)" }}>
               Earnings Focused
             </span>
           </div>
-
-          {/* Table header */}
           <div className="hidden sm:grid grid-cols-5 gap-4 mt-5 mb-2 px-1">
             <div className="col-span-2" />
             <p className="font-body text-white/30 text-xs text-right">Plays</p>
             <p className="font-body text-white/30 text-xs text-right">Streams</p>
             <p className="font-body text-white/30 text-xs text-right">Action</p>
           </div>
-
           <div className="flex flex-col">
-            {revenueByTerritory.length === 0 ? <EmptyState message="No territory data yet." /> : revenueByTerritory.map((t, i) => (
+            {revenueByTerritory.length === 0 ? (
+              <EmptyState message="No territory data yet." />
+            ) : revenueByTerritory.map((t, i) => (
               <div
                 key={t.id}
-                className={[
-                  "flex flex-wrap sm:grid sm:grid-cols-5 gap-2 sm:gap-4 items-center py-4",
-                  i < revenueByTerritory.length - 1 ? "border-b border-white/[0.05]" : "",
-                ].join(" ")}
+                className={["flex flex-wrap sm:grid sm:grid-cols-5 gap-2 sm:gap-4 items-center py-4", i < revenueByTerritory.length - 1 ? "border-b border-white/[0.05]" : ""].join(" ")}
               >
                 <div className="col-span-2 flex items-center gap-3">
                   <div className="w-9 h-9 rounded-full bg-[#C30100]/20 border border-[#C30100]/40 flex items-center justify-center shrink-0">
@@ -379,23 +317,21 @@ export default function RoyaltyReportPage() {
                 <p className="font-body text-white/60 text-sm text-right">{t.plays}</p>
                 <p className="font-body text-white/60 text-sm text-right">{t.streams}</p>
                 <div className="flex justify-end">
-                  <button className="font-body text-white text-xs border border-white/15 hover:border-white/30 rounded-full px-3 py-1.5 transition-colors">
-                    View
-                  </button>
+                  <button className="font-body text-white text-xs border border-white/15 hover:border-white/30 rounded-full px-3 py-1.5 transition-colors">View</button>
                 </div>
               </div>
             ))}
           </div>
         </div>
 
-        {/* Social vs Streaming */}
+        {/* Social vs Streaming — DES-012: redesigned as platform bars */}
         <div className="rounded-2xl border border-white/[0.06] bg-[#180F0F] p-5">
-          <div className="flex items-start justify-between mb-5">
+          <div className="flex flex-wrap items-start justify-between gap-4 mb-5">
             <div>
               <p className="font-body text-white text-sm font-medium">Social vs Streaming</p>
-              <p className="font-body text-white/40 text-xs mt-0.5">Revenue comparison between platform types</p>
+              <p className="font-body text-white/40 text-xs mt-0.5">Revenue by platform type</p>
             </div>
-            <div className="flex flex-wrap items-start gap-4 sm:gap-6 shrink-0">
+            <div className="flex flex-wrap gap-6 shrink-0">
               <div>
                 <p className="font-heading text-white text-xs uppercase tracking-widest mb-1">Social Media</p>
                 <p className="font-body text-white/50 text-xs">Avg Rate: {socialVsStreaming.socialMediaStats.avgRate}</p>
@@ -409,77 +345,58 @@ export default function RoyaltyReportPage() {
             </div>
           </div>
 
-          {/* Legend + month filter */}
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-1.5">
-                <div className="w-2.5 h-2.5 rounded-full bg-[#C30100]" />
-                <span className="font-body text-white/50 text-xs">Social</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <div className="w-2.5 h-2.5 rounded-full bg-[#8B6A4B]" />
-                <span className="font-body text-white/50 text-xs">Streaming</span>
-              </div>
+          {/* Legend */}
+          <div className="flex items-center gap-4 mb-4">
+            <div className="flex items-center gap-1.5">
+              <div className="w-2.5 h-2.5 rounded-full bg-[#C30100]" />
+              <span className="font-body text-white/50 text-xs">Social</span>
             </div>
-            <select
-              value={chartMonth}
-              onChange={(e) => setChartMonth(e.target.value)}
-              className="bg-transparent border border-white/10 rounded-lg px-3 py-1.5 font-body text-white/50 text-xs outline-none"
-            >
-              {["January","February","March","April","May","June","July","August","September","October","November","December"].map((m) => (
-                <option key={m}>{m}</option>
-              ))}
-            </select>
+            <div className="flex items-center gap-1.5">
+              <div className="w-2.5 h-2.5 rounded-full bg-[#8B6A4B]" />
+              <span className="font-body text-white/50 text-xs">Streaming</span>
+            </div>
           </div>
 
-          {chartData.length === 0 || chartData.every(d => d.social === 0 && d.streaming === 0) ? (
+          {!hasChartData ? (
             <EmptyState message="No social vs streaming data available yet." />
           ) : (
-          <ResponsiveContainer width="100%" height={260}>
-            <BarChart data={chartData} margin={{ top: 5, right: 10, bottom: 20, left: 0 }} barGap={2}>
-              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" vertical={false} />
-              <XAxis
-                dataKey="month"
-                tick={{ fill: "rgba(255,255,255,0.2)", fontSize: 10 }}
-                axisLine={false}
-                tickLine={false}
-              />
-              <YAxis
-                tick={{ fill: "rgba(255,255,255,0.2)", fontSize: 10 }}
-                axisLine={false}
-                tickLine={false}
-                tickFormatter={(v) => v >= 1000000 ? `$${(v/1000000).toFixed(1)}M` : v >= 1000 ? `$${(v/1000).toFixed(0)}k` : `$${v}`}
-              />
-              <Tooltip
-                contentStyle={{
-                  background: "#1A0808",
-                  border: "1px solid rgba(255,255,255,0.08)",
-                  borderRadius: 8,
-                  fontFamily: "var(--font-montserrat)",
-                  fontSize: 11,
-                }}
-                formatter={(value) => {
-                  const n = typeof value === "number" ? value : 0;
-                  return [`$${(n / 1000).toFixed(0)}k`];
-                }}
-              />
-              <Bar dataKey="social"    fill="#C30100" radius={[3, 3, 0, 0]} barSize={14} />
-              <Bar dataKey="streaming" fill="#8B6A4B" radius={[3, 3, 0, 0]} barSize={14} />
-            </BarChart>
-          </ResponsiveContainer>
+            <ResponsiveContainer width="100%" height={280}>
+              <BarChart data={combinedChartData} margin={{ top: 5, right: 10, bottom: 40, left: 0 }} barGap={2}>
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" vertical={false} />
+                <XAxis
+                  dataKey="name"
+                  tick={{ fill: "rgba(255,255,255,0.3)", fontSize: 10 }}
+                  axisLine={false}
+                  tickLine={false}
+                  angle={-35}
+                  textAnchor="end"
+                  interval={0}
+                />
+                <YAxis
+                  tick={{ fill: "rgba(255,255,255,0.2)", fontSize: 10 }}
+                  axisLine={false}
+                  tickLine={false}
+                  tickFormatter={(v) => v >= 1000 ? `$${(v/1000).toFixed(0)}k` : `$${v}`}
+                />
+                <Tooltip
+                  contentStyle={{ background: "#1A0808", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 8, fontFamily: "var(--font-montserrat)", fontSize: 11 }}
+                  formatter={(value, name) => {
+                    const n = typeof value === "number" ? value : Number(value ?? 0);
+                    const label = name === "social" ? "Social" : "Streaming";
+                    return [`$${n.toFixed(2)}`, label] as [string, string];
+                  }}
+                />
+                <Bar dataKey="social"    fill="#C30100" radius={[3, 3, 0, 0]} barSize={16} />
+                <Bar dataKey="streaming" fill="#8B6A4B" radius={[3, 3, 0, 0]} barSize={16} />
+              </BarChart>
+            </ResponsiveContainer>
           )}
         </div>
 
       </div>
 
-      {/* Export modal */}
       {exportOpen && (
-        <ExportModal
-          onClose={() => setExportOpen(false)}
-          data={data}
-          period={period}
-          platform={platform}
-        />
+        <ExportModal onClose={() => setExportOpen(false)} data={data} period={period} platform={platform} />
       )}
     </DashboardLayout>
   );
@@ -489,40 +406,21 @@ export default function RoyaltyReportPage() {
 function exportCSV(data: RoyaltiesPageData | null, period: string, platform: string) {
   if (!data) return;
   const rows: string[][] = [];
-
   rows.push([`Royalty Report — ${period} — ${platform}`]);
   rows.push([]);
-
-  // Stats
   rows.push(["Metric", "Value"]);
   rows.push(["Total Earnings", data.stats.totalEarnings.value]);
   rows.push(["Total Streams",  data.stats.totalStreams.value]);
   rows.push(["Unique Releases",data.stats.uniqueReleases.value]);
   rows.push(["Territories",    data.stats.territories.value]);
   rows.push([]);
-
-  // Revenue by platform
   rows.push(["Platform", "Earnings (USD)", "Streams"]);
-  data.revenueByPlatform.forEach((p) => {
-    rows.push([p.name, String(p.earnings), String(p.streams)]);
-  });
+  data.revenueByPlatform.forEach((p) => rows.push([p.name, String(p.earnings), String(p.streams)]));
   rows.push([]);
-
-  // Top earning releases
   rows.push(["Rank", "Title", "Artist", "Plays", "Streams", "Territories"]);
-  data.topEarningReleases.forEach((r) => {
-    rows.push([String(r.rank), r.title, r.artist, r.plays, r.streams, String(r.territories)]);
-  });
-  rows.push([]);
-
-  // Revenue by territory
-  rows.push(["Rank", "Country", "Plays", "Streams"]);
-  data.revenueByTerritory.forEach((t) => {
-    rows.push([String(t.rank), t.country, t.plays, t.streams]);
-  });
-
-const csv = rows.map((r) => r.map((c) => `"${c}"`).join(",")).join("\n");
-const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  data.topEarningReleases.forEach((r) => rows.push([String(r.rank), r.title, r.artist, r.plays, r.streams, String(r.territories)]));
+  const csv = rows.map((r) => r.map((c) => `"${c}"`).join(",")).join("\n");
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
@@ -533,59 +431,22 @@ const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
 
 function exportPDF(data: RoyaltiesPageData | null, period: string, platform: string) {
   if (!data) return;
-
-  const html = `
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <meta charset="utf-8" />
-      <title>Royalty Report</title>
-      <style>
-        body { font-family: Arial, sans-serif; color: #1a0808; padding: 32px; }
-        h1 { font-size: 22px; margin-bottom: 4px; }
-        h2 { font-size: 14px; font-weight: 600; margin: 24px 0 8px; border-bottom: 1px solid #eee; padding-bottom: 4px; }
-        p  { font-size: 12px; color: #666; margin: 0 0 16px; }
-        table { width: 100%; border-collapse: collapse; font-size: 12px; margin-bottom: 24px; }
-        th { text-align: left; padding: 6px 10px; background: #f5f5f5; font-weight: 600; }
-        td { padding: 6px 10px; border-bottom: 1px solid #f0f0f0; }
-        .stat-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 24px; }
-        .stat { background: #fafafa; border: 1px solid #eee; border-radius: 8px; padding: 12px; }
-        .stat-label { font-size: 11px; color: #888; }
-        .stat-value { font-size: 20px; font-weight: 700; margin-top: 4px; }
-      </style>
-    </head>
-    <body>
-      <h1>Royalty Report</h1>
-      <p>${period} · ${platform}</p>
-
-      <div class="stat-grid">
-        <div class="stat"><div class="stat-label">Total Earnings</div><div class="stat-value">${data.stats.totalEarnings.value}</div></div>
-        <div class="stat"><div class="stat-label">Total Streams</div><div class="stat-value">${data.stats.totalStreams.value}</div></div>
-        <div class="stat"><div class="stat-label">Unique Releases</div><div class="stat-value">${data.stats.uniqueReleases.value}</div></div>
-        <div class="stat"><div class="stat-label">Territories</div><div class="stat-value">${data.stats.territories.value}</div></div>
-      </div>
-
-      <h2>Revenue by Platform</h2>
-      <table>
-        <thead><tr><th>Platform</th><th>Earnings (USD)</th><th>Streams</th></tr></thead>
-        <tbody>${data.revenueByPlatform.map((p) => `<tr><td>${p.name}</td><td>$${p.earnings.toFixed(2)}</td><td>${p.streams.toLocaleString()}</td></tr>`).join("")}</tbody>
-      </table>
-
-      <h2>Top Earning Releases</h2>
-      <table>
-        <thead><tr><th>#</th><th>Title</th><th>Artist</th><th>Plays</th><th>Streams</th><th>Territories</th></tr></thead>
-        <tbody>${data.topEarningReleases.map((r) => `<tr><td>${r.rank}</td><td>${r.title}</td><td>${r.artist}</td><td>${r.plays}</td><td>${r.streams}</td><td>${r.territories}</td></tr>`).join("")}</tbody>
-      </table>
-
-      <h2>Revenue by Territory</h2>
-      <table>
-        <thead><tr><th>#</th><th>Country</th><th>Plays</th><th>Streams</th></tr></thead>
-        <tbody>${data.revenueByTerritory.map((t) => `<tr><td>${t.rank}</td><td>${t.country}</td><td>${t.plays}</td><td>${t.streams}</td></tr>`).join("")}</tbody>
-      </table>
-    </body>
-    </html>
-  `;
-
+  const html = `<!DOCTYPE html><html><head><meta charset="utf-8"/><title>Royalty Report</title>
+  <style>body{font-family:Arial;color:#1a0808;padding:32px;}h1{font-size:22px;}h2{font-size:14px;font-weight:600;margin:24px 0 8px;border-bottom:1px solid #eee;padding-bottom:4px;}p{font-size:12px;color:#666;margin:0 0 16px;}table{width:100%;border-collapse:collapse;font-size:12px;margin-bottom:24px;}th{text-align:left;padding:6px 10px;background:#f5f5f5;font-weight:600;}td{padding:6px 10px;border-bottom:1px solid #f0f0f0;}.sg{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px;}.sc{background:#fafafa;border:1px solid #eee;border-radius:8px;padding:12px;}.sl{font-size:11px;color:#888;}.sv{font-size:20px;font-weight:700;margin-top:4px;}</style>
+  </head><body><h1>Royalty Report</h1><p>${period} · ${platform}</p>
+  <div class="sg">
+    <div class="sc"><div class="sl">Total Earnings</div><div class="sv">${data.stats.totalEarnings.value}</div></div>
+    <div class="sc"><div class="sl">Total Streams</div><div class="sv">${data.stats.totalStreams.value}</div></div>
+    <div class="sc"><div class="sl">Unique Releases</div><div class="sv">${data.stats.uniqueReleases.value}</div></div>
+    <div class="sc"><div class="sl">Territories</div><div class="sv">${data.stats.territories.value}</div></div>
+  </div>
+  <h2>Revenue by Platform</h2>
+  <table><thead><tr><th>Platform</th><th>Earnings (USD)</th><th>Streams</th></tr></thead>
+  <tbody>${data.revenueByPlatform.map((p) => `<tr><td>${p.name}</td><td>$${p.earnings.toFixed(2)}</td><td>${p.streams.toLocaleString()}</td></tr>`).join("")}</tbody></table>
+  <h2>Top Earning Releases</h2>
+  <table><thead><tr><th>#</th><th>Title</th><th>Artist</th><th>Plays</th><th>Streams</th><th>Territories</th></tr></thead>
+  <tbody>${data.topEarningReleases.map((r) => `<tr><td>${r.rank}</td><td>${r.title}</td><td>${r.artist}</td><td>${r.plays}</td><td>${r.streams}</td><td>${r.territories}</td></tr>`).join("")}</tbody></table>
+  </body></html>`;
   const win = window.open("", "_blank");
   if (!win) return;
   win.document.write(html);
@@ -594,14 +455,7 @@ function exportPDF(data: RoyaltiesPageData | null, period: string, platform: str
   setTimeout(() => { win.print(); win.close(); }, 500);
 }
 
-/* ─── Export modal ────────────────────────────────────────────── */
-
-function ExportModal({ onClose, data, period, platform }: {
-  onClose: () => void;
-  data: RoyaltiesPageData | null;
-  period: string;
-  platform: string;
-}) {
+function ExportModal({ onClose, data, period, platform }: { onClose: () => void; data: RoyaltiesPageData | null; period: string; platform: string }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
       <div aria-hidden className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
@@ -609,36 +463,25 @@ function ExportModal({ onClose, data, period, platform }: {
         <button onClick={onClose} className="absolute top-4 right-4 text-white/40 hover:text-white transition-colors">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
         </button>
-
         <h2 className="font-heading text-white uppercase text-lg tracking-wide mb-2">Export Data</h2>
-        <p className="font-body text-white/50 text-sm mb-6">
-          Download your royalty report for <span className="text-white">{period}</span> across <span className="text-white">{platform}</span>.
-        </p>
-
+        <p className="font-body text-white/50 text-sm mb-6">Download your royalty report for <span className="text-white">{period}</span> across <span className="text-white">{platform}</span>.</p>
         <div className="flex flex-col gap-3">
-          <button
-            onClick={() => { exportCSV(data, period, platform); onClose(); }}
-            className="flex items-center gap-4 rounded-xl border border-white/[0.08] bg-[#0E0808] hover:border-white/20 px-5 py-4 transition-colors group"
-          >
+          <button onClick={() => { exportCSV(data, period, platform); onClose(); }} className="flex items-center gap-4 rounded-xl border border-white/[0.08] bg-[#0E0808] hover:border-white/20 px-5 py-4 transition-colors group">
             <div className="w-10 h-10 rounded-lg bg-green-500/10 border border-green-500/20 flex items-center justify-center shrink-0">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
             </div>
             <div className="text-left">
-              <p className="font-body text-white text-sm font-medium group-hover:text-white transition-colors">Download as CSV</p>
-              <p className="font-body text-white/40 text-xs mt-0.5">Spreadsheet format — open in Excel or Google Sheets</p>
+              <p className="font-body text-white text-sm font-medium">Download as CSV</p>
+              <p className="font-body text-white/40 text-xs mt-0.5">Spreadsheet format</p>
             </div>
           </button>
-
-          <button
-            onClick={() => { exportPDF(data, period, platform); onClose(); }}
-            className="flex items-center gap-4 rounded-xl border border-white/[0.08] bg-[#0E0808] hover:border-white/20 px-5 py-4 transition-colors group"
-          >
+          <button onClick={() => { exportPDF(data, period, platform); onClose(); }} className="flex items-center gap-4 rounded-xl border border-white/[0.08] bg-[#0E0808] hover:border-white/20 px-5 py-4 transition-colors group">
             <div className="w-10 h-10 rounded-lg bg-[#C30100]/10 border border-[#C30100]/20 flex items-center justify-center shrink-0">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#C30100" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#C30100" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
             </div>
             <div className="text-left">
-              <p className="font-body text-white text-sm font-medium group-hover:text-white transition-colors">Download as PDF</p>
-              <p className="font-body text-white/40 text-xs mt-0.5">Formatted report — ready to print or share</p>
+              <p className="font-body text-white text-sm font-medium">Download as PDF</p>
+              <p className="font-body text-white/40 text-xs mt-0.5">Print-ready report</p>
             </div>
           </button>
         </div>
@@ -648,9 +491,5 @@ function ExportModal({ onClose, data, period, platform }: {
 }
 
 function ChevronIcon() {
-  return (
-    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <polyline points="6 9 12 15 18 9" />
-    </svg>
-  );
+  return <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="6 9 12 15 18 9"/></svg>;
 }
