@@ -60,7 +60,7 @@ export default function EarningsPage() {
   const { earnings: splitEarningsData, isLoading: splitsLoading } = useSplitEarnings();
 
   return (
-    <DashboardLayout customCta={{ label: "Withdraw Funds", onClick: () => setWithdrawOpen(true) }}>
+    <DashboardLayout pageTitle="Earnings" customCta={{ label: "Withdraw Funds", onClick: () => setWithdrawOpen(true) }}>
       <div className="flex flex-col gap-5">
 
         {/* Stat cards */}

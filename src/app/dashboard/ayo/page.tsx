@@ -1076,7 +1076,7 @@ export default function AyoAIPage() {
   ];
 
   return (
-    <DashboardLayout>
+    <DashboardLayout pageTitle="Ayo AI">
       <div className="flex flex-col gap-5">
 
         {/* Header */}

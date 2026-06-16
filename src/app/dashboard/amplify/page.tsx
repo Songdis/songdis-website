@@ -46,7 +46,7 @@ export default function AmplifyPage() {
   }, []);
 
   return (
-    <DashboardLayout>
+    <DashboardLayout pageTitle="Amplify">
       <div className="flex flex-col gap-5">
 
         {/* Header info */}

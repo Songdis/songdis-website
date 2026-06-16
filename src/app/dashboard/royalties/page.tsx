@@ -201,7 +201,7 @@ export default function RoyaltyReportPage() {
   const hasChartData = combinedChartData.some((d) => d.social > 0 || d.streaming > 0);
 
   return (
-    <DashboardLayout customCta={{ label: "Export Data", onClick: () => setExportOpen(true) }}>
+    <DashboardLayout pageTitle="Royalty Report" customCta={{ label: "Export Data", onClick: () => setExportOpen(true) }}>
       <div className="flex items-center gap-3 mb-5 -mt-2">
         <Dropdown value={period} options={TIME_PERIODS} onChange={(v) => { setPeriod(v); setPlatformPage(1); }} />
         <Dropdown value={platform} options={PLATFORMS} onChange={(v) => { setPlatform(v); setPlatformPage(1); }} />

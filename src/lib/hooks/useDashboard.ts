@@ -1,11 +1,3 @@
-// /**
-//  * lib/hooks/useDashboard.ts
-//  * Fetches all data needed for the dashboard page.
-//  *
-//  * Usage in page:
-//  *   const { data, isLoading, error } = useDashboard();
-//  */
-
 // import { useState, useEffect, useCallback } from "react";
 // import {
 //   getDashboard,
@@ -18,7 +10,6 @@
 //   type TopRelease,
 // } from "@/lib/api/dashboard";
 
-// /* ─── Shape the page actually consumes ────────────────────────── */
 // export interface DashboardPageData {
 //   stats: DashboardStats;
 //   wallet: WalletData;
@@ -35,7 +26,6 @@
 
 // const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 
-// /* ─── Static fallbacks ────────────────────────────────────────── */
 // const FALLBACK_INSIGHT = {
 //   message:
 //     "Your track is gaining early traction. Based on similar Afrobeats releases, pitching to editorial playlists in the next 7 days could significantly boost discovery. Want me to draft a pitch?",
@@ -56,20 +46,16 @@
 //   avatar: "/images/avatar-artiste.svg",
 // };
 
-// /* ─── Status normaliser ───────────────────────────────────────── */
 // const VALID_STATUSES = [
 //   "live", "pending", "delivered", "distributed", "need_documentation",
 // ] as const;
 // type ValidStatus = typeof VALID_STATUSES[number];
 
 // function toStatus(raw: string | undefined): ValidStatus {
-//   if (raw && (VALID_STATUSES as readonly string[]).includes(raw)) {
-//     return raw as ValidStatus;
-//   }
+//   if (raw && (VALID_STATUSES as readonly string[]).includes(raw)) return raw as ValidStatus;
 //   return "live";
 // }
 
-// /* ─── Normalise raw API response → page shape ─────────────────── */
 // function normaliseDashboard(
 //   dashboardRaw: Record<string, unknown> | null,
 //   statsRaw: Record<string, unknown> | null,
@@ -78,18 +64,15 @@
 // ): DashboardPageData {
 //   const activeReleases =
 //     (dashboardRaw?.active_releases as number) ??
-//     (statsRaw?.active_releases as number) ??
-//     0;
+//     (statsRaw?.active_releases as number) ?? 0;
 
 //   const totalEarnings =
 //     (dashboardRaw?.total_earnings as number) ??
-//     (statsRaw?.total_earnings as number) ??
-//     0;
+//     (statsRaw?.total_earnings as number) ?? 0;
 
 //   const totalStreams =
 //     (dashboardRaw?.total_streams as number) ??
-//     (statsRaw?.total_streams as number) ??
-//     0;
+//     (statsRaw?.total_streams as number) ?? 0;
 
 //   const wallet: WalletData = {
 //     totalEarnings,
@@ -98,16 +81,17 @@
 //     avgPerStream: totalStreams > 0 ? totalEarnings / totalStreams : 0,
 //   };
 
+//   // DES-002: confirmed field name from API is album_art_url
 //   const recentReleases: DashboardRelease[] = (releases ?? [])
-//     .slice(0, 4)
+//     .slice(0, 5)
 //     .map((r) => {
 //       const raw = r as unknown as Record<string, unknown>;
 //       return {
 //         id: r.id,
-//         title: (r.title ?? raw.release_title ?? "") as string,
-//         artist: (r.artist ?? raw.primary_artist ?? "") as string,
-//         cover: (r.cover ?? raw.album_art_url ?? raw.artwork_url ?? "") as string,
-//         status: toStatus(r.status),
+//         title: (raw.release_title ?? raw.release_name ?? raw.track_title ?? r.title ?? "") as string,
+//         artist: (raw.primary_artist ?? raw.artists ?? r.artist ?? "") as string,
+//         cover: (raw.album_art_url ?? raw.artwork_url ?? r.cover ?? "") as string,
+//         status: toStatus(r.status ?? (raw.status as string)),
 //       };
 //     });
 
@@ -128,7 +112,6 @@
 //   };
 // }
 
-// /* ─── Hook ────────────────────────────────────────────────────── */
 // export function useDashboard() {
 //   const [data, setData] = useState<DashboardPageData | null>(null);
 //   const [isLoading, setIsLoading] = useState(true);
@@ -139,19 +122,15 @@
 //     setError(null);
 
 //     try {
-//       const [dashboardRes, statsRes, releasesRes, streamsRes] =
-//         await Promise.all([
-//           getDashboard(),
-//           getDashboardStats(),
-//           getTopReleases(),
-//           getStreamsData(),
-//         ]);
+//       const [dashboardRes, statsRes, releasesRes, streamsRes] = await Promise.all([
+//         getDashboard(),
+//         getDashboardStats(),
+//         getTopReleases(),
+//         getStreamsData(),
+//       ]);
 
 //       const firstError =
-//         dashboardRes.error ??
-//         statsRes.error ??
-//         releasesRes.error ??
-//         streamsRes.error;
+//         dashboardRes.error ?? statsRes.error ?? releasesRes.error ?? streamsRes.error;
 
 //       if (firstError) {
 //         setError(firstError);
@@ -161,8 +140,8 @@
 //           normaliseDashboard(
 //             dashboardRes.data as Record<string, unknown>,
 //             statsRes.data as Record<string, unknown>,
-//             releasesRes.data,
-//             streamsRes.data,
+//             releasesRes.data as TopRelease[],
+//             streamsRes.data as { months?: string[]; streams?: number[]; revenue?: number[] },
 //           )
 //         );
 //       }
@@ -174,25 +153,20 @@
 //     }
 //   }, []);
 
-//   useEffect(() => {
-//     load();
-//   }, [load]);
+//   useEffect(() => { load(); }, [load]);
 
 //   return { data, isLoading, error, refresh: load };
 // }
-
 
 
 import { useState, useEffect, useCallback } from "react";
 import {
   getDashboard,
   getDashboardStats,
-  getTopReleases,
   getStreamsData,
   type DashboardRelease,
   type DashboardStats,
   type WalletData,
-  type TopRelease,
 } from "@/lib/api/dashboard";
 
 export interface DashboardPageData {
@@ -211,11 +185,6 @@ export interface DashboardPageData {
 
 const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 
-const FALLBACK_INSIGHT = {
-  message:
-    "Your track is gaining early traction. Based on similar Afrobeats releases, pitching to editorial playlists in the next 7 days could significantly boost discovery. Want me to draft a pitch?",
-};
-
 const FALLBACK_FEATURES = [
   { id: "royalty", title: "Royalty Report",  description: "Maximize your royalties with access to 50+ collection societies", icon: "report" },
   { id: "links",   title: "Release Links",   description: "Share your music everywhere with pre-save campaign links.", icon: "link" },
@@ -225,60 +194,52 @@ const FALLBACK_FEATURES = [
   { id: "amplify", title: "Amplify",         description: "Expand your sound to a wider audience worldwide.", icon: "amplify" },
 ];
 
-const FALLBACK_USER = {
-  name: "VJazzy",
-  plan: "Growth Plan",
-  avatar: "/images/avatar-artiste.svg",
-};
-
 const VALID_STATUSES = [
   "live", "pending", "delivered", "distributed", "need_documentation",
 ] as const;
 type ValidStatus = typeof VALID_STATUSES[number];
 
 function toStatus(raw: string | undefined): ValidStatus {
-  if (raw && (VALID_STATUSES as readonly string[]).includes(raw)) return raw as ValidStatus;
+  if (!raw) return "live";
+  const lower = raw.toLowerCase();
+  if ((VALID_STATUSES as readonly string[]).includes(lower)) return lower as ValidStatus;
+  // API returns "Live" with capital L — normalise
   return "live";
 }
 
 function normaliseDashboard(
-  dashboardRaw: Record<string, unknown> | null,
   statsRaw: Record<string, unknown> | null,
-  releases: TopRelease[] | null,
   streamsRaw: { months?: string[]; streams?: number[]; revenue?: number[] } | null
 ): DashboardPageData {
-  const activeReleases =
-    (dashboardRaw?.active_releases as number) ??
-    (statsRaw?.active_releases as number) ?? 0;
+  // GET /dashboard-stats response shape:
+  // { data: { active_releases, total_streams, total_earnings, royalty_balance,
+  //   recent_releases: [{ id, track_title, release_title, primary_artist,
+  //     release_date, status, album_art_url }],
+  //   platform_performance: [...] } }
 
-  const totalEarnings =
-    (dashboardRaw?.total_earnings as number) ??
-    (statsRaw?.total_earnings as number) ?? 0;
+  const d = (statsRaw?.data as Record<string, unknown>) ?? statsRaw ?? {};
 
-  const totalStreams =
-    (dashboardRaw?.total_streams as number) ??
-    (statsRaw?.total_streams as number) ?? 0;
+  const activeReleases = (d.active_releases as number) ?? 0;
+  const totalEarnings  = (d.total_earnings  as number) ?? (d.royalty_balance as number) ?? 0;
+  const totalStreams    = (d.total_streams   as number) ?? 0;
 
   const wallet: WalletData = {
     totalEarnings,
-    period: (dashboardRaw?.period as string) ?? "",
+    period: "",
     streams: totalStreams,
     avgPerStream: totalStreams > 0 ? totalEarnings / totalStreams : 0,
   };
 
-  // DES-002: confirmed field name from API is album_art_url
-  const recentReleases: DashboardRelease[] = (releases ?? [])
-    .slice(0, 5)
-    .map((r) => {
-      const raw = r as unknown as Record<string, unknown>;
-      return {
-        id: r.id,
-        title: (raw.release_title ?? raw.release_name ?? raw.track_title ?? r.title ?? "") as string,
-        artist: (raw.primary_artist ?? raw.artists ?? r.artist ?? "") as string,
-        cover: (raw.album_art_url ?? raw.artwork_url ?? r.cover ?? "") as string,
-        status: toStatus(r.status ?? (raw.status as string)),
-      };
-    });
+  // DES-002: recent_releases is directly in dashboard-stats response
+  // Fields confirmed: id, track_title, release_title, primary_artist, status, album_art_url
+  const rawReleases = (d.recent_releases as Array<Record<string, unknown>>) ?? [];
+  const recentReleases: DashboardRelease[] = rawReleases.slice(0, 5).map((r) => ({
+    id: r.id as number,
+    title: (r.release_title ?? r.track_title ?? "") as string,
+    artist: (r.primary_artist ?? "") as string,
+    cover: (r.album_art_url ?? "") as string,
+    status: toStatus(r.status as string),
+  }));
 
   const analyticsChart = {
     months: streamsRaw?.months ?? MONTHS,
@@ -291,9 +252,9 @@ function normaliseDashboard(
     wallet,
     recentReleases,
     analyticsChart,
-    ayoInsight: FALLBACK_INSIGHT,
+    ayoInsight: { message: "" }, // DES-005: no dummy content
     features: FALLBACK_FEATURES,
-    user: FALLBACK_USER,
+    user: { name: "", plan: "Growth Plan", avatar: "/images/avatar-artiste.svg" },
   };
 }
 
@@ -307,32 +268,25 @@ export function useDashboard() {
     setError(null);
 
     try {
-      const [dashboardRes, statsRes, releasesRes, streamsRes] = await Promise.all([
-        getDashboard(),
+      const [statsRes, streamsRes] = await Promise.all([
         getDashboardStats(),
-        getTopReleases(),
         getStreamsData(),
       ]);
 
-      const firstError =
-        dashboardRes.error ?? statsRes.error ?? releasesRes.error ?? streamsRes.error;
-
-      if (firstError) {
-        setError(firstError);
-        setData(normaliseDashboard(null, null, null, null));
+      if (statsRes.error) {
+        setError(statsRes.error);
+        setData(normaliseDashboard(null, null));
       } else {
         setData(
           normaliseDashboard(
-            dashboardRes.data as Record<string, unknown>,
             statsRes.data as Record<string, unknown>,
-            releasesRes.data as TopRelease[],
-            streamsRes.data as { months?: string[]; streams?: number[]; revenue?: number[] },
+            streamsRes.data as { months?: string[]; streams?: number[]; revenue?: number[] } | null,
           )
         );
       }
     } catch {
       setError("Failed to load dashboard.");
-      setData(normaliseDashboard(null, null, null, null));
+      setData(normaliseDashboard(null, null));
     } finally {
       setIsLoading(false);
     }

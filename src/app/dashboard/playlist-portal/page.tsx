@@ -1,308 +1,404 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Image from "next/image";
 import DashboardLayout from "@/components/dashboard/DashboardLayout";
 import { SuccessModal } from "@/components/auth/SuccessModal";
-import Link from "next/link";
+import { useMusic } from "@/lib/hooks/useMusic";
+import { useToast } from "@/components/ui/Toast";
+import {
+  getCurators,
+  getPitches,
+  createPitch,
+  submitPitch,
+  checkEligibility,
+  type Curator,
+  type Pitch,
+  type CreatePitchPayload,
+} from "@/lib/api/pitches";
 
 /* ─── Types ───────────────────────────────────────────────────── */
 type TabType = "available" | "approved" | "submissions";
 
-interface PlaylistItem {
-  id: string;
-  trackTitle: string;
-  cover: string;
-  playlistName: string;
-  curatorName: string;
-  addedDate?: string;
-  followers?: string;
-  streams?: number;
-  submittedDate?: string;
-  status?: "under_review" | "approved" | "rejected";
-}
+const MOOD_OPTIONS   = ["chill", "energetic", "romantic", "sad", "uplifting", "party", "spiritual", "afrobeats"];
+const ATTR_OPTIONS   = ["original", "cover", "remix", "live", "acoustic", "instrumental"];
+const STYLE_OPTIONS  = ["acoustic", "afrobeats", "afropop", "highlife", "amapiano", "afrosoul", "dancehall", "pop"];
 
-/* ─── Mock data ───────────────────────────────────────────────── */
-const TRACKS = ["Scatter the place", "Wisdom No Dey Old", "Gratitude"];
+/* ─── Submit Pitch Modal ──────────────────────────────────────── */
+function SubmitPitchModal({
+  curator,
+  musicUploadId,
+  onClose,
+  onSuccess,
+}: {
+  curator: Curator;
+  musicUploadId: number;
+  onClose: () => void;
+  onSuccess: () => void;
+}) {
+  const [step, setStep] = useState<"eligibility" | "form" | "submitting">("eligibility");
+  const [eligible, setEligible] = useState<boolean | null>(null);
+  const [eligibilityReason, setEligibilityReason] = useState("");
+  const [isCheckingEligibility, setIsCheckingEligibility] = useState(false);
 
-const CURATORS = [
-  "Afrobeats Daily",
-  "Discovery Africa",
-  "Naija Hits Now",
-  "Afropop Central",
-  "African Rhythms",
-];
-
-const PROMO_STRATEGIES = [
-  "Social Media Campaigns",
-  "Playlist Pitching",
-  "Influencer Collaborations",
-  "Radio Promotion",
-  "Press Releases",
-];
-
-const MOCK_APPROVED: PlaylistItem[] = Array.from({ length: 5 }, (_, i) => ({
-  id: `approved-${i}`,
-  trackTitle: "Scatter the Place",
-  cover: "/images/smallest-blue-cover.svg",
-  playlistName: "Emerging Artists",
-  curatorName: "Discovery Africa",
-  addedDate: "Mar 8, 2026",
-  followers: "44K",
-  streams: 3,
-}));
-
-const MOCK_SUBMISSIONS: PlaylistItem[] = Array.from({ length: 5 }, (_, i) => ({
-  id: `sub-${i}`,
-  trackTitle: "Scatter the Place",
-  cover: "/images/smallest-blue-cover.svg",
-  playlistName: "Emerging Artists",
-  curatorName: "Discovery Africa",
-  submittedDate: "Mar 10, 2026",
-  status: "under_review" as const,
-}));
-
-/* ─── Submit Track Modal ──────────────────────────────────────── */
-function SubmitTrackModal({ onClose, onSubmit }: { onClose: () => void; onSubmit: () => void }) {
-  const [track, setTrack] = useState("Scatter the place");
-  const [curator, setCurator] = useState("Afrobeats Daily");
   const [story, setStory] = useState("");
-  const [spotify, setSpotify] = useState("");
-  const [instagram, setInstagram] = useState("");
-  const [twitter, setTwitter] = useState("");
-  const [facebook, setFacebook] = useState("");
-  const [tiktok, setTiktok] = useState("");
-  const [strategies, setStrategies] = useState<string[]>([]);
-  const [milestones, setMilestones] = useState("");
-  const [tourDate, setTourDate] = useState("");
+  const [similarArtists, setSimilarArtists] = useState("");
+  const [moods, setMoods] = useState<string[]>([]);
+  const [attrs, setAttrs] = useState<string[]>([]);
+  const [styles, setStyles] = useState<string[]>([]);
+  const [hasPress, setHasPress] = useState(false);
+  const [hasShows, setHasShows] = useState(false);
+  const [hasVisuals, setHasVisuals] = useState(false);
+  const [visualUrl, setVisualUrl] = useState("");
+  const [hasAdCampaign, setHasAdCampaign] = useState(false);
+  const [hasRadio, setHasRadio] = useState(false);
+  const [isPartOfSchedule, setIsPartOfSchedule] = useState(false);
+  const [scheduleNote, setScheduleNote] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
-  const toggleStrategy = (s: string) =>
-    setStrategies((prev) => prev.includes(s) ? prev.filter((x) => x !== s) : [...prev, s]);
+  const { error: toastError } = useToast();
+
+  const toggle = <T extends string>(arr: T[], val: T, set: (v: T[]) => void) =>
+    set(arr.includes(val) ? arr.filter((x) => x !== val) : [...arr, val]);
+
+  const handleCheckEligibility = async () => {
+    setIsCheckingEligibility(true);
+    const res = await checkEligibility(musicUploadId);
+    setIsCheckingEligibility(false);
+    if (res.error) {
+      toastError("Eligibility check failed", res.error);
+      return;
+    }
+    const d = res.data as { eligible?: boolean; reason?: string } ?? {};
+    setEligible(d.eligible ?? true);
+    setEligibilityReason(d.reason ?? "");
+    if (d.eligible !== false) setStep("form");
+  };
+
+  const handleSubmit = async () => {
+    if (!story.trim()) { toastError("Missing info", "Please write your release story."); return; }
+    setIsLoading(true);
+
+    const payload: CreatePitchPayload = {
+      music_upload_id: musicUploadId,
+      curator_id: curator.id,
+      release_story: story,
+      is_part_of_larger_schedule: isPartOfSchedule,
+      larger_schedule_note: scheduleNote,
+      similar_artists: similarArtists.split(",").map((s) => s.trim()).filter(Boolean),
+      track_moods: moods,
+      track_attributes: attrs,
+      track_style: styles,
+      has_press: hasPress,
+      has_shows: hasShows,
+      has_visual_assets: hasVisuals,
+      visual_assets_url: visualUrl || undefined,
+      has_ad_campaign: hasAdCampaign,
+      has_radio_campaign: hasRadio,
+      has_physical_product: false,
+      has_other_press: false,
+    };
+
+    // Create pitch then submit it
+    const createRes = await createPitch(payload);
+    if (createRes.error) {
+      toastError("Submission failed", createRes.error);
+      setIsLoading(false);
+      return;
+    }
+
+    const pitchId = (createRes.data as Pitch)?.id;
+    if (pitchId) {
+      await submitPitch(pitchId, {
+        release_story: story,
+        similar_artists: payload.similar_artists,
+        track_moods: moods,
+      });
+    }
+
+    setIsLoading(false);
+    onSuccess();
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center px-4 py-6">
       <div aria-hidden className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative z-10 w-full max-w-[740px] rounded-2xl bg-[#1A0808] border border-white/[0.07] max-h-[90vh] overflow-y-auto">
+      <div className="relative z-10 w-full max-w-[740px] rounded-2xl bg-[#1A0808] border border-white/[0.07] max-h-[90vh] overflow-y-auto mx-2 sm:mx-0">
         <button onClick={onClose} className="absolute top-5 right-5 text-white/40 hover:text-white transition-colors z-10">
           <CloseIcon />
         </button>
 
         <div className="p-8">
           <div className="text-center mb-7">
-            <h2 className="font-heading text-white uppercase text-xl tracking-wide">Playlist Hub</h2>
-            <p className="font-body text-white/50 text-sm mt-2 leading-relaxed">
-              Submit your upcoming releases for priority promotion, editorial playlisting,<br />
-              and partnerships on top streaming platforms.
-            </p>
+            <h2 className="font-heading text-white uppercase text-xl tracking-wide">Submit to {curator.name}</h2>
+            <p className="font-body text-white/50 text-sm mt-2">Submit your release for editorial playlist consideration</p>
           </div>
 
-          <div className="flex flex-col gap-5">
-            <Field label="Track"><SelectField value={track} onChange={setTrack} options={TRACKS} /></Field>
-            <Field label="Curator"><SelectField value={curator} onChange={setCurator} options={CURATORS} /></Field>
-
-            <Field label="Tell your story">
-              <textarea
-                value={story}
-                onChange={(e) => setStory(e.target.value.slice(0, 1000))}
-                placeholder="Share the journey behind your music..."
-                rows={4}
-                className="w-full bg-[#0E0808] border border-white/10 rounded-lg px-4 py-3 font-body text-white text-sm placeholder:text-white/25 outline-none focus:border-[#C30100] transition-colors resize-none"
-              />
-              <p className="font-body text-white/30 text-[11px] mt-1">{story.length}/1000 Characters</p>
-            </Field>
-
-            <Field label="Spotify">
-              <TextInput value={spotify} onChange={setSpotify} placeholder="Please paste your Spotify artist profile link" />
-            </Field>
-
-            <div className="grid grid-cols-2 gap-4">
-              <Field label="Instagram"><TextInput value={instagram} onChange={setInstagram} placeholder="Instagram profile url" /></Field>
-              <Field label="X (Formerly Twitter)"><TextInput value={twitter} onChange={setTwitter} placeholder="X Profile url" /></Field>
+          {/* Eligibility gate */}
+          {step === "eligibility" && (
+            <div className="flex flex-col items-center gap-5 py-6">
+              {eligible === false ? (
+                <>
+                  <div className="w-14 h-14 rounded-full bg-[#C30100]/10 border border-[#C30100]/30 flex items-center justify-center">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#C30100" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+                  </div>
+                  <div className="text-center">
+                    <p className="font-heading text-white uppercase text-sm tracking-wide mb-2">Not Eligible Yet</p>
+                    <p className="font-body text-white/50 text-sm leading-relaxed max-w-md">{eligibilityReason || "Your release does not meet the eligibility criteria for this curator at this time."}</p>
+                  </div>
+                  <button onClick={onClose} className="font-heading text-white uppercase text-xs tracking-widest rounded-full border border-white/20 px-8 py-3.5 hover:border-white/40 transition-colors">
+                    Close
+                  </button>
+                </>
+              ) : (
+                <>
+                  <p className="font-body text-white/60 text-sm text-center leading-relaxed max-w-md">
+                    We&apos;ll first check if your release meets this curator&apos;s requirements before opening the submission form.
+                  </p>
+                  <button
+                    onClick={handleCheckEligibility}
+                    disabled={isCheckingEligibility}
+                    className="font-heading text-white uppercase text-xs tracking-widest rounded-full border border-[#C30100] bg-[#C30100]/10 hover:bg-[#C30100] px-8 py-3.5 transition-all disabled:opacity-40 flex items-center gap-2"
+                  >
+                    {isCheckingEligibility ? <><SpinIcon /> Checking...</> : "Check Eligibility"}
+                  </button>
+                </>
+              )}
             </div>
+          )}
 
-            <div className="grid grid-cols-2 gap-4">
-              <Field label="Facebook"><TextInput value={facebook} onChange={setFacebook} placeholder="Facebook profile url" /></Field>
-              <Field label="TikTok"><TextInput value={tiktok} onChange={setTiktok} placeholder="TikTok Profile url" /></Field>
-            </div>
+          {/* Pitch form */}
+          {step === "form" && (
+            <div className="flex flex-col gap-5">
+              <Field label="Release Story" hint="Share the journey and meaning behind your music (required)">
+                <textarea value={story} onChange={(e) => setStory(e.target.value.slice(0, 1000))}
+                  placeholder="Share the journey behind your music..."
+                  rows={4}
+                  className="w-full bg-[#0E0808] border border-white/10 rounded-lg px-4 py-3 font-body text-white text-sm placeholder:text-white/25 outline-none focus:border-[#C30100] transition-colors resize-none" />
+                <p className="font-body text-white/30 text-[11px] mt-1">{story.length}/1000</p>
+              </Field>
 
-            <div>
-              <label className="font-body text-white/70 text-xs block mb-2.5">Promotional Strategies</label>
-              <div className="grid grid-cols-3 gap-y-3 gap-x-4">
-                {PROMO_STRATEGIES.map((s) => (
-                  <label key={s} className="flex items-center gap-2.5 cursor-pointer group">
-                    <div
-                      onClick={() => toggleStrategy(s)}
-                      className={[
-                        "w-4 h-4 rounded border flex items-center justify-center shrink-0 transition-colors",
-                        strategies.includes(s) ? "border-[#C30100] bg-[#C30100]" : "border-white/20 group-hover:border-white/40",
-                      ].join(" ")}
-                    >
-                      {strategies.includes(s) && <CheckIcon />}
-                    </div>
-                    <span className="font-body text-white/60 text-xs group-hover:text-white transition-colors">{s}</span>
-                  </label>
-                ))}
+              <Field label="Similar Artists" hint="Comma separated — e.g. Burna Boy, Wizkid, Tems">
+                <input value={similarArtists} onChange={(e) => setSimilarArtists(e.target.value)}
+                  placeholder="e.g. Burna Boy, Wizkid, Tems"
+                  className="w-full bg-[#0E0808] border border-white/10 rounded-lg px-4 py-3 font-body text-white text-sm placeholder:text-white/25 outline-none focus:border-[#C30100] transition-colors" />
+              </Field>
+
+              <TagSelect label="Track Moods" options={MOOD_OPTIONS} selected={moods} onToggle={(v) => toggle(moods, v, setMoods)} />
+              <TagSelect label="Track Attributes" options={ATTR_OPTIONS} selected={attrs} onToggle={(v) => toggle(attrs, v, setAttrs)} />
+              <TagSelect label="Track Style" options={STYLE_OPTIONS} selected={styles} onToggle={(v) => toggle(styles, v, setStyles)} />
+
+              <div className="rounded-xl border border-white/[0.06] bg-[#0E0808] p-4">
+                <p className="font-body text-white text-xs font-semibold mb-3">Promotional Activity</p>
+                <div className="grid grid-cols-2 gap-3">
+                  {[
+                    ["Press coverage", hasPress, setHasPress],
+                    ["Upcoming shows", hasShows, setHasShows],
+                    ["Visual assets", hasVisuals, setHasVisuals],
+                    ["Ad campaign", hasAdCampaign, setHasAdCampaign],
+                    ["Radio campaign", hasRadio, setHasRadio],
+                    ["Part of a schedule", isPartOfSchedule, setIsPartOfSchedule],
+                  ].map(([label, val, setter]) => (
+                    <label key={label as string} className="flex items-center gap-2.5 cursor-pointer">
+                      <div
+                        onClick={() => (setter as (v: boolean) => void)(!(val as boolean))}
+                        className={["w-4 h-4 rounded border flex items-center justify-center shrink-0 transition-colors",
+                          val ? "border-[#C30100] bg-[#C30100]" : "border-white/20 hover:border-white/40"].join(" ")}
+                      >
+                        {val && <CheckIcon />}
+                      </div>
+                      <span className="font-body text-white/60 text-xs">{label as string}</span>
+                    </label>
+                  ))}
+                </div>
+
+                {hasVisuals && (
+                  <div className="mt-3">
+                    <input value={visualUrl} onChange={(e) => setVisualUrl(e.target.value)}
+                      placeholder="Visual assets URL"
+                      className="w-full bg-[#140C0C] border border-white/10 rounded-lg px-4 py-3 font-body text-white text-sm placeholder:text-white/25 outline-none focus:border-[#C30100] transition-colors mt-2" />
+                  </div>
+                )}
+
+                {isPartOfSchedule && (
+                  <div className="mt-3">
+                    <textarea value={scheduleNote} onChange={(e) => setScheduleNote(e.target.value)}
+                      placeholder="Describe the larger campaign or schedule..."
+                      rows={2}
+                      className="w-full bg-[#140C0C] border border-white/10 rounded-lg px-4 py-3 font-body text-white text-sm placeholder:text-white/25 outline-none focus:border-[#C30100] transition-colors resize-none" />
+                  </div>
+                )}
               </div>
-            </div>
 
-            <Field label="Your Milestones">
-              <textarea
-                value={milestones}
-                onChange={(e) => setMilestones(e.target.value.slice(0, 1000))}
-                placeholder="Highlight your musical journey's key moments"
-                rows={4}
-                className="w-full bg-[#0E0808] border border-white/10 rounded-lg px-4 py-3 font-body text-white text-sm placeholder:text-white/25 outline-none focus:border-[#C30100] transition-colors resize-none"
-              />
-              <p className="font-body text-white/30 text-[11px] mt-1">{milestones.length}/1000 Characters</p>
-            </Field>
-
-            <div className="border border-dashed border-[#C30100]/30 rounded-xl p-4">
-              <div className="flex items-center justify-between mb-3">
-                <p className="font-body text-white/70 text-xs font-semibold">Upcoming Tour Date</p>
-                <button className="font-body text-white/50 text-xs hover:text-white transition-colors flex items-center gap-1">
-                  + Add Date
+              <div className="flex gap-3 mt-2">
+                <button onClick={onClose} className="flex-1 font-heading text-white uppercase text-xs tracking-widest rounded-full border border-white/20 py-3.5 hover:border-white/40 transition-colors min-h-[48px]">
+                  Cancel
+                </button>
+                <button onClick={handleSubmit} disabled={isLoading || !story.trim()}
+                  className="flex-1 font-heading text-white uppercase text-xs tracking-widest rounded-full border border-[#C30100] bg-[#C30100]/10 hover:bg-[#C30100] py-3.5 transition-all disabled:opacity-40 min-h-[48px] flex items-center justify-center gap-2">
+                  {isLoading ? <><SpinIcon /> Submitting...</> : "Submit Pitch"}
                 </button>
               </div>
-              <div className="relative">
-                <input
-                  type="date"
-                  value={tourDate}
-                  onChange={(e) => setTourDate(e.target.value)}
-                  className="w-full bg-[#0E0808] border border-white/10 rounded-lg px-4 py-3 font-body text-white text-sm outline-none focus:border-[#C30100] transition-colors"
-                />
-                <div className="absolute right-3 top-1/2 -translate-y-1/2 text-white/30 pointer-events-none">
-                  <CalendarIcon />
-                </div>
-              </div>
             </div>
-
-            <div className="flex gap-3 mt-2">
-              <button onClick={onClose} className="flex-1 font-heading text-white uppercase text-xs tracking-widest rounded-full border border-white/20 py-3.5 hover:border-white/40 transition-colors">Cancel</button>
-              <button onClick={onSubmit} className="flex-1 font-heading text-white uppercase text-xs tracking-widest rounded-full border border-[#C30100] bg-[#C30100]/10 hover:bg-[#C30100] py-3.5 transition-all">Submit</button>
-            </div>
-          </div>
+          )}
         </div>
       </div>
     </div>
   );
 }
 
-/* ─── Helpers ─────────────────────────────────────────────────── */
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return <div className="flex flex-col gap-1.5"><label className="font-body text-white/70 text-xs">{label}</label>{children}</div>;
-}
-function TextInput({ value, onChange, placeholder }: { value: string; onChange: (v: string) => void; placeholder: string }) {
-  return <input type="text" value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} className="w-full bg-[#0E0808] border border-white/10 rounded-lg px-4 py-3 font-body text-white text-sm placeholder:text-white/25 outline-none focus:border-[#C30100] transition-colors" />;
-}
-function SelectField({ value, onChange, options }: { value: string; onChange: (v: string) => void; options: string[] }) {
+/* ─── Tag selector ────────────────────────────────────────────── */
+function TagSelect({ label, options, selected, onToggle }: {
+  label: string; options: string[]; selected: string[]; onToggle: (v: string) => void;
+}) {
   return (
-    <div className="relative">
-      <select value={value} onChange={(e) => onChange(e.target.value)} className="w-full appearance-none bg-[#0E0808] border border-white/10 rounded-lg px-4 py-3 font-body text-white text-sm outline-none focus:border-[#C30100] transition-colors pr-8">
-        {options.map((o) => <option key={o}>{o}</option>)}
-      </select>
-      <svg className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-white/30" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="6 9 12 15 18 9"/></svg>
+    <div>
+      <p className="font-body text-white/70 text-xs mb-2">{label}</p>
+      <div className="flex flex-wrap gap-2">
+        {options.map((o) => (
+          <button key={o} onClick={() => onToggle(o)}
+            className={["font-body text-xs rounded-full px-3 py-1.5 border transition-colors",
+              selected.includes(o) ? "border-[#C30100] bg-[#C30100]/20 text-white" : "border-white/10 text-white/50 hover:border-white/25 hover:text-white"].join(" ")}>
+            {o}
+          </button>
+        ))}
+      </div>
     </div>
   );
 }
 
-/* ─── Rows ────────────────────────────────────────────────────── */
-function ApprovedRow({ item }: { item: PlaylistItem }) {
+/* ─── Pitch status badge ──────────────────────────────────────── */
+function StatusBadge({ status }: { status: string }) {
+  const map: Record<string, { label: string; color: string; bg: string; border: string }> = {
+    approved:     { label: "Approved",     color: "#22c55e", bg: "rgba(34,197,94,0.10)",   border: "rgba(34,197,94,0.25)" },
+    submitted:    { label: "Submitted",    color: "#f97316", bg: "rgba(249,115,22,0.10)",  border: "rgba(249,115,22,0.25)" },
+    under_review: { label: "Under Review", color: "#f97316", bg: "rgba(249,115,22,0.10)",  border: "rgba(249,115,22,0.25)" },
+    rejected:     { label: "Rejected",     color: "#C30100", bg: "rgba(195,1,0,0.10)",     border: "rgba(195,1,0,0.25)" },
+    draft:        { label: "Draft",        color: "#ffffff", bg: "rgba(255,255,255,0.10)", border: "rgba(255,255,255,0.15)" },
+  };
+  const s = map[status] ?? map.draft;
   return (
-    <div className="rounded-xl bg-[#0E0808] border border-white/[0.06] p-4">
-      <div className="flex items-center gap-3">
-        <div className="relative w-10 h-10 rounded-lg overflow-hidden shrink-0">
-          <Image src={item.cover} alt={item.trackTitle} fill className="object-cover" unoptimized />
-        </div>
-        <div className="flex-1 min-w-0">
-          <p className="font-body text-white text-sm font-medium">{item.trackTitle}</p>
-          <p className="font-body text-white/40 text-xs mt-0.5">Added to {item.playlistName} by {item.curatorName}</p>
-        </div>
-        <div className="text-right shrink-0">
-          <p className="font-heading text-green-500 text-xl font-bold">{item.streams}</p>
-          <p className="font-body text-white/30 text-[10px]">Streams</p>
-        </div>
-      </div>
-      <p className="font-body text-white/30 text-xs mt-3">
-        Added {item.addedDate} · {item.followers} playlist followers · {item.streams} streams from this placement
-      </p>
-    </div>
-  );
-}
-
-function SubmissionRow({ item }: { item: PlaylistItem }) {
-  return (
-    <div className="rounded-xl bg-[#0E0808] border border-white/[0.06] p-4">
-      <div className="flex items-center gap-3">
-        <div className="relative w-10 h-10 rounded-lg overflow-hidden shrink-0">
-          <Image src={item.cover} alt={item.trackTitle} fill className="object-cover" unoptimized />
-        </div>
-        <div className="flex-1 min-w-0">
-          <p className="font-body text-white text-sm font-medium">{item.trackTitle}</p>
-          <p className="font-body text-white/40 text-xs mt-0.5">Added to {item.playlistName} by {item.curatorName}</p>
-        </div>
-        <span className="font-body text-[10px] rounded-full px-3 py-1 shrink-0 border" style={{ color: "#f97316", backgroundColor: "rgba(249,115,22,0.10)", borderColor: "rgba(249,115,22,0.25)" }}>
-          Under Review
-        </span>
-      </div>
-      <p className="font-body text-white/30 text-xs mt-3">Submitted {item.submittedDate}</p>
-    </div>
+    <span className="font-body text-[10px] rounded-full px-3 py-1 shrink-0 border"
+      style={{ color: s.color, backgroundColor: s.bg, borderColor: s.border }}>
+      {s.label}
+    </span>
   );
 }
 
 /* ─── Page ────────────────────────────────────────────────────── */
-export default function PlaylistPortalPage() {
-  const [tab, setTab] = useState<TabType>("approved");
-  const [showSubmit, setShowSubmit] = useState(false);
+export default function AmplifyPage() {
+  const [tab, setTab] = useState<TabType>("available");
+  const [curators, setCurators] = useState<Curator[]>([]);
+  const [pitches, setPitches] = useState<Pitch[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [activeCurator, setActiveCurator] = useState<Curator | null>(null);
+  const [selectedUploadId, setSelectedUploadId] = useState<number>(0);
   const [showSuccess, setShowSuccess] = useState(false);
 
+  const { releases } = useMusic();
+
+  const load = useCallback(async () => {
+    setIsLoading(true);
+    const [curatorsRes, pitchesRes] = await Promise.all([
+      getCurators(),
+      getPitches(),
+    ]);
+    if (!curatorsRes.error) {
+      const raw = curatorsRes.data as unknown;
+      const list = Array.isArray(raw) ? raw
+        : Array.isArray((raw as Record<string, unknown>)?.data) ? (raw as Record<string, unknown>).data as Curator[]
+        : [];
+      setCurators(list);
+    }
+    if (!pitchesRes.error) {
+      const raw = pitchesRes.data as unknown;
+      const list = Array.isArray(raw) ? raw
+        : Array.isArray((raw as Record<string, unknown>)?.data) ? (raw as Record<string, unknown>).data as Pitch[]
+        : [];
+      setPitches(list);
+    }
+    setIsLoading(false);
+  }, []);
+
+  useEffect(() => { load(); }, [load]);
+
+  // Auto-select first release if available
+  useEffect(() => {
+    if (releases.length > 0 && !selectedUploadId) {
+      setSelectedUploadId(releases[0].id);
+    }
+  }, [releases, selectedUploadId]);
+
+  const approvedPitches  = pitches.filter((p) => p.status === "approved");
+  const submittedPitches = pitches.filter((p) => ["submitted", "under_review", "rejected"].includes(p.status));
+
   return (
-    <DashboardLayout  customCta={{ label: "+ Submit Track", onClick: () => setShowSubmit(true) }}>
+    <DashboardLayout
+      pageTitle="Pitch Portal"
+      customCta={{ label: "+ Submit Track", onClick: () => setTab("available") }}
+    >
       <div className="flex flex-col gap-5">
 
-        {/* Ayo insight */}
-        <div className="rounded-2xl border border-white/[0.06] bg-[#180F0F] p-5">
-          <div className="flex items-start gap-3">
-            <div className="w-9 h-9 rounded-full bg-yellow-500/20 flex items-center justify-center shrink-0 mt-0.5">
-              <Image src="/images/ayo.svg" alt="Ayo" width={20} height={20} unoptimized />
-            </div>
-            <div>
-              <p className="font-body text-[#C30100] text-xs font-semibold mb-2">Ayo AI · Curator Matches</p>
-              <p className="font-body text-white/60 text-sm leading-relaxed mb-4">
-                I found 3 high-priority curators for "Scatter the Place" — AfroBeats Daily (95% match), Discovery Africa (96% match), and Naija Hits Now (92% match). Submit to all 3 this week. I've pre-written pitches for each
-              </p>
-              <Link href='/dashboard/ayo' className="font-body text-white text-xs bg-[#C30100]/20 border border-[#C30100]/40 hover:bg-[#C30100]/40 rounded-full px-4 py-2 transition-colors">
-                View Ayo's pitches
-              </Link>
+        {/* Release selector */}
+        {releases.length > 0 && (
+          <div className="rounded-2xl border border-white/[0.06] bg-[#180F0F] p-4">
+            <div className="flex flex-wrap items-center gap-3">
+              <p className="font-body text-white/60 text-xs whitespace-nowrap">Pitching for:</p>
+              <div className="relative flex-1 min-w-[180px] max-w-xs">
+                <select
+                  value={selectedUploadId}
+                  onChange={(e) => setSelectedUploadId(Number(e.target.value))}
+                  className="w-full appearance-none bg-[#0E0808] border border-white/10 rounded-lg px-4 py-2.5 font-body text-white text-sm outline-none focus:border-[#C30100] transition-colors pr-8"
+                >
+                  {releases.map((r) => (
+                    <option key={r.id} value={r.id}>{r.title}</option>
+                  ))}
+                </select>
+                <svg className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-white/30" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="6 9 12 15 18 9"/></svg>
+              </div>
             </div>
           </div>
-        </div>
+        )}
 
-        {/* Tabs + content */}
+        {/* Tab nav + content */}
         <div className="rounded-2xl border border-dashed border-[#C30100]/30 bg-[#180F0F] p-5">
-          <div className="flex gap-6 mb-5 border-b border-white/[0.05] pb-3">
-            {(["available","approved","submissions"] as TabType[]).map((t) => (
+          <div className="flex gap-6 mb-5 border-b border-white/[0.05] pb-3 overflow-x-auto">
+            {(["available", "approved", "submissions"] as TabType[]).map((t) => (
               <button key={t} onClick={() => setTab(t)}
-                className={["font-heading uppercase text-sm tracking-wide pb-1 border-b-2 transition-all",
+                className={["font-heading uppercase text-sm tracking-wide pb-1 border-b-2 transition-all whitespace-nowrap",
                   tab === t ? "text-white border-white" : "text-white/40 border-transparent hover:text-white/70"].join(" ")}>
-                {t === "available" ? "Available Curators" : t === "approved" ? "Approved" : "My Submissions"}
+                {t === "available" ? "Available Curators" : t === "approved" ? `Approved (${approvedPitches.length})` : `My Submissions (${submittedPitches.length})`}
               </button>
             ))}
           </div>
 
+          {/* AVAILABLE CURATORS */}
           {tab === "available" && (
             <div className="flex flex-col gap-3">
-              {CURATORS.map((curator, i) => (
-                <div key={i} className="rounded-xl bg-[#0E0808] border border-white/[0.06] p-4 flex items-center justify-between">
-                  <div className="flex items-center gap-3">
+              {isLoading ? (
+                <p className="font-body text-white/30 text-sm text-center py-8">Loading curators...</p>
+              ) : curators.length === 0 ? (
+                <div className="flex flex-col items-center py-12 gap-2">
+                  <p className="font-body text-white/30 text-sm">No curators available right now.</p>
+                </div>
+              ) : curators.map((curator) => (
+                <div key={curator.id} className="rounded-xl bg-[#0E0808] border border-white/[0.06] p-4 flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-3 min-w-0">
                     <div className="w-10 h-10 rounded-lg bg-[#C30100]/10 border border-[#C30100]/20 flex items-center justify-center shrink-0">
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#C30100" strokeWidth="2"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
                     </div>
-                    <div>
-                      <p className="font-body text-white text-sm font-medium">{curator}</p>
-                      <p className="font-body text-white/40 text-xs mt-0.5">Afrobeats · 44K followers</p>
+                    <div className="min-w-0">
+                      <p className="font-body text-white text-sm font-medium truncate">{curator.name}</p>
+                      <p className="font-body text-white/40 text-xs mt-0.5">
+                        {curator.genre ?? "Music"}{curator.followers ? ` · ${curator.followers} followers` : ""}
+                      </p>
                     </div>
                   </div>
-                  <button onClick={() => setShowSubmit(true)} className="font-body text-white text-xs border border-[#C30100]/50 bg-[#C30100]/10 hover:bg-[#C30100]/30 rounded-full px-4 py-2 transition-colors shrink-0">
+                  <button
+                    onClick={() => { setActiveCurator(curator); }}
+                    disabled={!selectedUploadId}
+                    className="font-body text-white text-xs border border-[#C30100]/50 bg-[#C30100]/10 hover:bg-[#C30100]/30 rounded-full px-4 py-2 transition-colors shrink-0 disabled:opacity-40"
+                  >
                     Submit
                   </button>
                 </div>
@@ -310,40 +406,108 @@ export default function PlaylistPortalPage() {
             </div>
           )}
 
+          {/* APPROVED */}
           {tab === "approved" && (
             <div className="flex flex-col gap-3">
-              {MOCK_APPROVED.map((item) => <ApprovedRow key={item.id} item={item} />)}
+              {isLoading ? (
+                <p className="font-body text-white/30 text-sm text-center py-8">Loading...</p>
+              ) : approvedPitches.length === 0 ? (
+                <div className="flex flex-col items-center py-12 gap-2">
+                  <p className="font-body text-white/30 text-sm">No approved placements yet.</p>
+                  <p className="font-body text-white/20 text-xs">Submit to curators to get your music on playlists.</p>
+                </div>
+              ) : approvedPitches.map((pitch) => (
+                <PitchCard key={pitch.id} pitch={pitch} />
+              ))}
             </div>
           )}
 
+          {/* SUBMISSIONS */}
           {tab === "submissions" && (
             <div className="flex flex-col gap-3">
-              {MOCK_SUBMISSIONS.map((item) => <SubmissionRow key={item.id} item={item} />)}
+              {isLoading ? (
+                <p className="font-body text-white/30 text-sm text-center py-8">Loading...</p>
+              ) : submittedPitches.length === 0 ? (
+                <div className="flex flex-col items-center py-12 gap-2">
+                  <p className="font-body text-white/30 text-sm">No submissions yet.</p>
+                  <p className="font-body text-white/20 text-xs">Go to Available Curators and submit your first pitch.</p>
+                </div>
+              ) : submittedPitches.map((pitch) => (
+                <PitchCard key={pitch.id} pitch={pitch} />
+              ))}
             </div>
           )}
         </div>
       </div>
 
-      {showSubmit && (
-        <SubmitTrackModal
-          onClose={() => setShowSubmit(false)}
-          onSubmit={() => { setShowSubmit(false); setShowSuccess(true); }}
+      {activeCurator && (
+        <SubmitPitchModal
+          curator={activeCurator}
+          musicUploadId={selectedUploadId}
+          onClose={() => setActiveCurator(null)}
+          onSuccess={() => { setActiveCurator(null); setShowSuccess(true); load(); }}
         />
       )}
 
       <SuccessModal
         isOpen={showSuccess}
         onClose={() => setShowSuccess(false)}
-        title="Track Submitted!"
-        description="Your track has been submitted to the curator. You'll be notified once it's been reviewed."
+        title="Pitch Submitted!"
+        description="Your pitch has been submitted to the curator. You'll be notified once it's reviewed."
         ctaLabel="Done"
-        onCta={() => setShowSuccess(false)}
+        onCta={() => { setShowSuccess(false); setTab("submissions"); }}
       />
     </DashboardLayout>
   );
 }
 
-/* ─── Icons ───────────────────────────────────────────────────── */
+/* ─── Pitch card ──────────────────────────────────────────────── */
+function PitchCard({ pitch }: { pitch: Pitch }) {
+  const title  = pitch.music_upload?.release_title ?? pitch.music_upload?.track_title ?? `Release #${pitch.music_upload_id}`;
+  const artist = pitch.music_upload?.primary_artist ?? "";
+  const cover  = pitch.music_upload?.album_art_url ?? "";
+  const curatorName = pitch.curator?.name ?? `Curator #${pitch.curator_id}`;
+
+  return (
+    <div className="rounded-xl bg-[#0E0808] border border-white/[0.06] p-4">
+      <div className="flex items-center gap-3">
+        <div className="relative w-10 h-10 rounded-lg overflow-hidden shrink-0 bg-[#140C0C]">
+          {cover ? (
+            <Image src={cover} alt={title} fill className="object-cover" unoptimized />
+          ) : (
+            <div className="absolute inset-0 flex items-center justify-center">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.2)" strokeWidth="1.5"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+            </div>
+          )}
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="font-body text-white text-sm font-medium truncate">{title}</p>
+          <p className="font-body text-white/40 text-xs mt-0.5 truncate">
+            {artist && `${artist} · `}Submitted to {curatorName}
+          </p>
+        </div>
+        <StatusBadge status={pitch.status} />
+      </div>
+      {pitch.created_at && (
+        <p className="font-body text-white/30 text-xs mt-3">
+          Submitted {new Date(pitch.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+        </p>
+      )}
+    </div>
+  );
+}
+
+/* ─── Helpers ─────────────────────────────────────────────────── */
+function Field({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
+  return (
+    <div className="flex flex-col gap-1.5">
+      <label className="font-body text-white/70 text-xs">{label}</label>
+      {children}
+      {hint && <p className="font-body text-white/30 text-[11px]">{hint}</p>}
+    </div>
+  );
+}
+
 function CloseIcon() { return <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>; }
 function CheckIcon() { return <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>; }
-function CalendarIcon() { return <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>; }
+function SpinIcon() { return <svg className="animate-spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 12a9 9 0 11-6.219-8.56"/></svg>; }
