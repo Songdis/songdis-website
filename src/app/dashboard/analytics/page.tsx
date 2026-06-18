@@ -24,7 +24,7 @@
 //       highlight ? "border-[#C30100]/40 bg-[#C30100]/10" : "border-white/[0.06] bg-[#180F0F]"].join(" ")}>
 //       <div className="flex items-center justify-between">
 //         <p className="font-body text-white/60 text-xs">{label}</p>
-//         <div className="w-12 h-12 rounded-lg bg-white/[0.05] flex items-center justify-center">
+//         <div className="w-12 h-12 rounded-lg flex items-center justify-center">
 //           <Image src={icon} alt={label} width={66} height={66} unoptimized />
 //         </div>
 //       </div>
@@ -267,7 +267,8 @@
 //   const [customStart, setCustomStart] = useState("");
 //   const [customEnd, setCustomEnd] = useState("");
 
-//   const { data, isLoading, refresh } = useAnalytics(period);
+//   // DES-006: pass custom dates to hook so it fires with the right range
+//   const { data, isLoading, refresh } = useAnalytics(period, customStart, customEnd);
 
 //   const s = data?.stats;
 //   const mock = MOCK_ANALYTICS;
@@ -287,7 +288,7 @@
 //   };
 
 //   return (
-//     <DashboardLayout customCta={{ label: "Refresh", onClick: refresh }}>
+//     <DashboardLayout pageTitle="Analytics" customCta={{ label: "Refresh", onClick: refresh }}>
 //       <div className="flex flex-col gap-5">
 
 //         {/* Stat rows */}
@@ -300,25 +301,6 @@
 //           <StatCard label="Countries"  value={isLoading ? "..." : (s?.countries.value ?? "0")}  sub={s?.countries.sub ?? "Territories"} icon={mock.countries.icon} />
 //           <StatCard label="Platforms"  value={isLoading ? "..." : (s?.platforms.value ?? "0")}  sub={s?.platforms.sub ?? "DSPs"}        icon={mock.platforms.icon} />
 //           <StatCard label="Playlist"   value={isLoading ? "..." : (s?.playlists.value ?? "0")}  sub={s?.playlists.sub ?? "Active"}      icon={mock.playlists.icon} />
-//         </div>
-
-//         {/* Ayo insight */}
-//         <div className="rounded-2xl border border-white/[0.06] bg-[#180F0F] p-5">
-//           <div className="flex items-start gap-3">
-//             <div className="w-9 h-9 rounded-full bg-yellow-500/20 flex items-center justify-center shrink-0 mt-0.5">
-//               <Image src="/images/ayo.svg" alt="Ayo" width={20} height={20} unoptimized />
-//             </div>
-//             <div className="flex-1">
-//               <p className="font-body text-[#C30100] text-xs font-semibold mb-2">Ayo AI · Analytics Summary</p>
-//               <p className="font-body text-white/60 text-sm leading-relaxed mb-4">
-//                 Your streams peaked in November with 530K+ streams — this correlates with your consistent social activity and a playlist placement on AfroBeats Daily. Nigeria is 61% of your audience. I recommend doubling down with Pidgin/Yoruba content to retain and grow that base while expanding into UK and US diaspora markets.
-//               </p>
-//               <div className="flex flex-wrap gap-2">
-//                 <button className="font-body text-white text-xs bg-[#C30100]/20 border border-[#C30100]/40 hover:bg-[#C30100]/40 rounded-full px-4 py-2 transition-colors">Plan content with Ayo</button>
-//                 <button className="font-body text-white/70 text-xs border border-white/10 hover:border-white/25 rounded-full px-4 py-2 transition-colors">View platform breakdown</button>
-//               </div>
-//             </div>
-//           </div>
 //         </div>
 
 //         {/* Period + view controls */}
@@ -386,7 +368,6 @@
 // function ChevronIcon() {
 //   return <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="6 9 12 15 18 9"/></svg>;
 // }
-
 
 
 "use client";
@@ -610,9 +591,87 @@ function OverviewView({ data }: { data: AnalyticsPageData | null }) {
   );
 }
 
-function TracksView()    { return <ComingSoonView title="Top Tracks" />; }
-function PlatformsView() { return <ComingSoonView title="Streams by Platform" />; }
-function GeographyView() { return <ComingSoonView title="Streams by Geography" />; }
+function TracksView({ data }: { data: AnalyticsPageData | null }) {
+  const topSongs = data?.topReleases ?? [];
+  if (topSongs.length === 0) return <ComingSoonView title="Top Tracks" />;
+  return (
+    <div className="rounded-2xl border border-dashed border-[#C30100]/25 bg-[#180F0F] p-5">
+      <p className="font-body text-white text-sm font-medium mb-4">Top Tracks</p>
+      <div className="flex flex-col gap-2">
+        {topSongs.map((song) => (
+          <div key={song.id} className="flex items-center gap-3 py-2 border-b border-white/[0.04] last:border-0">
+            <span className="font-body text-white/30 text-xs w-4 shrink-0">{song.rank}</span>
+            <div className="w-8 h-8 rounded-lg bg-[#0E0808] border border-white/[0.06] shrink-0 flex items-center justify-center overflow-hidden">
+              {song.cover ? (
+                <div className="relative w-full h-full">
+                  <Image src={song.cover} alt={song.title} fill className="object-cover" unoptimized />
+                </div>
+              ) : (
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.25)" strokeWidth="1.5">
+                  <path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/>
+                </svg>
+              )}
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="font-body text-white text-xs truncate">{song.title}</p>
+              <p className="font-body text-white/40 text-[10px] truncate">{song.artist}</p>
+            </div>
+            <p className="font-body text-white/60 text-xs shrink-0">{song.streams}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function PlatformsView({ data }: { data: AnalyticsPageData | null }) {
+  const platforms = data?.platformBreakdown ?? [];
+  if (platforms.length === 0) return <ComingSoonView title="Streams by Platform" />;
+  const total = platforms.reduce((s, p) => s + p.streams, 0);
+  return (
+    <div className="rounded-2xl border border-dashed border-[#C30100]/25 bg-[#180F0F] p-5">
+      <p className="font-body text-white text-sm font-medium mb-4">Streams by Platform</p>
+      <div className="flex flex-col gap-3">
+        {platforms.map((p, i) => (
+          <div key={i} className="flex items-center gap-3">
+            <p className="font-body text-white/60 text-xs w-28 truncate shrink-0">{p.name}</p>
+            <div className="flex-1 h-2 rounded-full bg-white/[0.06] overflow-hidden">
+              <div className="h-full rounded-full transition-all" style={{ width: `${total > 0 ? (p.streams / total) * 100 : 0}%`, backgroundColor: p.color }} />
+            </div>
+            <p className="font-body text-white/50 text-xs w-16 text-right shrink-0">
+              {p.streams >= 1000 ? `${(p.streams / 1000).toFixed(1)}K` : p.streams}
+            </p>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function GeographyView({ data }: { data: AnalyticsPageData | null }) {
+  const geo = data?.geographic ?? [];
+  if (geo.length === 0) return <ComingSoonView title="Streams by Geography" />;
+  return (
+    <div className="rounded-2xl border border-dashed border-[#C30100]/25 bg-[#180F0F] p-5">
+      <p className="font-body text-white text-sm font-medium mb-4">Streams by Geography</p>
+      <div className="flex flex-col gap-3">
+        {geo.map((g, i) => (
+          <div key={i} className="flex items-center gap-3 py-2 border-b border-white/[0.04] last:border-0">
+            <span className="text-base shrink-0">{g.flag}</span>
+            <p className="font-body text-white text-xs flex-1 truncate">{g.country}</p>
+            <div className="flex items-center gap-2 shrink-0">
+              <p className="font-body text-white/60 text-xs">{g.streams}</p>
+              {g.percentage > 0 && (
+                <span className="font-body text-[10px] text-white/30">{g.percentage}%</span>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function TrendsView()    { return <ComingSoonView title="Streaming Trends" />; }
 function ChartsView()    { return <ComingSoonView title="Chart Positions" />; }
 function PlaylistsView() { return <ComingSoonView title="Playlist Placements" />; }
@@ -667,9 +726,9 @@ export default function AnalyticsPage() {
   const renderView = () => {
     switch (view) {
       case "overview":  return <OverviewView data={data} />;
-      case "tracks":    return <TracksView />;
-      case "platforms": return <PlatformsView />;
-      case "geography": return <GeographyView />;
+      case "tracks":    return <TracksView data={data} />;
+      case "platforms": return <PlatformsView data={data} />;
+      case "geography": return <GeographyView data={data} />;
       case "trends":    return <TrendsView />;
       case "charts":    return <ChartsView />;
       case "playlists": return <PlaylistsView />;
