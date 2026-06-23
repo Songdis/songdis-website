@@ -6,12 +6,14 @@
 import { useState, useEffect, useCallback } from "react";
 import {
   getMusic,
+  getSingleRelease,
   getDrafts,
   getMusicRequests,
   requestEdit,
   requestTakedown,
   deleteDraft,
   type Release,
+  type ReleaseTrack,
   type Draft,
   type EditRequest,
   type EditRequestPayload,
@@ -73,6 +75,87 @@ function normaliseRelease(r: Release): NormalisedRelease {
     platforms: r.platforms ?? [],
     createdAt: r.created_at ?? "",
   };
+}
+
+/* ─── Detail shape — for the Release Detail Modal ──────────────── */
+export interface NormalisedTrack {
+  id: string;
+  title: string;
+  isrc: string;
+  duration: string;
+  producers: string;
+  writers: string;
+  performers: string;
+}
+
+export interface NormalisedReleaseDetail extends NormalisedRelease {
+  upc: string;
+  isrc: string;
+  label: string;
+  language: string;
+  cLine: string;
+  pLine: string;
+  streams: number;
+  saves: number;
+  playlists: number;
+  tracks: NormalisedTrack[];
+}
+
+function normaliseTrack(t: ReleaseTrack, i: number): NormalisedTrack {
+  return {
+    id: String(t.id ?? i),
+    title: t.track_title ?? "",
+    isrc: t.isrc ?? "",
+    duration: t.duration ?? "",
+    producers: t.producers ?? "",
+    writers: t.writers ?? "",
+    performers: t.performers ?? "",
+  };
+}
+
+function normaliseReleaseDetail(r: Release): NormalisedReleaseDetail {
+  return {
+    ...normaliseRelease(r),
+    upc: r.upc_code ?? "",
+    isrc: r.isrc ?? "",
+    label: r.label ?? "",
+    language: r.metadata_language ?? "",
+    cLine: r.c_line ?? "",
+    pLine: r.p_line ?? "",
+    streams: r.total_streams ?? 0,
+    saves: r.total_saves ?? 0,
+    playlists: r.total_playlists ?? 0,
+    tracks: (r.tracks ?? []).map(normaliseTrack),
+  };
+}
+
+/* ─── useReleaseDetail — single release for the detail modal ──── */
+export function useReleaseDetail(uploadId: number | null) {
+  const [release, setRelease] = useState<NormalisedReleaseDetail | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const load = useCallback(async (id: number) => {
+    setIsLoading(true);
+    setError(null);
+    const res = await getSingleRelease(id);
+    if (res.error) {
+      setError(res.error);
+      setRelease(null);
+    } else {
+      const raw = res.data as unknown as Record<string, unknown>;
+      const inner = (raw?.data as Release) ?? (res.data as Release);
+      setRelease(normaliseReleaseDetail(inner));
+    }
+    setIsLoading(false);
+  }, []);
+
+  useEffect(() => {
+    if (uploadId != null) load(uploadId);
+    else setRelease(null);
+  }, [uploadId, load]);
+
+  return { release, isLoading, error, refresh: () => uploadId != null && load(uploadId) };
 }
 
 /* ─── useMusic — main releases list ──────────────────────────── */
