@@ -14,6 +14,7 @@ import {
   deleteDraft,
   type Release,
   type ReleaseTrack,
+  type ReleaseContributor,
   type Draft,
   type EditRequest,
   type EditRequestPayload,
@@ -62,6 +63,17 @@ function formatDate(raw: string | undefined): string {
   }
 }
 
+/* ─── Safe JSON parse — API returns several fields as JSON strings ─ */
+function safeParse<T>(raw: unknown, fallback: T): T {
+  if (raw == null) return fallback;
+  if (typeof raw !== "string") return raw as T;
+  try {
+    return JSON.parse(raw) as T;
+  } catch {
+    return fallback;
+  }
+}
+
 function normaliseRelease(r: Release): NormalisedRelease {
   return {
     id: r.id,
@@ -72,7 +84,7 @@ function normaliseRelease(r: Release): NormalisedRelease {
     type: r.upload_type?.toLowerCase().includes("single") ? "single" : "album_ep",
     releaseDate: formatDate(r.release_date),
     genre: r.primary_genre ?? "",
-    platforms: r.platforms ?? [],
+    platforms: safeParse<string[]>(r.platforms, []),
     createdAt: r.created_at ?? "",
   };
 }
@@ -90,26 +102,39 @@ export interface NormalisedTrack {
 
 export interface NormalisedReleaseDetail extends NormalisedRelease {
   upc: string;
-  isrc: string;
   label: string;
   language: string;
   cLine: string;
   pLine: string;
-  streams: number;
-  saves: number;
-  playlists: number;
+  releaseLink: string;
   tracks: NormalisedTrack[];
 }
 
+function formatDuration(seconds: number | undefined): string {
+  if (!seconds || isNaN(seconds)) return "";
+  const m = Math.floor(seconds / 60);
+  const s = Math.round(seconds % 60);
+  return `${m}:${String(s).padStart(2, "0")}`;
+}
+
 function normaliseTrack(t: ReleaseTrack, i: number): NormalisedTrack {
+  // contributors is a JSON string: [{ name, role, type }]
+  const contributors = safeParse<ReleaseContributor[]>(t.contributors, []);
+  const producers  = contributors.filter((c) => c.type === "producer").map((c) => c.name).join(", ");
+  const writers    = contributors.filter((c) => c.type === "writer").map((c) => c.name).join(", ");
+  const performers = contributors.filter((c) => c.type === "performer").map((c) => c.name).join(", ");
+
+  // metadata is a JSON string: { duration (seconds), bitrate, sample_rate, ... }
+  const meta = safeParse<{ duration?: number }>(t.metadata, {});
+
   return {
     id: String(t.id ?? i),
     title: t.track_title ?? "",
-    isrc: t.isrc ?? "",
-    duration: t.duration ?? "",
-    producers: t.producers ?? "",
-    writers: t.writers ?? "",
-    performers: t.performers ?? "",
+    isrc: t.isrc_code ?? "",
+    duration: formatDuration(meta.duration),
+    producers,
+    writers,
+    performers,
   };
 }
 
@@ -117,14 +142,11 @@ function normaliseReleaseDetail(r: Release): NormalisedReleaseDetail {
   return {
     ...normaliseRelease(r),
     upc: r.upc_code ?? "",
-    isrc: r.isrc ?? "",
     label: r.label ?? "",
     language: r.metadata_language ?? "",
     cLine: r.c_line ?? "",
     pLine: r.p_line ?? "",
-    streams: r.total_streams ?? 0,
-    saves: r.total_saves ?? 0,
-    playlists: r.total_playlists ?? 0,
+    releaseLink: (r as unknown as Record<string, unknown>).release_link as string ?? "",
     tracks: (r.tracks ?? []).map(normaliseTrack),
   };
 }

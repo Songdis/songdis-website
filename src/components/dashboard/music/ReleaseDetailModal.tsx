@@ -27,24 +27,6 @@ const PLATFORM_DISPLAY: Record<string, { name: string; description: string }> = 
   boomplay:      { name: "Boomplay",      description: "Leading African platform" },
 };
 
-/* ─── Stat card ───────────────────────────────────────────────── */
-function StatBox({ label, value, highlight }: { label: string; value: number; highlight?: boolean }) {
-  return (
-    <div className={["flex-1 rounded-xl border p-4 flex items-center justify-between gap-3",
-      highlight ? "border-[#C30100]/40 bg-gradient-to-br from-[#C30100]/15 to-transparent" : "border-white/[0.08] bg-[#0E0808]"].join(" ")}>
-      <div>
-        <p className="font-body text-white/50 text-xs mb-1.5">{label}</p>
-        <p className="font-heading text-white text-2xl font-bold">{value.toLocaleString()}</p>
-      </div>
-      <div className="w-9 h-9 rounded-lg bg-white/[0.05] flex items-center justify-center shrink-0">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="1.5">
-          <path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/>
-        </svg>
-      </div>
-    </div>
-  );
-}
-
 /* ─── Platform tile with logo + fallback ──────────────────────── */
 function PlatformTile({ platformKey }: { platformKey: string }) {
   const [failed, setFailed] = useState(false);
@@ -138,8 +120,8 @@ export function ReleaseDetailModal({
             {/* Header */}
             <div className="flex gap-5 mb-6">
               <div className="relative w-28 h-28 sm:w-32 sm:h-32 rounded-xl overflow-hidden shrink-0 bg-[#0E0808]">
-                {(release.cover || cover) ? (
-                  <Image src={release.cover || cover || ""} alt={release.title} fill className="object-cover" unoptimized />
+                {release.cover || cover ? (
+                  <Image src={(release.cover || cover) as string} alt={release.title || "Release artwork"} fill className="object-cover" unoptimized />
                 ) : (
                   <div className="absolute inset-0 flex items-center justify-center">
                     <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.2)" strokeWidth="1.5"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
@@ -167,13 +149,6 @@ export function ReleaseDetailModal({
               </div>
             </div>
 
-            {/* Stats row */}
-            <div className="flex flex-col sm:flex-row gap-3 mb-6">
-              <StatBox label="Streams"  value={release.streams}   highlight />
-              <StatBox label="Saves"    value={release.saves} />
-              <StatBox label="Playlists" value={release.playlists} />
-            </div>
-
             {/* Track list */}
             <div className="flex items-center justify-between mb-3">
               <p className="font-body text-white text-sm font-medium">Track List</p>
@@ -198,7 +173,6 @@ export function ReleaseDetailModal({
                 ["Release date", release.releaseDate],
                 ["Genre", release.genre],
                 ["Language", release.language],
-                ["ISRC", release.isrc],
                 ["© / ℗", [release.cLine, release.pLine].filter(Boolean).join(" ")],
               ].filter(([, v]) => v).map(([label, value]) => (
                 <div key={label} className="flex items-center justify-between px-4 py-2.5">
