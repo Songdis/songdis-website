@@ -134,18 +134,31 @@
 //   );
 // }
 
-// /* ─── Platform logo with fallback ─────────────────────────────── */
-// function PlatformLogo({ logo, name }: { logo: string; name: string }) {
-//   if (logo) {
+// /* ─── Platform logo — CDN URL with music note fallback ────────── */
+// function PlatformLogo({ logoUrl, name }: { logoUrl: string; name: string }) {
+//   const [failed, setFailed] = useState(false);
+
+//   if (logoUrl && !failed) {
 //     return (
-//       <div className="w-8 h-8 rounded-lg bg-[#0E0808] flex items-center justify-center shrink-0 overflow-hidden">
-//         <Image src={logo} alt={name} width={20} height={20} unoptimized />
+//       <div className="w-8 h-8 rounded-lg bg-[#0E0808] flex items-center justify-center shrink-0 overflow-hidden p-1">
+//         {/* eslint-disable-next-line @next/next/no-img-element */}
+//         <img
+//           src={logoUrl}
+//           alt={name}
+//           width={20}
+//           height={20}
+//           onError={() => setFailed(true)}
+//           className="w-5 h-5 object-contain"
+//         />
 //       </div>
 //     );
 //   }
+//   // Music note fallback for unknown platforms
 //   return (
-//     <div className="w-8 h-8 rounded-lg bg-[#C30100]/10 border border-[#C30100]/20 flex items-center justify-center shrink-0">
-//       <span className="font-heading text-[#C30100] text-[10px] uppercase">{name.slice(0, 2)}</span>
+//     <div className="w-8 h-8 rounded-lg bg-[#0E0808] border border-white/[0.06] flex items-center justify-center shrink-0">
+//       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.3)" strokeWidth="1.5">
+//         <path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/>
+//       </svg>
 //     </div>
 //   );
 // }
@@ -202,7 +215,7 @@
 
 //   return (
 //     <DashboardLayout pageTitle="Royalty Report" customCta={{ label: "Export Data", onClick: () => setExportOpen(true) }}>
-//       <div className="flex items-center gap-3 mb-5 -mt-2">
+//       <div className="flex items-center gap-3 mb-5 mt-2">
 //         <Dropdown value={period} options={TIME_PERIODS} onChange={(v) => { setPeriod(v); setPlatformPage(1); }} />
 //         <Dropdown value={platform} options={PLATFORMS} onChange={(v) => { setPlatform(v); setPlatformPage(1); }} />
 //       </div>
@@ -260,7 +273,7 @@
 //                       i < paginatedPlatforms.length - 1 ? "border-b border-white/[0.05]" : ""].join(" ")}
 //                   >
 //                     <div className="flex items-center gap-3">
-//                       <PlatformLogo logo={p.logo} name={p.name} />
+//                       <PlatformLogo logoUrl={p.logoUrl} name={p.name} />
 //                       <p className="font-body text-white text-sm">{p.name}</p>
 //                     </div>
 //                     <div className="text-right">
@@ -401,12 +414,12 @@
 //             <div className="flex flex-wrap gap-6 shrink-0">
 //               <div>
 //                 <p className="font-heading text-white text-xs uppercase tracking-widest mb-1">Social Media</p>
-//                 <p className="font-body text-white/50 text-xs">Avg Rate: {socialVsStreaming.socialMediaStats.avgRate}</p>
+//                 <p className="font-body text-white/50 text-xs">Earnings: {socialVsStreaming.socialMediaStats.totalEarnings}</p>
 //                 <p className="font-body text-white/50 text-xs">Uses: {socialVsStreaming.socialMediaStats.uses}</p>
 //               </div>
 //               <div>
 //                 <p className="font-heading text-white text-xs uppercase tracking-widest mb-1">Streaming</p>
-//                 <p className="font-body text-white/50 text-xs">Avg Rate: {socialVsStreaming.streamingStats.avgRate}</p>
+//                 <p className="font-body text-white/50 text-xs">Earnings: {socialVsStreaming.streamingStats.totalEarnings}</p>
 //                 <p className="font-body text-white/50 text-xs">Streams: {socialVsStreaming.streamingStats.streams}</p>
 //               </div>
 //             </div>
@@ -555,7 +568,6 @@
 // function ChevronIcon() {
 //   return <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="6 9 12 15 18 9"/></svg>;
 // }
-
 
 "use client";
 
@@ -774,11 +786,6 @@ export default function RoyaltyReportPage() {
 
   return (
     <DashboardLayout pageTitle="Royalty Report" customCta={{ label: "Export Data", onClick: () => setExportOpen(true) }}>
-      <div className="flex items-center gap-3 mb-5 mt-2">
-        <Dropdown value={period} options={TIME_PERIODS} onChange={(v) => { setPeriod(v); setPlatformPage(1); }} />
-        <Dropdown value={platform} options={PLATFORMS} onChange={(v) => { setPlatform(v); setPlatformPage(1); }} />
-      </div>
-
       <div className="flex flex-col gap-5">
 
         {/* Stat cards */}
@@ -806,6 +813,13 @@ export default function RoyaltyReportPage() {
               </div>
             </div>
           </div>
+        </div>
+
+        {/* Filters — placed here since they directly scope the platform/release/territory data below */}
+        <div className="flex flex-wrap items-center gap-3">
+          <p className="font-body text-white/40 text-xs uppercase tracking-widest mr-1">Filter by</p>
+          <Dropdown value={period} options={TIME_PERIODS} onChange={(v) => { setPeriod(v); setPlatformPage(1); }} />
+          <Dropdown value={platform} options={PLATFORMS} onChange={(v) => { setPlatform(v); setPlatformPage(1); }} />
         </div>
 
         {/* Revenue by Platform — paginated 10 per page */}

@@ -116,7 +116,7 @@ export default function YourMusicPage() {
   };
 
   return (
-    <DashboardLayout>
+    <DashboardLayout pageTitle="Your Music">
       <div className="flex flex-col gap-5">
 
         {/* Stats row */}

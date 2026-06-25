@@ -191,6 +191,40 @@
 //   return !!getToken();
 // }
 
+// /**
+//  * Verify OTP code sent to email.
+//  * Used after registration and forgot-password flows.
+//  *   POST /verify-otp
+//  *   Body: { email, otp }
+//  */
+// export async function verifyOtp(payload: { email: string; otp: string }) {
+//   return request<{ message: string }>("/verify-otp", {
+//     method: "POST",
+//     body: JSON.stringify(payload),
+//   });
+// }
+
+// /**
+//  * Resend OTP to email.
+//  *   POST /resend-otp
+//  *   Body: { email }
+//  */
+// export async function resendOtp(email: string) {
+//   return request<{ message: string }>("/resend-otp", {
+//     method: "POST",
+//     body: JSON.stringify({ email }),
+//   });
+// }
+
+// /**
+//  * Google OAuth — redirect to Google auth page.
+//  *   GET /auth/google/redirect
+//  * The backend returns a redirect URL. We navigate to it.
+//  */
+// export async function getGoogleAuthUrl() {
+//   return request<{ url: string }>("/auth/google/redirect", { method: "GET" });
+// }
+
 // /* ─── Re-export token helpers ─────────────────────────────────── */
 // export { getToken, setToken, removeToken };
 
@@ -251,6 +285,7 @@ export interface AuthUser {
   email: string;
   account_type?: string;
   created_at?: string;
+  avatar_url?: string;
 }
 
 export interface AuthSuccessResponse {
