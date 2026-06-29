@@ -98,6 +98,7 @@
 //   producers: string;
 //   writers: string;
 //   performers: string;
+//   audioUrl: string;
 // }
 
 // export interface NormalisedReleaseDetail extends NormalisedRelease {
@@ -127,6 +128,11 @@
 //   // metadata is a JSON string: { duration (seconds), bitrate, sample_rate, ... }
 //   const meta = safeParse<{ duration?: number }>(t.metadata, {});
 
+//   // Confirmed API field: audio_file_path is an array of S3 URLs.
+//   // audio_url is sometimes present as a flattened convenience field —
+//   // prefer it when present, otherwise take the first audio_file_path entry.
+//   const audioUrl = t.audio_url || (Array.isArray(t.audio_file_path) ? t.audio_file_path[0] : "") || "";
+
 //   return {
 //     id: String(t.id ?? i),
 //     title: t.track_title ?? "",
@@ -135,6 +141,7 @@
 //     producers,
 //     writers,
 //     performers,
+//     audioUrl,
 //   };
 // }
 
@@ -465,6 +472,15 @@ function normaliseTrack(t: ReleaseTrack, i: number): NormalisedTrack {
 }
 
 function normaliseReleaseDetail(r: Release): NormalisedReleaseDetail {
+  // Confirmed: GET /music/{id} for a Single returns the track fields directly
+  // on the root object — there is no nested tracks[] array at all.
+  // Albums/EPs nest each track inside data.tracks[].
+  // When tracks is absent, treat the release object itself as the one track.
+  const rawTracks = r.tracks;
+  const tracks = (rawTracks && rawTracks.length > 0)
+    ? rawTracks.map(normaliseTrack)
+    : [normaliseTrack(r as unknown as ReleaseTrack, 0)];
+
   return {
     ...normaliseRelease(r),
     upc: r.upc_code ?? "",
@@ -473,7 +489,7 @@ function normaliseReleaseDetail(r: Release): NormalisedReleaseDetail {
     cLine: r.c_line ?? "",
     pLine: r.p_line ?? "",
     releaseLink: (r as unknown as Record<string, unknown>).release_link as string ?? "",
-    tracks: (r.tracks ?? []).map(normaliseTrack),
+    tracks,
   };
 }
 
