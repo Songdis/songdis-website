@@ -141,14 +141,16 @@
 // interface SidebarProps {
 //   onClose?: () => void;
 //   isMobile?: boolean;
-//   user?: { first_name: string; last_name: string; email: string } | null;
+//   user?: { first_name: string; last_name: string; email: string; avatar_url?: string } | null;
 // }
 
 // export default function Sidebar({ onClose, isMobile, user }: SidebarProps) {
 //   const displayName = user
 //     ? `${user.first_name} ${user.last_name}`.trim()
 //     : "Artist";
-//   const avatar = "/images/avatar-artiste.svg"; // swap for user.avatar when API provides it
+//   const avatar = user?.avatar_url; // real photo from GET /user, falls back to default
+//   console.log(user?.avatar_url, 'avatar');
+//   console.log(user, 'user');
 //   const plan = "Growth Plan"; // swap for user.account_type when API provides it
 //   const pathname = usePathname();
 //   const router = useRouter();
@@ -243,7 +245,7 @@
 //         {collapsed ? (
 //           <div className="relative group/user">
 //             <div className="relative w-8 h-8 rounded-full overflow-hidden border border-white/10 cursor-pointer">
-//               <Image src={avatar} alt={displayName} fill className="object-cover" />
+//               <Image src={avatar} alt={displayName} fill className="object-cover" unoptimized />
 //             </div>
 //             <div className="pointer-events-none absolute left-full top-1/2 -translate-y-1/2 ml-3 z-50 opacity-0 group-hover/user:opacity-100 transition-opacity duration-150">
 //               <div className="bg-[#1A0808] border border-white/[0.08] rounded-lg px-3 py-2 shadow-xl">
@@ -255,7 +257,7 @@
 //         ) : (
 //           <div className="flex items-center gap-2.5 px-2 py-2 rounded-xl bg-white/[0.04] border border-white/[0.06]">
 //             <div className="relative w-8 h-8 rounded-full overflow-hidden shrink-0 border border-white/10">
-//               <Image src={avatar} alt={displayName} fill className="object-cover" />
+//               <Image src={avatar} alt={displayName} fill className="object-cover" unoptimized />
 //             </div>
 //             <div className="min-w-0">
 //               <p className="font-heading text-white text-xs uppercase tracking-wide truncate">{displayName}</p>
@@ -444,7 +446,6 @@ export default function Sidebar({ onClose, isMobile, user }: SidebarProps) {
     ? `${user.first_name} ${user.last_name}`.trim()
     : "Artist";
   const avatar = user?.avatar_url || "/images/avatar-artiste.svg"; // real photo from GET /user, falls back to default
-  console.log(user?.avatar_url, avatar);
   const plan = "Growth Plan"; // swap for user.account_type when API provides it
   const pathname = usePathname();
   const router = useRouter();
