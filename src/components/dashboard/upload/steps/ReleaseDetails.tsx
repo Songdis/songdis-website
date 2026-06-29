@@ -291,7 +291,7 @@
 //         <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
 
 //         {/* Form grid */}
-//         <div className="grid grid-cols-2 gap-x-6 gap-y-5">
+//         <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-5">
 //           <Field label="Release Title" hint="Enter your song or project name exactly as you want it shown.">
 //             <input value={state.releaseTitle} onChange={(e) => update({ releaseTitle: e.target.value })}
 //               placeholder="e.g Scatter the place"
@@ -392,6 +392,7 @@ import Image from "next/image";
 import type { UploadState } from "../UploadModal";
 import { StepHeader, StepProgress, StepActions } from "../UploadModal";
 import { getArtSuggestions, generateArt, getArtStatus } from "@/lib/api/ayo";
+import { getProfile } from "@/lib/api/auth";
 import { useToast } from "@/components/ui/Toast";
 
 /* ─── Ayo Artwork Generator modal ─────────────────────────────── */
@@ -630,6 +631,21 @@ interface Props {
 export default function ReleaseDetails({ state, update, onBack, onContinue, onSaveDraft }: Props) {
   const [artworkGen, setArtworkGen] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+
+  // Auto-fill Primary Artist from the user's artist profile, only if the
+  // field hasn't already been set (e.g. when continuing a draft).
+  useEffect(() => {
+    if (state.primaryArtist) return;
+    getProfile().then((res) => {
+      if (res.error || !res.data) return;
+      const profile = res.data.profiles?.[0];
+      const name = profile?.stage_name || profile?.full_name;
+      if (name) update({ primaryArtist: name });
+    });
+    // Intentionally only runs once on mount — we don't want to overwrite
+    // a value the user has since typed in.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const releaseTypeLabel =
     state.releaseType === "single" ? "Upload Single" :

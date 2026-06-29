@@ -101,6 +101,9 @@ export function GeneralTab() {
   const [isSaving, setIsSaving] = useState(false);
   const { success, error: toastError, loading: toastLoading, dismiss } = useToast();
 
+
+  console.log(avatarUrl, 'avatarPreview');
+
   // Load user on mount
   useEffect(() => {
     request<Record<string, unknown>>("/user", { method: "GET" }, true).then((res) => {

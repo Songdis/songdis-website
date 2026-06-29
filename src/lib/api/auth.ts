@@ -1,16 +1,4 @@
-// /**
-//  * lib/api/auth.ts
-//  * All authentication endpoints.
-//  *
-//  * Endpoint mapping (from Postman collection):
-//  *   POST /register
-//  *   POST /login
-//  *   POST /forgot-password
-//  *   POST /reset-password
-//  *   GET  /user
-//  *   PUT  /change-password
-//  *   POST /logout
-//  */
+
 
 // import { request, setToken, removeToken, getToken } from "./core";
 
@@ -54,6 +42,7 @@
 //   email: string;
 //   account_type?: string;
 //   created_at?: string;
+//   avatar_url?: string;
 // }
 
 // export interface AuthSuccessResponse {
@@ -294,6 +283,29 @@ export interface AuthSuccessResponse {
   user: AuthUser;
 }
 
+/* ─── Artist profile types ────────────────────────────────────── */
+export interface ArtistProfile {
+  id: number;
+  full_name?: string;
+  stage_name?: string;
+  dob?: string;
+  phone?: string;
+  location?: string;
+  bio?: string;
+  twitter_url?: string;
+  instagram_url?: string;
+  facebook_url?: string;
+  spotify_url?: string;
+  apple_music_url?: string;
+  profile_image?: string;
+  spotify_image_url?: string;
+}
+
+export interface ProfileResponse {
+  status: string;
+  profiles: ArtistProfile[];
+}
+
 /* ─── Auth functions ──────────────────────────────────────────── */
 
 /**
@@ -387,6 +399,14 @@ export async function resetPassword(payload: {
  */
 export async function getUser() {
   return request<AuthUser>("/user", { method: "GET" }, true);
+}
+
+/**
+ * Get the authenticated user's artist profile(s).
+ * Used to auto-fill Primary Artist on the upload flow.
+ */
+export async function getProfile() {
+  return request<ProfileResponse>("/profile", { method: "GET" }, true);
 }
 
 /**
