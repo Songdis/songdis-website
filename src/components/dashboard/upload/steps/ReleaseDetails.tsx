@@ -359,7 +359,7 @@ export default function ReleaseDetails({ state, update, onBack, onContinue, onSa
             <p className="font-body text-white/25 text-xs">or drag and drop · Min 3000×3000px · Max 10MB</p>
           </button>
         )}
-        <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
+        <input ref={fileRef} type="file" accept=".png,.jpg,.jpeg,.webp,image/png,image/jpeg,image/webp" className="hidden" onChange={handleFileChange} />
         {fieldErrors.artwork && <p className="font-body text-[#C30100] text-xs text-center mb-2">{fieldErrors.artwork}</p>}
 
         {/* Form grid */}

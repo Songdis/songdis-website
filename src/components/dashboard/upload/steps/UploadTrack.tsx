@@ -136,18 +136,18 @@ function ContributorRow({ contributor, roleOptions, onChange, onRemove, canRemov
   canRemove: boolean;
 }) {
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex flex-col sm:flex-row sm:items-center gap-2">
       <input
         value={contributor.name}
         onChange={(e) => onChange({ name: e.target.value })}
         placeholder="Name"
-        className="flex-1 bg-[#0E0808] border border-white/10 rounded-lg px-3 py-2.5 font-body text-white text-sm placeholder:text-white/25 outline-none focus:border-[#C30100] transition-colors"
+        className="flex-1 min-w-0 bg-[#0E0808] border border-white/10 rounded-lg px-3 py-2.5 font-body text-white text-sm placeholder:text-white/25 outline-none focus:border-[#C30100] transition-colors"
       />
-      <div className="w-44">
+      <div className="w-full sm:w-44 shrink-0">
         <SearchableRoleSelect value={contributor.role} onChange={(v) => onChange({ role: v })} options={roleOptions} placeholder="Select role" />
       </div>
       {canRemove && (
-        <button type="button" onClick={onRemove} className="text-white/30 hover:text-red-400 transition-colors shrink-0 p-1">
+        <button type="button" onClick={onRemove} className="text-white/30 hover:text-red-400 transition-colors shrink-0 p-1 self-end sm:self-center">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
         </button>
       )}
@@ -319,7 +319,7 @@ export default function UploadTrack({ state, update, onBack, onContinue, onSaveD
           <p className="font-body text-white/25 text-xs">WAV, MP3, FLAC · Max 500MB · 24-bit recommended</p>
         </button>
         {fieldErrors.audio && <p className="font-body text-[#C30100] text-xs mt-1">{fieldErrors.audio}</p>}
-        <input ref={audioInputRef} type="file" accept="audio/*" className="hidden" onChange={handleAudio} />
+        <input ref={audioInputRef} type="file" accept=".mp3,.wav,.flac,.aac,.ogg,.m4a,audio/mpeg,audio/wav,audio/flac,audio/aac,audio/ogg,audio/mp4" className="hidden" onChange={handleAudio} />
 
         {/* Hidden audio element */}
         {audioUrl && (
