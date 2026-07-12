@@ -1,19 +1,9 @@
-/**
- * lib/api/core.ts
- * Base request utility. All API files import from here.
- *
- * BASE_URL resolution order:
- *   NEXT_PUBLIC_API_URL  (set this in .env.local / Vercel)
- *   fallback → production URL from the collection
- */
-
 export const BASE_URL =
   process.env.NEXT_PUBLIC_API_URL;
 
 export const AYO_BASE_URL =
   process.env.NEXT_PUBLIC_AYO_URL;
 
-/* ─── Token helpers (localStorage) ───────────────────────────── */
 const TOKEN_KEY = "songdis_token";
 
 export function getToken(): string | null {
@@ -29,15 +19,14 @@ export function removeToken(): void {
   localStorage.removeItem(TOKEN_KEY);
 }
 
-/* ─── Generic response shape ──────────────────────────────────── */
 export interface ApiResponse<T = unknown> {
   data: T | null;
   message: string | null;
   error: string | null;
+  errors?: Record<string, string[]> | null;
   status: number;
 }
 
-/* ─── Core fetch wrapper ──────────────────────────────────────── */
 export async function request<T>(
   path: string,
   options: RequestInit = {},
@@ -60,18 +49,15 @@ export async function request<T>(
     const res = await fetch(`${BASE_URL}${path}`, {
       ...options,
       headers,
-      redirect: "manual", // never follow API redirects — we handle navigation ourselves
+      redirect: "manual", 
     });
 
-    // Handle no-content responses (204 etc)
     if (res.status === 204) {
-      return { data: null, message: "Success", error: null, status: 204 };
+      return { data: null, message: "Success", error: null, errors: null, status: 204 };
     }
 
-    // Handle redirects — API tried to redirect us, treat as success
-    // Our onSuccess callback handles navigation instead
     if (res.type === "opaqueredirect" || (res.status >= 300 && res.status < 400)) {
-      return { data: null, message: "Success", error: null, status: res.status };
+      return { data: null, message: "Success", error: null, errors: null, status: res.status };
     }
 
     const json = await res.json().catch(() => ({}));
@@ -87,6 +73,7 @@ export async function request<T>(
         data: null,
         message: null,
         error: String(errorMessage),
+        errors: json?.errors ?? null,
         status: res.status,
       };
     }
@@ -95,6 +82,7 @@ export async function request<T>(
       data: json?.data ?? json,
       message: json?.message ?? null,
       error: null,
+      errors: null,
       status: res.status,
     };
   } catch {
@@ -102,6 +90,7 @@ export async function request<T>(
       data: null,
       message: null,
       error: "Network error. Please check your connection.",
+      errors: null,
       status: 0,
     };
   }

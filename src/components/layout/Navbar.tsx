@@ -124,21 +124,14 @@ const Navbar: React.FC = () => {
             aria-label="Songdis home"
             className="shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C30100] rounded"
           >
-            
-            <Link
-              href="/"
-              aria-label="Songdis home"
-              className="shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C30100] rounded"
-            >
-              <Image
-                src="/images/logo.svg"
-                alt="Songdis"
-                width={120}
-                height={32}
-                className="h-12 w-auto object-contain"
-                priority
-              />
-            </Link>
+            <Image
+              src="/images/logo.svg"
+              alt="Songdis"
+              width={120}
+              height={32}
+              className="h-12 w-auto object-contain"
+              priority
+            />
           </Link>
 
           {/* ── DESKTOP NAV LINKS — only at xl and above ── */}

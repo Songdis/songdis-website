@@ -459,11 +459,19 @@ import ReleaseAvailability from "./steps/ReleaseAvailability";
 import SubmittedModal from "./steps/SubmittedModal";
 import QuickDropModal from "./steps/QuickDropModal";
 import { uploadMusic, uploadArtwork, uploadAudio, saveDraft, getDraft } from "@/lib/api/music";
+import type { UploadProgress } from "@/lib/api/music";
 import { useToast } from "@/components/ui/Toast";
 
 /* ─── Types ───────────────────────────────────────────────────── */
 export type ReleaseType = "single" | "album" | "mixtape";
 export type UploadStep = "select-type" | "release-details" | "upload-track" | "distribution" | "submitted";
+
+export interface Contributor {
+  id: string;
+  name: string;
+  role: string;
+  type: "writer" | "producer" | "performer";
+}
 
 export interface UploadState {
   releaseType: ReleaseType | null;
@@ -481,7 +489,6 @@ export interface UploadState {
   upcCode: string;
   cLine: string;
   pLine: string;
-  releaseTypeAuto: string;
   noOfTracks: number;
   explicitContent: string;
   coverArtAiUse: string;
@@ -499,14 +506,17 @@ export interface UploadState {
   audioDuration: string;
   tiktokTimestamp: number;
   artistDetails: string;
-  writers: string;
-  producers: string;
-  performers: string;
+  contributors: {
+    writers: Contributor[];
+    producers: Contributor[];
+    performers: Contributor[];
+  };
   tracks: Array<{
     trackTitle: string; audioFile: File | null; audioUrl: string; audioKey: string;
     audioBucket: string; audioDuration: string; isrc: string; lyrics: string;
-    genre: string; subGenre: string; explicitContent: string; writers: string;
-    producers: string; performers: string; tiktokTimestamp: number;
+    genre: string; subGenre: string; explicitContent: string;
+    contributors: { writers: Contributor[]; producers: Contributor[]; performers: Contributor[] };
+    tiktokTimestamp: number;
   }>;
   releaseDate: string;
   preOrderDate: string;
@@ -515,19 +525,25 @@ export interface UploadState {
   agreedToTerms: boolean;
   quickDropDate: string;
   quickDropPaid: boolean;
+  isPreviouslyReleased: boolean;
+  originalReleaseDate: string;
 }
+
+export type StepFieldErrors = Record<string, string>;
 
 const INITIAL_STATE: UploadState = {
   releaseType: null, step: "select-type", draftId: undefined,
   artwork: null, artworkFile: null, artworkUrl: "", artworkKey: "",
   releaseTitle: "", releaseVersion: "", primaryArtist: "", label: "",
   metaLanguage: "English", upcCode: "", cLine: "2026", pLine: "2026",
-  releaseTypeAuto: "Single", noOfTracks: 1, explicitContent: "Yes", coverArtAiUse: "None",
+  noOfTracks: 1, explicitContent: "Yes", coverArtAiUse: "None",
   trackTitle: "", mixedVersion: "", genre: "", subGenre: "", recordedYear: "2026",
   isrc: "", lyrics: "", audioFile: null, audioUrl: "", audioKey: "", audioBucket: "",
-  audioDuration: "", tiktokTimestamp: 0, artistDetails: "", writers: "", producers: "", performers: "",
+  audioDuration: "", tiktokTimestamp: 0, artistDetails: "",
+  contributors: { writers: [], producers: [], performers: [] },
   tracks: [], releaseDate: "", preOrderDate: "", territory: "worldwide",
   selectedDSPs: [], agreedToTerms: false, quickDropDate: "", quickDropPaid: false,
+  isPreviouslyReleased: false, originalReleaseDate: "",
 };
 
 const STEP_ORDER: UploadStep[] = ["select-type", "release-details", "upload-track", "distribution", "submitted"];
@@ -546,6 +562,9 @@ export default function UploadModal({ isOpen, onClose, draftId: initialDraftId }
   const [quickDropOpen, setQuickDropOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoadingDraft, setIsLoadingDraft] = useState(false);
+  const [artProgress, setArtProgress] = useState<UploadProgress | null>(null);
+  const [audioProgress, setAudioProgress] = useState<UploadProgress | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<StepFieldErrors>({});
   const { success, error: toastError, loading: toastLoading, dismiss } = useToast();
 
   /* Lock body scroll */
@@ -614,9 +633,8 @@ export default function UploadModal({ isOpen, onClose, draftId: initialDraftId }
           audioUrl: (fd.audioFileUrl as string) ?? "",
           tiktokTimestamp: (fd.tiktokTimestamp as number) ?? 0,
           audioDuration: (fd.audioDuration as string) ?? "",
-          writers: (fd.writers as string) ?? "",
-          producers: (fd.producers as string) ?? "",
-          performers: (fd.performers as string) ?? "",
+          contributors: (fd.contributors as UploadState["contributors"]) ?? { writers: [], producers: [], performers: [] },
+          artistDetails: (fd.artistDetails as string) ?? "",
           // Distribution
           releaseDate: (fd.releaseDate as string) ?? "",
           preOrderDate: (fd.preOrderDate as string) ?? "",
@@ -624,10 +642,10 @@ export default function UploadModal({ isOpen, onClose, draftId: initialDraftId }
           selectedDSPs: (fd.selectedDSPs as string[]) ?? [],
           tracks: [],
           artworkFile: null, audioFile: null,
-          releaseTypeAuto: "Single",
-          mixedVersion: "", artistDetails: "",
+          mixedVersion: "",
           audioBucket: "", agreedToTerms: false,
           quickDropDate: "", quickDropPaid: false,
+          isPreviouslyReleased: false, originalReleaseDate: "",
         });
       } catch {
         toastError("Could not load draft", "Something went wrong");
@@ -661,6 +679,81 @@ export default function UploadModal({ isOpen, onClose, draftId: initialDraftId }
     if (idx > 0) goTo(STEP_ORDER[idx - 1]);
   }, [state.step, goTo]);
 
+  /* Resume from Quick Drop payment redirect — only when URL has ?resume=true */
+  useEffect(() => {
+    if (!isOpen) return;
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const hasResumeParam = params.get("resume") === "true";
+      const raw = localStorage.getItem("resume_upload");
+      if (!raw) return;
+      const data = JSON.parse(raw);
+      if (!data.resumeUpload) { localStorage.removeItem("resume_upload"); return; }
+      if (!hasResumeParam) { localStorage.removeItem("resume_upload"); return; }
+      const fd = data.formState ?? {};
+      const qdDate = data.quickDropDate ?? "";
+      setState((prev) => ({
+        ...prev,
+        step: "distribution",
+        releaseDate: qdDate || fd.releaseDate || prev.releaseDate,
+        releaseTitle: fd.releaseTitle ?? prev.releaseTitle,
+        primaryArtist: fd.primaryArtist ?? prev.primaryArtist,
+        quickDropDate: qdDate,
+        quickDropPaid: true,
+      }));
+      localStorage.removeItem("resume_upload");
+      success("Quick Drop activated!", "Complete your release submission.");
+    } catch { /* ignore */ }
+  }, [isOpen, success]);
+
+  const clearFieldError = useCallback((key: string) => {
+    setFieldErrors((prev) => { const next = { ...prev }; delete next[key]; return next; });
+  }, []);
+
+  /* Step 1 validation: releaseTitle + artwork required */
+  const handleStep1Continue = useCallback(() => {
+    const errors: StepFieldErrors = {};
+    if (!state.releaseTitle.trim()) errors.releaseTitle = "Release title is required";
+    if (!state.artwork && !state.artworkFile) errors.artwork = "Artwork is required";
+    if (Object.keys(errors).length > 0) { setFieldErrors(errors); return; }
+    setFieldErrors({});
+    /* For singles, auto-fill trackTitle and artistDetails from step 1 */
+    if (state.releaseType === "single") {
+      update({ trackTitle: state.releaseTitle, artistDetails: state.primaryArtist });
+      /* Auto-add distributing artist as writer (Songwriter) + performer (Lead Vocals) */
+      const writer: Contributor = { id: `writer_auto_${Date.now()}`, name: state.primaryArtist, role: "Songwriter", type: "writer" };
+      const performer: Contributor = { id: `performer_auto_${Date.now()}`, name: state.primaryArtist, role: "Lead Vocals", type: "performer" };
+      update({ contributors: { writers: [writer], producers: [], performers: [performer] } });
+    }
+    goNext();
+  }, [state.releaseTitle, state.artwork, state.artworkFile, state.releaseType, state.primaryArtist, update, goNext]);
+
+  /* Step 2 validation: audio, genre, subGenre, explicit, writers, performers required */
+  const handleStep2Continue = useCallback(() => {
+    const errors: StepFieldErrors = {};
+    if (!state.audioFile && !state.audioUrl) errors.audio = "Audio file is required";
+    if (!state.genre) errors.genre = "Genre is required";
+    if (!state.subGenre) errors.subGenre = "Sub-genre is required";
+    if (!state.explicitContent) errors.explicit = "Explicit content is required";
+    if (state.contributors.writers.length === 0 || state.contributors.writers.every((w) => !w.name.trim())) errors.writers = "At least one writer is required";
+    if (state.contributors.performers.length === 0 || state.contributors.performers.every((p) => !p.name.trim())) errors.performers = "At least one performer is required";
+    if (Object.keys(errors).length > 0) { setFieldErrors(errors); return; }
+    setFieldErrors({});
+    goNext();
+  }, [state.audioFile, state.audioUrl, state.genre, state.subGenre, state.explicitContent, state.contributors, goNext]);
+
+  const formatContributorsForBackend = useCallback((contributors: { writers: Contributor[]; producers: Contributor[]; performers: Contributor[] }) => {
+    const all: { name: string; role: string; type: string }[] = [];
+    for (const [type, list] of Object.entries(contributors)) {
+      for (const c of list) {
+        if (c.name && c.role) {
+          all.push({ name: c.name, role: c.role, type: type.slice(0, -1) });
+        }
+      }
+    }
+    return all;
+  }, []);
+
   const handleSubmit = useCallback(async () => {
     setIsSubmitting(true);
     let artworkUrl = state.artworkUrl;
@@ -668,37 +761,49 @@ export default function UploadModal({ isOpen, onClose, draftId: initialDraftId }
     let audioUrl = state.audioUrl;
     let audioKey = state.audioKey;
     let audioBucket = state.audioBucket;
-    const toastId = toastLoading("Submitting release...", "Uploading your files");
+    setArtProgress(null);
+    setAudioProgress(null);
 
     try {
       if (state.artworkFile && !artworkUrl) {
-        dismiss(toastId);
         const t = toastLoading("Uploading artwork...");
-        const res = await uploadArtwork(state.artworkFile);
-        dismiss(t);
-        if (res.error) { toastError("Artwork upload failed", res.error); setIsSubmitting(false); return; }
-        const d = res.data as Record<string, unknown>;
-        artworkUrl = (d?.file_url ?? d?.url ?? "") as string;
-        artworkKey = (d?.s3_key ?? d?.file_path ?? d?.key ?? "") as string;
+        try {
+          const result = await uploadArtwork(state.artworkFile, (p) => setArtProgress(p));
+          dismiss(t);
+          artworkUrl = result.file_url;
+          artworkKey = result.s3_key;
+        } catch (err: unknown) {
+          dismiss(t);
+          toastError("Artwork upload failed", err instanceof Error ? err.message : "Upload failed");
+          setIsSubmitting(false); setArtProgress(null); return;
+        }
+        setArtProgress(null);
       }
       if (state.audioFile && !audioUrl) {
         const t = toastLoading("Uploading audio...");
-        const res = await uploadAudio(state.audioFile);
-        dismiss(t);
-        if (res.error) { toastError("Audio upload failed", res.error); setIsSubmitting(false); return; }
-        const d = res.data as Record<string, unknown>;
-        audioUrl = (d?.file_url ?? d?.url ?? "") as string;
-        audioKey = (d?.s3_key ?? d?.file_path ?? "") as string;
-        audioBucket = (d?.s3_bucket ?? "songdis-file") as string;
+        try {
+          const result = await uploadAudio(state.audioFile, (p) => setAudioProgress(p));
+          dismiss(t);
+          audioUrl = result.file_url;
+          audioKey = result.s3_key;
+          audioBucket = result.s3_bucket;
+        } catch (err: unknown) {
+          dismiss(t);
+          toastError("Audio upload failed", err instanceof Error ? err.message : "Upload failed");
+          setIsSubmitting(false); setAudioProgress(null); return;
+        }
+        setAudioProgress(null);
       }
 
       const t = toastLoading("Submitting release...");
       const isSingle = state.releaseType === "single";
+      const formattedContributors = formatContributorsForBackend(state.contributors);
       const base = {
         release_title: state.releaseTitle, metadata_language: state.metaLanguage,
         primary_artist: state.primaryArtist, primary_artist_id: null,
-        composer: state.writers || state.primaryArtist, album_art_url: artworkUrl,
-        album_art_key: artworkKey, cover_art_ai_use: state.coverArtAiUse || "None",
+        composer: state.contributors.writers.map((w) => w.name).join(", ") || state.primaryArtist,
+        album_art_url: artworkUrl, album_art_key: artworkKey,
+        cover_art_ai_use: state.coverArtAiUse || "None",
         label: state.label || "Independent",
         c_line: `© ${state.cLine} ${state.primaryArtist}`,
         p_line: `℗ ${state.pLine} ${state.primaryArtist}`,
@@ -706,7 +811,9 @@ export default function UploadModal({ isOpen, onClose, draftId: initialDraftId }
         primary_genre: state.genre, secondary_genre: state.subGenre,
         genre: state.genre, subgenre: state.subGenre, recorded_year: state.recordedYear,
         release_date: state.releaseDate, pre_order_date: state.preOrderDate || null,
-        is_previously_released: false, platforms: state.selectedDSPs,
+        is_previously_released: state.isPreviouslyReleased,
+        original_release_date: state.isPreviouslyReleased ? state.originalReleaseDate : null,
+        platforms: state.selectedDSPs,
         territory_rights: state.territory === "worldwide" ? "worldwide" : "custom",
         upc_code: state.upcCode || null, stereo_ai_use: "None",
       };
@@ -715,19 +822,21 @@ export default function UploadModal({ isOpen, onClose, draftId: initialDraftId }
             audio_file_path: audioUrl, s3_key: audioKey, s3_bucket: audioBucket,
             isrc: state.isrc || null, lyrics: state.lyrics, lyrics_language: state.metaLanguage,
             duration: state.audioDuration, social_media_timestamp: state.tiktokTimestamp,
-            single_track_contributors: null, single_track_additional_artists: null }
+            single_track_contributors: JSON.stringify(formattedContributors),
+            single_track_additional_artists: null }
         : { ...base, upload_type: "Album/EP", release_version: state.releaseVersion || "",
-            tracks: state.tracks.map((t, i) => ({
-              track_title: t.trackTitle || `Track ${i + 1}`, mix_version: "",
+            tracks: state.tracks.map((tr, i) => ({
+              track_title: tr.trackTitle || `Track ${i + 1}`, mix_version: "",
               metadata_language: state.metaLanguage, primary_artist: state.primaryArtist,
-              primary_artist_id: null, audio_file_path: t.audioUrl,
-              s3_key: t.audioKey, s3_bucket: t.audioBucket || "songdis-file",
-              explicit_status: t.explicitContent === "Yes" ? "Yes" : "No",
-              genre: t.genre || state.genre, subgenre: t.subGenre || state.subGenre,
-              recorded_year: state.recordedYear, isrc: t.isrc || null, stereo_ai_use: "None",
-              lyrics: t.lyrics || "", lyrics_language: state.metaLanguage,
-              duration: t.audioDuration || "", social_media_timestamp: t.tiktokTimestamp || 0,
-              contributors: null, additional_artists: null,
+              primary_artist_id: null, audio_file_path: tr.audioUrl,
+              s3_key: tr.audioKey, s3_bucket: tr.audioBucket || "songdis-file",
+              explicit_status: tr.explicitContent === "Yes" ? "Yes" : "No",
+              genre: tr.genre || state.genre, subgenre: tr.subGenre || state.subGenre,
+              recorded_year: state.recordedYear, isrc: tr.isrc || null, stereo_ai_use: "None",
+              lyrics: tr.lyrics || "", lyrics_language: state.metaLanguage,
+              duration: tr.audioDuration || "", social_media_timestamp: tr.tiktokTimestamp || 0,
+              contributors: JSON.stringify(formatContributorsForBackend(tr.contributors)),
+              additional_artists: null,
             })) };
 
       const res = await uploadMusic(payload);
@@ -739,14 +848,27 @@ export default function UploadModal({ isOpen, onClose, draftId: initialDraftId }
       toastError("Something went wrong", "Please try again.");
     } finally {
       setIsSubmitting(false);
+      setArtProgress(null);
+      setAudioProgress(null);
     }
-  }, [state, toastLoading, toastError, success, dismiss, goTo]);
+  }, [state, toastLoading, toastError, success, dismiss, goTo, formatContributorsForBackend]);
+
+  /* Step 3 validation: releaseDate + providers required */
+  const handleStep3Submit = useCallback(() => {
+    const errors: StepFieldErrors = {};
+    if (!state.releaseDate) errors.releaseDate = "Release date is required";
+    if (state.selectedDSPs.length === 0) errors.platforms = "Select at least one provider";
+    if (!state.agreedToTerms) errors.terms = "You must accept the terms";
+    if (Object.keys(errors).length > 0) { setFieldErrors(errors); return; }
+    setFieldErrors({});
+    handleSubmit();
+  }, [state.releaseDate, state.selectedDSPs, state.agreedToTerms, handleSubmit]);
 
   const handleSaveDraft = useCallback(async () => {
     const t = toastLoading("Saving draft...");
     try {
       const res = await saveDraft({
-        draft_id: state.draftId,            // include draft_id to UPDATE existing draft
+        draft_id: state.draftId,
         upload_type: state.releaseType === "single" ? "Single" : "Album/EP",
         current_step: Math.max(1, stepIndex(state.step)),
         form_data: {
@@ -756,13 +878,14 @@ export default function UploadModal({ isOpen, onClose, draftId: initialDraftId }
           cLine: state.cLine, pLine: state.pLine, explicitContent: state.explicitContent,
           coverArtAiUse: state.coverArtAiUse, genre: state.genre, subGenre: state.subGenre,
           recordedYear: state.recordedYear, isrc: state.isrc, lyrics: state.lyrics,
-          writers: state.writers, producers: state.producers, performers: state.performers,
+          contributors: state.contributors,
           artistDetails: state.artistDetails, releaseDate: state.releaseDate,
           preOrderDate: state.preOrderDate, territory: state.territory,
           selectedDSPs: state.selectedDSPs, noOfTracks: state.noOfTracks,
           albumArtPreview: state.artwork, audioFileUrl: state.audioUrl,
           artworkUrl: state.artworkUrl, artworkKey: state.artworkKey,
           tiktokTimestamp: state.tiktokTimestamp, audioDuration: state.audioDuration,
+          isPreviouslyReleased: state.isPreviouslyReleased, originalReleaseDate: state.originalReleaseDate,
         },
       });
       dismiss(t);
@@ -805,6 +928,8 @@ export default function UploadModal({ isOpen, onClose, draftId: initialDraftId }
     );
   }
 
+  const showProgress = artProgress || audioProgress;
+
   return (
     <>
       <div aria-hidden className="fixed inset-0 z-40 bg-black/70 backdrop-blur-sm" onClick={handleClose} />
@@ -813,22 +938,56 @@ export default function UploadModal({ isOpen, onClose, draftId: initialDraftId }
           <button onClick={handleClose} aria-label="Close" className="absolute top-5 right-5 z-10 text-white/40 hover:text-white transition-colors">
             <CloseIcon />
           </button>
+          {showProgress && (
+            <div className="absolute inset-x-0 top-0 z-20 rounded-t-2xl bg-[#1A0808] border-b border-white/[0.07] px-6 py-4">
+              {artProgress && (
+                <div className="mb-2">
+                  <div className="flex justify-between mb-1">
+                    <span className="font-body text-white/60 text-xs">Uploading artwork...</span>
+                    <span className="font-body text-white/40 text-xs">{artProgress.percentage}%</span>
+                  </div>
+                  <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
+                    <div className="h-full bg-[#C30100] rounded-full transition-all duration-300" style={{ width: `${artProgress.percentage}%` }} />
+                  </div>
+                </div>
+              )}
+              {audioProgress && (
+                <div>
+                  <div className="flex justify-between mb-1">
+                    <span className="font-body text-white/60 text-xs">Uploading audio...</span>
+                    <span className="font-body text-white/40 text-xs">{audioProgress.percentage}%</span>
+                  </div>
+                  <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
+                    <div className="h-full bg-[#C30100] rounded-full transition-all duration-300" style={{ width: `${audioProgress.percentage}%` }} />
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
           {state.step === "select-type" && (
             <SelectUploadType selected={state.releaseType} onSelect={(t) => update({ releaseType: t })} onContinue={() => { if (state.releaseType) goNext(); }} />
           )}
           {state.step === "release-details" && (
-            <ReleaseDetails state={state} update={update} onBack={goBack} onContinue={goNext} onSaveDraft={handleSaveDraft} />
+            <ReleaseDetails state={state} update={update} onBack={goBack} onContinue={handleStep1Continue} onSaveDraft={handleSaveDraft} fieldErrors={fieldErrors} clearFieldError={clearFieldError} />
           )}
           {state.step === "upload-track" && (
-            <UploadTrack state={state} update={update} onBack={goBack} onContinue={goNext} onSaveDraft={handleSaveDraft} />
+            <UploadTrack state={state} update={update} onBack={goBack} onContinue={handleStep2Continue} onSaveDraft={handleSaveDraft} fieldErrors={fieldErrors} clearFieldError={clearFieldError} />
           )}
           {state.step === "distribution" && (
-            <ReleaseAvailability state={state} update={update} onBack={goBack} onSubmit={handleSubmit} onQuickDrop={() => setQuickDropOpen(true)} isSubmitting={isSubmitting} />
+            <ReleaseAvailability state={state} update={update} onBack={goBack} onSubmit={handleStep3Submit} onQuickDrop={() => setQuickDropOpen(true)} isSubmitting={isSubmitting} fieldErrors={fieldErrors} clearFieldError={clearFieldError} />
           )}
         </div>
       </div>
       {quickDropOpen && (
-        <QuickDropModal onClose={() => setQuickDropOpen(false)} onPay={(date) => { update({ quickDropDate: date, quickDropPaid: true }); setQuickDropOpen(false); }} />
+        <QuickDropModal
+          onClose={() => setQuickDropOpen(false)}
+          releaseData={{
+            releaseTitle: state.releaseTitle,
+            primaryArtist: state.primaryArtist,
+            uploadType: state.releaseType === "single" ? "Single" : "Album/EP",
+            trackCount: 1,
+          }}
+        />
       )}
     </>
   );

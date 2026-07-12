@@ -1,14 +1,79 @@
 "use client";
 
 import { useState } from "react";
+import { BASE_URL } from "@/lib/api/core";
+import { getToken } from "@/lib/api/core";
 
 interface QuickDropProps {
   onClose: () => void;
-  onPay: (date: string) => void;
+  releaseData: {
+    releaseTitle: string;
+    primaryArtist: string;
+    uploadType: "Single" | "Album/EP";
+    trackCount?: number;
+  };
 }
 
-export default function QuickDropModal({ onClose, onPay }: QuickDropProps) {
+export default function QuickDropModal({ onClose, releaseData }: QuickDropProps) {
   const [date, setDate] = useState("");
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const getMinDate = () => {
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    return tomorrow.toISOString().split("T")[0];
+  };
+
+  const getMaxDate = () => {
+    const maxDate = new Date();
+    maxDate.setDate(maxDate.getDate() + 6);
+    return maxDate.toISOString().split("T")[0];
+  };
+
+  const handlePayment = async () => {
+    if (!date) { setError("Please select a release date"); return; }
+    const selected = new Date(date);
+    const today = new Date();
+    const diffDays = Math.ceil((selected.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+    if (diffDays < 1 || diffDays >= 7) {
+      setError("Please select a date within the next 1-6 days");
+      return;
+    }
+    setIsProcessing(true);
+    setError(null);
+    try {
+      const res = await fetch(`${BASE_URL}/quick-drop/initialize`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${getToken()}`,
+        },
+        body: JSON.stringify({
+          release_title: releaseData.releaseTitle,
+          primary_artist: releaseData.primaryArtist,
+          quick_drop_release_date: date,
+          upload_type: releaseData.uploadType,
+          track_count: releaseData.trackCount || 1,
+        }),
+      });
+      const json = await res.json();
+      if (json.success) {
+        localStorage.setItem("resume_upload", JSON.stringify({
+          resumeUpload: true,
+          quickDropDate: date,
+          timestamp: Date.now(),
+        }));
+        window.location.href = json.data.payment_url;
+      } else {
+        setError(json.message || "Failed to initialize payment");
+      }
+    } catch {
+      setError("Failed to initialize Quick Drop payment");
+    } finally {
+      setIsProcessing(false);
+    }
+  };
 
   return (
     <div className="fixed inset-0 z-[70] flex items-center justify-center px-4" onClick={onClose}>
@@ -55,13 +120,19 @@ export default function QuickDropModal({ onClose, onPay }: QuickDropProps) {
           <input
             type="date"
             value={date}
-            onChange={(e) => setDate(e.target.value)}
-            className="w-full bg-[#0E0808] border border-white/10 rounded-lg px-4 py-3 font-body text-white text-sm outline-none focus:border-[#C30100] transition-colors"
+            min={getMinDate()}
+            max={getMaxDate()}
+            onChange={(e) => { setDate(e.target.value); setError(null); }}
+            className="w-full bg-[#0E0808] border border-white/10 rounded-lg px-4 py-3 font-body text-white text-sm outline-none focus:border-[#C30100] transition-colors [color-scheme:dark]"
           />
           <p className="font-body text-white/30 text-xs mt-1">
             Choose a date within the next 1-6 days (this will be your new release date)
           </p>
         </div>
+
+        {error && (
+          <p className="font-body text-[#C30100] text-xs mb-4 text-center">{error}</p>
+        )}
 
         {/* Fee */}
         <div className="bg-[#0E0808] rounded-xl p-4 mb-4">
@@ -73,7 +144,7 @@ export default function QuickDropModal({ onClose, onPay }: QuickDropProps) {
         </div>
 
         <p className="font-body text-white/30 text-xs text-center mb-6">
-          After payment, you'll return to your upload to complete the release. Your chosen release date is locked in immediately. Standard release slots are not affected.
+          After payment, you'll return to your upload to complete the release. Your chosen release date is locked in immediately.
         </p>
 
         <div className="flex gap-3">
@@ -84,11 +155,16 @@ export default function QuickDropModal({ onClose, onPay }: QuickDropProps) {
             Cancel
           </button>
           <button
-            onClick={() => onPay(date)}
-            disabled={!date}
-            className="flex-1 font-heading text-white uppercase text-xs tracking-widest rounded-full border border-[#C30100] bg-[#C30100]/10 hover:bg-[#C30100] py-4 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+            onClick={handlePayment}
+            disabled={!date || isProcessing}
+            className="flex-1 font-heading text-white uppercase text-xs tracking-widest rounded-full border border-[#C30100] bg-[#C30100]/10 hover:bg-[#C30100] py-4 transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
           >
-            Pay
+            {isProcessing ? (
+              <svg className="animate-spin" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M21 12a9 9 0 11-6.219-8.56"/>
+              </svg>
+            ) : null}
+            {isProcessing ? "Processing..." : "Pay ₦9,999"}
           </button>
         </div>
       </div>
