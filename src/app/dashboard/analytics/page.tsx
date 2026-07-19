@@ -460,6 +460,13 @@ import {
   XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, Cell,
 } from "recharts";
+import {
+  TrendsView as TrendsSC,
+  ChartsView as ChartsSC,
+  PlaylistsView as PlaylistsSC,
+  RadioView as RadioSC,
+  SocialsView as SocialsSC,
+} from "./soundcharts-views";
 
 type Period = "30D" | "60D" | "90D" | "1YR" | "Custom Range";
 const PERIODS: Period[] = ["30D", "60D", "90D", "1YR", "Custom Range"];
@@ -767,11 +774,21 @@ function GeographyView({ data }: { data: AnalyticsPageData | null }) {
   );
 }
 
-function TrendsView()    { return <ComingSoonView title="Streaming Trends" />; }
-function ChartsView()    { return <ComingSoonView title="Chart Positions" />; }
-function PlaylistsView() { return <ComingSoonView title="Playlist Placements" />; }
-function RadioView()     { return <ComingSoonView title="Radio Appearances" />; }
-function SocialsView()   { return <ComingSoonView title="Social Media" />; }
+function TrendsView({ data }: { data: AnalyticsPageData | null }) {
+  return <TrendsSC data={data} />;
+}
+function ChartsView({ data }: { data: AnalyticsPageData | null }) {
+  return <ChartsSC data={data} />;
+}
+function PlaylistsView({ data }: { data: AnalyticsPageData | null }) {
+  return <PlaylistsSC data={data} />;
+}
+function RadioView({ data }: { data: AnalyticsPageData | null }) {
+  return <RadioSC data={data} />;
+}
+function SocialsView({ data }: { data: AnalyticsPageData | null }) {
+  return <SocialsSC data={data} />;
+}
 
 /* ─── View dropdown ───────────────────────────────────────────── */
 function ViewDropdown({ value, onChange }: { value: AnalyticsView; onChange: (v: AnalyticsView) => void }) {
@@ -824,11 +841,11 @@ export default function AnalyticsPage() {
       case "tracks":    return <TracksView data={data} />;
       case "platforms": return <PlatformsView data={data} />;
       case "geography": return <GeographyView data={data} />;
-      case "trends":    return <TrendsView />;
-      case "charts":    return <ChartsView />;
-      case "playlists": return <PlaylistsView />;
-      case "radio":     return <RadioView />;
-      case "socials":   return <SocialsView />;
+      case "trends":    return <TrendsView data={data} />;
+      case "charts":    return <ChartsView data={data} />;
+      case "playlists": return <PlaylistsView data={data} />;
+      case "radio":     return <RadioView data={data} />;
+      case "socials":   return <SocialsView data={data} />;
     }
   };
 

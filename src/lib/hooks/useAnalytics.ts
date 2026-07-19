@@ -696,14 +696,21 @@ export interface AnalyticsPageData {
   };
   monthlyListeners: {
     value: string; platform: string; period: string; change: string; available: boolean;
-    trend: number[];        // sparkline of recent stream_history values
-    followerCount: string;  // from audience.items, latest follower count
-    followerChange: string; // delta vs previous audience snapshot
+    trend: number[];
+    followerCount: string;
+    followerChange: string;
   };
   streamsOverTime: { months: string[]; streams: number[]; revenue: number[] };
   topReleases: Array<{ id: string; rank: number; title: string; artist: string; cover: string; streams: string }>;
   platformBreakdown: Array<{ name: string; streams: number; color: string }>;
   geographic: Array<{ country: string; streams: string; percentage: number; change: string; flag: string }>;
+  // Soundcharts detailed data for Trends/Charts/Playlists/Radio/Socials views
+  chartEntries: Array<{ rank: number; rankDiff?: number; chartName?: string; chart?: { name: string }; platformName?: string; platform?: string; date?: string }>;
+  playlistEntries: Array<{ position?: number; platform?: string; playlist?: { name: string; imageUrl?: string; followersCount?: number } }>;
+  radioSpins: Array<{ stationName?: string; station?: { name: string }; country?: string; date?: string; spinsCount?: number }>;
+  streamHistoryByPlatform: Record<string, Array<{ date: string; value: number }>>;
+  socialHistoryByPlatform: Record<string, Array<{ date: string; followerCount?: number; likeCount?: number; postCount?: number; viewCount?: number }>>;
+  soundchartsAvailable: boolean;
 }
 
 const PLATFORM_COLORS: Record<string, string> = {
@@ -919,6 +926,71 @@ function normalise(
     youtube: "YouTube", tidal: "Tidal", soundcloud: "SoundCloud", amazon: "Amazon",
   };
 
+  // ─── Soundcharts detailed data for individual views ──────────
+  const chartEntries = ((scData.chart_entries as Record<string, unknown>)?.items as Array<Record<string, unknown>> ?? [])
+    .map((e) => ({
+      rank: (e.rank as number) ?? 0,
+      rankDiff: e.rankDiff as number | undefined,
+      chartName: (e.chartName ?? (e.chart as Record<string, unknown>)?.name ?? "") as string,
+      chart: e.chart as { name: string } | undefined,
+      platformName: (e.platformName ?? e.platform ?? e._platform ?? "") as string,
+      platform: e.platform as string | undefined,
+      date: e.date as string | undefined,
+    }));
+
+  const playlistEntries = ((scData.playlists as Record<string, unknown>)?.items as Array<Record<string, unknown>> ?? [])
+    .map((p) => ({
+      position: p.position as number | undefined,
+      platform: (p.platform ?? p._platform ?? "") as string,
+      playlist: p.playlist as { name: string; imageUrl?: string; followersCount?: number } | undefined,
+    }));
+
+  const radioSpins = ((scData.radio as Record<string, unknown>)?.items as Array<Record<string, unknown>> ?? [])
+    .map((r) => ({
+      stationName: (r.stationName ?? (r.station as Record<string, unknown>)?.name ?? "") as string,
+      station: r.station as { name: string } | undefined,
+      country: r.country as string | undefined,
+      date: r.date as string | undefined,
+      spinsCount: r.spinsCount as number | undefined,
+    }));
+
+  // Per-platform stream history (for Trends view platform switcher)
+  const streamHistoryByPlatform: Record<string, Array<{ date: string; value: number }>> = {};
+  for (const [platformKey, platformData] of Object.entries(streamHistory)) {
+    const items = (platformData as Record<string, unknown>)?.items as Array<Record<string, unknown>> | undefined;
+    if (items && items.length > 0) {
+      streamHistoryByPlatform[platformKey] = items
+        .map((it) => ({ date: String(it.date ?? ""), value: (it.value as number) ?? 0 }))
+        .filter((it) => it.date)
+        .reverse(); // oldest first for chart display
+    }
+  }
+
+  // Per-platform social history (for Socials view platform switcher)
+  const rawSocialHistory = (scData.social_history as Record<string, unknown>) ?? {};
+  const socialHistoryByPlatform: Record<string, Array<{ date: string; followerCount?: number; likeCount?: number; postCount?: number; viewCount?: number }>> = {};
+  for (const [platformKey, platformData] of Object.entries(rawSocialHistory)) {
+    const items = (platformData as Record<string, unknown>)?.items as Array<Record<string, unknown>> | undefined;
+    if (items && items.length > 0) {
+      socialHistoryByPlatform[platformKey] = items
+        .map((it) => ({
+          date: String(it.date ?? ""),
+          followerCount: it.followerCount as number | undefined,
+          likeCount: it.likeCount as number | undefined,
+          postCount: it.postCount as number | undefined,
+          viewCount: it.viewCount as number | undefined,
+        }))
+        .filter((it) => it.date)
+        .reverse();
+    }
+  }
+
+  const soundchartsAvailable = Object.keys(streamHistoryByPlatform).length > 0
+    || chartEntries.length > 0
+    || playlistEntries.length > 0
+    || radioSpins.length > 0
+    || Object.keys(socialHistoryByPlatform).length > 0;
+
   return {
     stats: {
       totalStreams: { value: fmtNum(totalStreams), sub: "All DSPs",    icon: "/images/streams.svg", change: "" },
@@ -942,6 +1014,12 @@ function normalise(
     topReleases: finalTopReleases,
     platformBreakdown: platformBreakdown.filter(p => p.name.toLowerCase() !== "unknown"),
     geographic: geo,
+    chartEntries,
+    playlistEntries,
+    radioSpins,
+    streamHistoryByPlatform,
+    socialHistoryByPlatform,
+    soundchartsAvailable,
   };
 }
 

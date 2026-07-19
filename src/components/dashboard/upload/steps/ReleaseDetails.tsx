@@ -1,110 +1,20 @@
 "use client";
 
-import { useState, useRef, useCallback, useEffect } from "react";
+import { useState, useRef, useEffect } from "react";
 import Image from "next/image";
 import type { UploadState, StepFieldErrors } from "../UploadModal";
 import { StepHeader, StepProgress, StepActions } from "../UploadModal";
-import { getArtSuggestions, generateArt, getArtStatus } from "@/lib/api/ayo";
 import { getProfile } from "@/lib/api/auth";
 import { getLabelPermission } from "@/lib/api/music";
-import { useToast } from "@/components/ui/Toast";
 import ArtistProfileModal from "@/components/dashboard/settings/ArtistProfileModal";
 import type { ArtistProfile } from "@/components/dashboard/settings/ArtistProfileModal";
 
 
 function ArtworkGenerator({
   onClose,
-  onSelect,
 }: {
   onClose: () => void;
-  onSelect: (url: string) => void;
 }) {
-  const [theme, setTheme] = useState("");
-  const [visual, setVisual] = useState("");
-  const [prompt, setPrompt] = useState("");
-  const [selectedTag, setSelectedTag] = useState("");
-  const [suggestions, setSuggestions] = useState<string[]>([]);
-  const [generatedUrl, setGeneratedUrl] = useState<string | null>(null);
-  const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [genStatus, setGenStatus] = useState("");
-  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const { error: toastError } = useToast();
-
-  useEffect(() => () => { if (pollRef.current) clearInterval(pollRef.current); }, []);
-
-  const handleGetSuggestions = async () => {
-    if (!theme.trim()) return;
-    setIsLoadingSuggestions(true);
-    setSuggestions([]);
-    const res = await getArtSuggestions({ themes: theme, imagery: visual });
-    if (res.error) {
-      toastError("Failed to get suggestions", res.error);
-    } else {
-      const d = res.data as Record<string, unknown>;
-      const list = ((d?.suggestions ?? d?.prompts ?? []) as string[]);
-      setSuggestions(list);
-    }
-    setIsLoadingSuggestions(false);
-  };
-
-  const startPolling = useCallback((jobId: string) => {
-    if (pollRef.current) clearInterval(pollRef.current);
-    pollRef.current = setInterval(async () => {
-      const res = await getArtStatus(jobId);
-      if (res.error) {
-        clearInterval(pollRef.current!);
-        setIsGenerating(false);
-        toastError("Artwork generation failed", res.error);
-        return;
-      }
-      const d = res.data as Record<string, unknown>;
-      const imageUrl = (d?.imageUrl ?? d?.image_url) as string | undefined;
-      setGenStatus((d?.status as string) ?? "");
-      if (d?.status === "completed" || imageUrl) {
-        clearInterval(pollRef.current!);
-        setIsGenerating(false);
-        if (imageUrl) setGeneratedUrl(imageUrl);
-      } else if (d?.status === "failed") {
-        clearInterval(pollRef.current!);
-        setIsGenerating(false);
-        toastError("Artwork generation failed", "Please try again.");
-      }
-    }, 3000);
-  }, [toastError]);
-
-  const handleGenerate = async () => {
-    if (!prompt.trim()) return;
-    setIsGenerating(true);
-    setGeneratedUrl(null);
-    setGenStatus("pending");
-
-    const res = await generateArt({ prompt });
-    if (res.error) {
-      toastError("Failed to start generation", res.error);
-      setIsGenerating(false);
-      return;
-    }
-
-    const d = res.data as Record<string, unknown>;
-    const imageUrl = (d?.imageUrl ?? d?.image_url) as string | undefined;
-
-    if (imageUrl) {
-      setGeneratedUrl(imageUrl);
-      setIsGenerating(false);
-      return;
-    }
-
-    const jobId = (d?.job_id ?? d?.jobId) as string | undefined;
-    if (jobId) {
-      startPolling(jobId);
-    } else {
-      setIsGenerating(false);
-    }
-  };
-
-  const tags = ["Auto-futurist", "Bold & Minimal", "Streets Afrobeats"];
-
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center px-4 py-6" onClick={onClose}>
       <div
@@ -117,94 +27,20 @@ function ArtworkGenerator({
 
         <StepHeader title="AI Artwork Generator" subtitle="Create unique album art with Ayo AI" />
 
-        <div className="flex flex-col gap-5">
-          {/* Step 1: Themes + suggestions */}
-          <div className="rounded-xl border border-dashed border-[#C30100]/30 p-4">
-            <p className="font-body text-white text-xs font-semibold mb-0.5">Step 1 — Describe your vision</p>
-            <p className="font-body text-white/50 text-[11px] mb-3">Tell Ayo your themes and visual ideas to get AI-crafted prompts</p>
-            <div className="flex flex-col gap-3">
-              <Field label="Themes & Concepts">
-                <input value={theme} onChange={(e) => setTheme(e.target.value)}
-                  placeholder="e.g. dark and moody, celebration, Afrobeats energy"
-                  className="w-full bg-[#0E0808] border border-white/10 rounded-lg px-4 py-3 font-body text-white text-sm placeholder:text-white/25 outline-none focus:border-[#C30100] transition-colors" />
-              </Field>
-              <Field label="Visual Elements (optional)">
-                <input value={visual} onChange={(e) => setVisual(e.target.value)}
-                  placeholder="e.g. city skyline, golden sunset, village setting"
-                  className="w-full bg-[#0E0808] border border-white/10 rounded-lg px-4 py-3 font-body text-white text-sm placeholder:text-white/25 outline-none focus:border-[#C30100] transition-colors" />
-              </Field>
-              <button
-                onClick={handleGetSuggestions}
-                disabled={isLoadingSuggestions || !theme.trim()}
-                className="w-full font-heading text-white uppercase text-xs tracking-widest rounded-full border border-white/20 hover:border-white/40 py-3.5 transition-all disabled:opacity-40 flex items-center justify-center gap-2"
-              >
-                {isLoadingSuggestions ? (
-                  <><SpinIcon /> Getting suggestions...</>
-                ) : "Get Prompt Suggestions"}
-              </button>
-            </div>
-
-            {suggestions.length > 0 && (
-              <div className="mt-4 flex flex-col gap-2">
-                <p className="font-body text-white/50 text-xs mb-1">Click a suggestion to use it as your prompt:</p>
-                {suggestions.map((s, i) => (
-                  <button key={i} onClick={() => setPrompt(s)}
-                    className={["text-left font-body text-xs rounded-xl border px-4 py-3 transition-colors leading-relaxed",
-                      prompt === s ? "border-[#C30100]/50 bg-[#C30100]/10 text-white" : "border-white/[0.06] bg-[#0E0808] text-white/60 hover:border-white/20 hover:text-white"].join(" ")}>
-                    {s}
-                  </button>
-                ))}
-              </div>
-            )}
+        <div className="flex flex-col items-center justify-center py-12 gap-4">
+          <div className="w-16 h-16 rounded-full bg-yellow-500/10 flex items-center justify-center">
+            <SparkleIcon />
           </div>
-
-          {/* Step 2: Generate */}
-          <div className="rounded-xl border border-dashed border-[#C30100]/30 p-4">
-            <p className="font-body text-white text-xs font-semibold mb-0.5">Step 2 — Generate Artwork</p>
-            <p className="font-body text-white/50 text-[11px] mb-3">Use a suggestion above or write your own custom prompt</p>
-            <Field label="Prompt">
-              <textarea
-                value={prompt}
-                onChange={(e) => setPrompt(e.target.value)}
-                placeholder="Describe the artwork you want to generate..."
-                rows={4}
-                className="w-full bg-[#0E0808] border border-white/10 rounded-lg px-4 py-3 font-body text-white text-sm placeholder:text-white/25 outline-none focus:border-[#C30100] transition-colors resize-none"
-              />
-            </Field>
-            <button
-              onClick={handleGenerate}
-              disabled={isGenerating || !prompt.trim()}
-              className="mt-3 w-full font-heading text-white uppercase text-xs tracking-widest rounded-full border border-[#C30100] bg-[#C30100]/10 hover:bg-[#C30100] py-3.5 transition-all disabled:opacity-40 flex items-center justify-center gap-2"
-            >
-              {isGenerating ? (
-                <><SpinIcon /> {genStatus === "processing" ? "Processing..." : "Generating..."}</>
-              ) : (
-                <><SparkleIcon /> Generate Artwork</>
-              )}
-            </button>
-          </div>
-
-          {/* Result */}
-          {generatedUrl && (
-            <div className="rounded-xl border border-[#C30100]/30 p-4">
-              <p className="font-body text-white text-xs font-semibold mb-3">Generated Artwork</p>
-              <div className="relative w-full aspect-square rounded-xl overflow-hidden bg-[#0E0808] mb-4">
-                <Image src={generatedUrl} alt="Generated artwork" fill className="object-cover" unoptimized />
-              </div>
-              <div className="flex gap-3">
-                <button onClick={() => { setGeneratedUrl(null); setPrompt(""); }}
-                  className="flex-1 font-heading text-white uppercase text-xs tracking-widest rounded-full border border-white/20 py-3.5 hover:border-white/40 transition-colors">
-                  Regenerate
-                </button>
-                <button
-                  onClick={() => { onSelect(generatedUrl); onClose(); }}
-                  className="flex-1 font-heading text-white uppercase text-xs tracking-widest rounded-full border border-[#C30100] bg-[#C30100]/10 hover:bg-[#C30100] py-3.5 transition-all"
-                >
-                  Use This Artwork
-                </button>
-              </div>
-            </div>
-          )}
+          <p className="font-heading text-white uppercase text-sm tracking-wide">Coming Back Soon</p>
+          <p className="font-body text-white/50 text-sm text-center max-w-md">
+            AI-powered artwork generation is on its way back. For now, you can upload your own cover art or choose from templates.
+          </p>
+          <button
+            onClick={onClose}
+            className="mt-2 font-heading text-white uppercase text-xs tracking-widest rounded-full border border-white/20 hover:border-white/40 px-8 py-3 transition-all"
+          >
+            Got it
+          </button>
         </div>
       </div>
     </div>
@@ -471,9 +307,6 @@ export default function ReleaseDetails({ state, update, onBack, onContinue, onSa
       {artworkGen && (
         <ArtworkGenerator
           onClose={() => setArtworkGen(false)}
-          onSelect={(url) => {
-            update({ artwork: url, coverArtAiUse: "Fully AI Generated" });
-          }}
         />
       )}
 
@@ -494,4 +327,3 @@ function AyoIcon() { return <svg width="14" height="14" viewBox="0 0 24 24" fill
 function ChevronIcon() { return <svg className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-white/30" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="6 9 12 15 18 9"/></svg>; }
 function CloseIcon() { return <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>; }
 function SparkleIcon() { return <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6z"/></svg>; }
-function SpinIcon() { return <svg className="animate-spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 12a9 9 0 11-6.219-8.56"/></svg>; }

@@ -182,7 +182,7 @@ export const VIEW_OPTIONS: { label: string; value: AnalyticsView; live?: boolean
   { label: "Platforms", value: "platforms" },
   { label: "Tracks",    value: "tracks" },
   { label: "Geography", value: "geography" },
-  { label: "Trends",    value: "trends" },
+  { label: "Trends",    value: "trends",    live: true },
   { label: "Charts",    value: "charts",    live: true },
   { label: "Playlist",  value: "playlists", live: true },
   { label: "Radio",     value: "radio",     live: true },

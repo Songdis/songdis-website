@@ -975,16 +975,28 @@ function SplitAgreementForm({ mode, split, musicUploadOptions, onClose, onSubmit
 
             {/* Collaborators */}
             {collaborators.map((collab, i) => (
-              <div key={i} className="grid grid-cols-2 gap-4">
-                <div className="flex flex-col gap-1.5">
-                  <label className="font-body text-white/70 text-xs">Collaborator Email</label>
-                  <input
-                    type="email"
-                    value={collab.email}
-                    onChange={(e) => updateCollab(i, "email", e.target.value)}
-                    placeholder="e.g johndoe@gmail.com"
-                    className={inputCls}
-                  />
+              <div key={i} className="flex flex-col gap-3">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="flex flex-col gap-1.5">
+                    <label className="font-body text-white/70 text-xs">Full Name *</label>
+                    <input
+                      type="text"
+                      value={collab.fullName}
+                      onChange={(e) => updateCollab(i, "fullName", e.target.value)}
+                      placeholder="e.g John Doe"
+                      className={inputCls}
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    <label className="font-body text-white/70 text-xs">Collaborator Email *</label>
+                    <input
+                      type="email"
+                      value={collab.email}
+                      onChange={(e) => updateCollab(i, "email", e.target.value)}
+                      placeholder="e.g johndoe@gmail.com"
+                      className={inputCls}
+                    />
+                  </div>
                 </div>
                 <div className="flex flex-col gap-1.5">
                   <label className="font-body text-white/70 text-xs">Split Percentage (%)</label>
@@ -1023,7 +1035,7 @@ function SplitAgreementForm({ mode, split, musicUploadOptions, onClose, onSubmit
               </button>
               <button
                 onClick={handleSubmit}
-                disabled={isLoading || collaborators.every(c => !c.email)}
+                disabled={isLoading || collaborators.every(c => !c.email || !c.fullName)}
                 className="flex-1 font-heading text-white uppercase text-xs tracking-widest rounded-full border border-[#C30100] bg-[#C30100]/10 hover:bg-[#C30100] py-3.5 transition-all disabled:opacity-40"
               >
                 {isLoading ? "Saving..." : mode === "new" ? "Create Split Agreement" : "Update Changes"}
