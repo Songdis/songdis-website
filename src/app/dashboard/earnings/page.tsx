@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import DashboardLayout from "@/components/dashboard/DashboardLayout";
 import WithdrawModal from "@/components/dashboard/earnings/WithdrawModal";
 import { useEarningsBalance, useWithdrawalHistory } from "@/lib/hooks/useEarnings";
@@ -52,7 +53,7 @@ export default function EarningsPage() {
   const [withdrawSuccess, setWithdrawSuccess] = useState(false);
 
   /* Real API data */
-  const { totalBalance, thisMonth, fromReleases, fromSplits, isLoading: balanceLoading, refresh: refreshBalance } = useEarningsBalance();
+  const { availableBalance, totalEarnings, thisMonth, fromSplits, isLoading: balanceLoading, refresh: refreshBalance } = useEarningsBalance();
   const { history, isLoading: historyLoading, page: txPage, totalPages: txTotalPages, goToPage: txGoToPage } = useWithdrawalHistory(10);
 
   /* Still mock — split earnings and revenue by platform need dedicated endpoints */
@@ -65,8 +66,9 @@ export default function EarningsPage() {
 
         {/* Stat cards */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-           <StatCard label="Total Balance"  value={balanceLoading ? "..." : fmt(totalBalance)}  icon="/images/balance.svg"  highlight />
-           <StatCard label="This Month"     value={balanceLoading ? "..." : fmt(thisMonth)}     icon="/images/month.svg" />           <StatCard label="From Releases"  value={balanceLoading ? "..." : fmt(fromReleases)}  icon="/images/releases.svg" />
+           <StatCard label="Available Balance"  value={balanceLoading ? "..." : fmt(availableBalance)}  icon="/images/balance.svg"  highlight />
+           <StatCard label="This Month"     value={balanceLoading ? "..." : fmt(thisMonth)}     icon="/images/month.svg" />
+           <StatCard label="Total Balance"  value={balanceLoading ? "..." : fmt(totalEarnings)}  icon="/images/releases.svg" />
           <StatCard label="From Splits"    value={balanceLoading ? "..." : fmt(fromSplits)}    icon="/images/splits.svg" />
         </div>
 
@@ -79,11 +81,20 @@ export default function EarningsPage() {
             <span className="font-heading text-white text-sm uppercase tracking-wide">Ayo AI · Earnings Insight</span>
           </div>
           <p className="font-body text-white/60 text-sm leading-relaxed mb-4">
-            Your per-stream rate reflects early stage streaming. Once your releases hit curated playlists, expect significant growth. Spotify editorial placements average $0.003–$0.005/stream.
+            {balanceLoading
+              ? "Loading your earnings data..."
+              : totalEarnings > 0
+                ? `You've earned a total of ${fmt(totalEarnings)} from your releases${fromSplits > 0 ? `, plus ${fmt(fromSplits)} from splits` : ""}. Your available balance is ${fmt(availableBalance)} — ${
+                    availableBalance > 0
+                      ? "you can withdraw anytime from the Wallet."
+                      : "keep releasing music to start earning."
+                  }`
+              : "Start releasing music to see your earnings grow. Every stream counts towards your balance."
+            }
           </p>
-          <button className="font-body text-white text-xs bg-[#C30100]/20 border border-[#C30100]/40 hover:bg-[#C30100]/40 rounded-full px-4 py-2 transition-colors inline-block">
-            Get playlist placement
-          </button>
+          <Link href="/dashboard/ayo" className="font-body text-white text-xs bg-[#C30100]/20 border border-[#C30100]/40 hover:bg-[#C30100]/40 rounded-full px-4 py-2 transition-colors inline-block">
+            Chat with Ayo
+          </Link>
         </div>
 
         {/* Withdrawal Information */}
@@ -231,7 +242,7 @@ export default function EarningsPage() {
 
       {withdrawOpen && (
         <WithdrawModal
-          availableBalance={totalBalance}
+          availableBalance={availableBalance}
           onClose={() => setWithdrawOpen(false)}
           onSuccess={() => {
             setWithdrawOpen(false);

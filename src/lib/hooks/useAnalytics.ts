@@ -868,38 +868,60 @@ function normalise(
     };
   });
 
-  // Soundcharts /dashboard response shape confirmed:
-  // { data: { audience: { items: [{ date, followerCount }] },
-  //   stream_history: { spotify: { items: [{ date, value }] }, deezer: {...}, ... } } }
-  // There is no single "monthly listeners" field — Soundcharts doesn't expose
-  // that metric on this endpoint. We build an honest equivalent from the
-  // real data available: recent stream activity (stream_history) plus a
-  // follower trend (audience), across whichever platform actually has data.
+  // Soundcharts /dashboard response shape:
+  // { streaming: { spotify: { items: [{date, value}] }, ... },
+  //   stream_history: { spotify: { items: [{date, value}] }, ... },
+  //   social: { tiktok: { items: [{date, followerCount, ...}] }, ... },
+  //   chart_entries: { items: [...] }, playlists: { items: [...] },
+  //   radio: { items: [...] }, audience: { items: [{date, followerCount}] } }
   const sc = unwrapObj(soundcharts);
   const scData = (sc.data as Record<string, unknown>) ?? sc;
 
-  // Find the first platform with non-empty stream_history items
-  const streamHistory = (scData.stream_history as Record<string, unknown>) ?? {};
+  // Monthly listeners — from the `streaming` field (current-period snapshot per platform)
+  // NOT from stream_history (which is daily history). The old app uses:
+  //   dashboard.streaming[platform].items[0].value
+  const streamingSnapshots = (scData.streaming as Record<string, unknown>) ?? {};
   let recentStreamValue: number | null = null;
   let recentStreamChange = "";
   let streamTrend: number[] = [];
   let activeStreamPlatform = "";
 
-  for (const [platformKey, platformData] of Object.entries(streamHistory)) {
-    const items = (platformData as Record<string, unknown>)?.items as Array<Record<string, unknown>> | undefined;
+  // Try streaming field first (current-period snapshot — most accurate for "monthly listeners")
+  for (const [platformKey, platformData] of Object.entries(streamingSnapshots)) {
+    const platformObj = platformData as Record<string, unknown> | null;
+    const items = platformObj?.items as Array<Record<string, unknown>> | undefined;
     if (items && items.length > 0) {
-      // Items are ordered most-recent-first based on the confirmed payload
       const values = items.map((it) => (it.value as number) ?? 0).filter((v) => v > 0);
       if (values.length > 0) {
         recentStreamValue = values[0];
         activeStreamPlatform = platformKey;
-        // Build a trend array oldest -> newest for the sparkline (last 8 points)
         streamTrend = values.slice(0, 8).reverse();
         if (values.length > 1 && values[1] > 0) {
           const pct = ((values[0] - values[1]) / values[1]) * 100;
           recentStreamChange = `${pct >= 0 ? "+" : ""}${pct.toFixed(0)}%`;
         }
         break;
+      }
+    }
+  }
+
+  // Fallback: if streaming field is empty, try stream_history for the trend
+  if (recentStreamValue === null) {
+    const streamHistory = (scData.stream_history as Record<string, unknown>) ?? {};
+    for (const [platformKey, platformData] of Object.entries(streamHistory)) {
+      const items = (platformData as Record<string, unknown>)?.items as Array<Record<string, unknown>> | undefined;
+      if (items && items.length > 0) {
+        const values = items.map((it) => (it.value as number) ?? 0).filter((v) => v > 0);
+        if (values.length > 0) {
+          recentStreamValue = values[0];
+          activeStreamPlatform = platformKey;
+          streamTrend = values.slice(0, 8).reverse();
+          if (values.length > 1 && values[1] > 0) {
+            const pct = ((values[0] - values[1]) / values[1]) * 100;
+            recentStreamChange = `${pct >= 0 ? "+" : ""}${pct.toFixed(0)}%`;
+          }
+          break;
+        }
       }
     }
   }
@@ -954,9 +976,10 @@ function normalise(
       spinsCount: r.spinsCount as number | undefined,
     }));
 
-  // Per-platform stream history (for Trends view platform switcher)
+  // Per-platform stream history (for Trends view platform switcher) — from stream_history
+  const rawStreamHistory = (scData.stream_history as Record<string, unknown>) ?? {};
   const streamHistoryByPlatform: Record<string, Array<{ date: string; value: number }>> = {};
-  for (const [platformKey, platformData] of Object.entries(streamHistory)) {
+  for (const [platformKey, platformData] of Object.entries(rawStreamHistory)) {
     const items = (platformData as Record<string, unknown>)?.items as Array<Record<string, unknown>> | undefined;
     if (items && items.length > 0) {
       streamHistoryByPlatform[platformKey] = items
@@ -966,8 +989,8 @@ function normalise(
     }
   }
 
-  // Per-platform social history (for Socials view platform switcher)
-  const rawSocialHistory = (scData.social_history as Record<string, unknown>) ?? {};
+  // Per-platform social history — backend returns field as `social`, not `social_history`
+  const rawSocialHistory = (scData.social as Record<string, unknown>) ?? {};
   const socialHistoryByPlatform: Record<string, Array<{ date: string; followerCount?: number; likeCount?: number; postCount?: number; viewCount?: number }>> = {};
   for (const [platformKey, platformData] of Object.entries(rawSocialHistory)) {
     const items = (platformData as Record<string, unknown>)?.items as Array<Record<string, unknown>> | undefined;

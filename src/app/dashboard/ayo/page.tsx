@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import Image from "next/image";
+import { useSearchParams } from "next/navigation";
 import DashboardLayout from "@/components/dashboard/DashboardLayout";
 import {
   chat,
@@ -228,15 +229,25 @@ function TypingIndicator() {
 }
 
 /* ─── Chat tab ────────────────────────────────────────────────── */
-function ChatTab() {
+function ChatTab({ initialMessage }: { initialMessage?: string }) {
   const [messages, setMessages] = useState<Message[]>([INITIAL_MESSAGE]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const sentInitialRef = useRef(false);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isLoading]);
+
+  // Auto-send incoming message from dashboard chat input
+  useEffect(() => {
+    if (initialMessage && !sentInitialRef.current && !isLoading) {
+      sentInitialRef.current = true;
+      sendMessage(initialMessage);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialMessage]);
 
   const sendMessage = async (text: string) => {
     if (!text.trim() || isLoading) return;
@@ -338,6 +349,7 @@ function ChatTab() {
 
 /* ─── Page ────────────────────────────────────────────────────── */
 export default function AyoAIPage() {
+  const searchParams = useSearchParams();
   const [tab, setTab] = useState<Tab>("chat");
 
   const tabs: { id: Tab; label: string }[] = [
@@ -384,7 +396,7 @@ export default function AyoAIPage() {
         </div>
 
         {/* Tab content */}
-        {tab === "chat" && <ChatTab />}
+        {tab === "chat" && <ChatTab initialMessage={searchParams.get("msg") ?? undefined} />}
         {tab === "bio" && <BioGenerator />}
 
       </div>

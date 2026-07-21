@@ -17,6 +17,7 @@ const MAIN_NAV = [
 const RELEASE_CHILDREN: { label: string; href: string; icon?: string; svgIcon?: React.ReactNode; badge?: string }[] = [
   { label: "Your Music", href: "/dashboard/music", icon: "/images/dashboard-music.svg" },
   { label: "Videos", href: "/dashboard/videos", svgIcon: <VideoIcon /> },
+  { label: "Migrations", href: "/dashboard/migrations", badge: "NEW", svgIcon: <MigrationsIcon /> },
 ];
 
 const AI_TOOLS = [
@@ -28,7 +29,6 @@ const ARTIST_TOOLS = [
   { label: "Amplify", href: "/dashboard/amplify", icon: "/images/megaphone.svg" },
   { label: "Release Links", href: "/dashboard/release-links", icon: "/images/link.svg" },
   { label: "Playlist Portal", href: "/dashboard/playlist-portal", icon: "/images/playlist-broken.svg" },
-  { label: "Migrations", href: "/dashboard/migrations", badge: "NEW", svgIcon: <MigrationsIcon /> },
 ];
 
 const SETTINGS_NAV = [

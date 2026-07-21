@@ -36,6 +36,7 @@ export default function WithdrawModal({ availableBalance, onClose, onSuccess }: 
   }, [bankCode, accountNumber, verifyBankAccount]);
 
   const amountNum = parseFloat(amount) || 0;
+  const belowMinimum = amountNum > 0 && amountNum < 50;
 
   const handlePreview = async () => {
     if (!amountNum || !bankCode || !accountNumber) return;
@@ -136,11 +137,13 @@ export default function WithdrawModal({ availableBalance, onClose, onSuccess }: 
               {/* Preview button */}
               <button
                 onClick={handlePreview}
-                disabled={!amountNum || !bankCode || accountNumber.length < 10 || isLoadingPreview}
+                disabled={!amountNum || belowMinimum || !bankCode || accountNumber.length < 10 || isLoadingPreview}
                 className="w-full font-heading text-white uppercase text-xs tracking-widest rounded-full border border-white/20 py-3 hover:border-white/40 transition-colors disabled:opacity-40"
               >
                 {isLoadingPreview ? "Loading preview..." : "Preview Withdrawal"}
               </button>
+
+              {belowMinimum && <p className="font-body text-[#C30100] text-xs text-center">Minimum withdrawal amount is $50 USD</p>}
 
               {previewError && <p className="font-body text-[#C30100] text-xs text-center">{previewError}</p>}
 

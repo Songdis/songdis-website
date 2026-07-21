@@ -41,18 +41,17 @@ export function useEarningsBalance() {
   useEffect(() => { load(); }, [load]);
 
   // Map confirmed API fields:
-  // data.total_available_usd  → Total Balance
-  // data.breakdown.from_my_releases → This Month (best proxy available)
-  // data.breakdown.from_my_releases → From Releases
+  // data.total_available_usd  → Available Balance (withdrawable)
+  // data.total_earnings_usd   → Total Balance (lifetime earnings from releases)
   // data.split_earnings_usd   → From Splits
   const d = balance as Record<string, unknown> | null;
   const breakdown = (d?.breakdown as Record<string, unknown>) ?? {};
-  const totalBalance = (d?.total_available_usd ?? d?.balance_usd ?? d?.total_earnings ?? 0) as number;
-  const thisMonth    = (d?.this_month ?? breakdown?.this_month ?? 0) as number;
-  const fromReleases = (breakdown?.from_my_releases ?? d?.from_releases ?? 0) as number;
-  const fromSplits   = (d?.split_earnings_usd ?? breakdown?.from_splits ?? d?.from_splits ?? 0) as number;
+  const availableBalance = (d?.total_available_usd ?? d?.balance_usd ?? d?.total_earnings ?? 0) as number;
+  const totalEarnings    = (d?.total_earnings_usd ?? d?.total_earnings ?? 0) as number;
+  const thisMonth        = (d?.this_month ?? breakdown?.this_month ?? 0) as number;
+  const fromSplits       = (d?.split_earnings_usd ?? breakdown?.from_splits ?? d?.from_splits ?? 0) as number;
 
-  return { balance, totalBalance, thisMonth, fromReleases, fromSplits, isLoading, error, refresh: load };
+  return { balance, availableBalance, totalEarnings, thisMonth, fromSplits, isLoading, error, refresh: load };
 }
 
 /* ─── useWithdrawalHistory ────────────────────────────────────── */

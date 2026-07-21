@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import DashboardLayout from "@/components/dashboard/DashboardLayout";
 import { useDashboard } from "@/lib/hooks/useDashboard";
 import { ReleaseDetailModal } from "@/components/dashboard/music/ReleaseDetailModal";
@@ -11,13 +12,14 @@ export default function DashboardPage() {
   const { data, isLoading } = useDashboard();
   const [activeReleaseId, setActiveReleaseId] = useState<number | null>(null);
   const [activeReleaseMeta, setActiveReleaseMeta] = useState<{ cover?: string; title?: string; artist?: string }>({});
+  const [ayoInput, setAyoInput] = useState("");
+  const router = useRouter();
 
-  const { stats, wallet, recentReleases, analyticsChart, features } =
+  const { stats, wallet, recentReleases, features } =
     data ?? {
       stats: { activeReleases: 0, totalEarnings: 0 },
       wallet: { totalEarnings: 0, period: "", streams: 0, avgPerStream: 0 },
       recentReleases: [],
-      analyticsChart: { months: [], streams: [], revenue: [] },
       features: [],
     };
 
@@ -142,41 +144,66 @@ export default function DashboardPage() {
                   {wallet.streams.toLocaleString()} streams &nbsp;·&nbsp; Avg ${wallet.avgPerStream.toFixed(4)}/stream
                 </p>
               </div>
-              <button className="relative z-10 w-full mt-5 font-heading text-white uppercase text-xs tracking-widest rounded-full border border-[#C30100] bg-transparent hover:bg-[#C30100] py-3.5 transition-all duration-300">
+              <Link href="/dashboard/earnings" className="relative z-10 block w-full mt-5 font-heading text-white uppercase text-xs tracking-widest rounded-full border border-[#C30100] bg-transparent hover:bg-[#C30100] py-3.5 transition-all duration-300 text-center">
                 Withdraw
-              </button>
+              </Link>
             </div>
           </div>
         </div>
 
-        {/* Performance Analytics */}
+        {/* Ayo AI */}
         <div className="rounded-2xl border border-white/[0.06] bg-[#180F0F] p-5">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-5 gap-3">
-            <p className="font-body text-white text-sm font-medium">Performance Analytics</p>
-            <Link href="/dashboard/analytics" className="font-body text-white/50 text-xs hover:text-white transition-colors flex items-center gap-1">
-              Detailed Analytics <span>→</span>
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-9 h-9 rounded-xl bg-[#C30100]/20 border border-[#C30100]/30 flex items-center justify-center overflow-hidden">
+              <Image src="/images/ayo.svg" alt="Ayo AI" width={20} height={20} unoptimized className="object-contain" />
+            </div>
+            <div className="flex-1">
+              <p className="font-body text-white text-sm font-medium">Ayo AI</p>
+              <p className="font-body text-white/40 text-xs">Ask anything about your music career</p>
+            </div>
+            <Link href="/dashboard/ayo" className="font-body text-white/40 text-xs hover:text-white transition-colors">
+              Open full chat →
             </Link>
           </div>
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-5 gap-3">
-            <div className="flex gap-3">
-              {[{ label: "Spotify", active: false }, { label: "Youtube Music", active: true }, { label: "Apple Music", active: false }].map((p) => (
-                <button key={p.label} className={["font-body text-xs rounded-full px-3 py-1.5 border transition-colors", p.active ? "border-[#C30100] bg-[#C30100]/20 text-white" : "border-white/10 text-white/50 hover:border-white/25"].join(" ")}>
-                  {p.label}
-                </button>
-              ))}
-            </div>
-            <div className="flex items-center gap-3">
-              <div className="flex items-center gap-1.5">
-                <div className="w-2.5 h-2.5 rounded-full bg-[#C30100]" />
-                <span className="font-body text-white/50 text-xs">Streams</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <div className="w-2.5 h-2.5 rounded-full bg-[#8B6A4B]" />
-                <span className="font-body text-white/50 text-xs">Revenue</span>
-              </div>
-            </div>
+
+          {/* Suggested prompts */}
+          <div className="flex flex-wrap gap-2 mb-3">
+            {["How are my streams doing?", "Plan my next release", "Generate bio"].map((s) => (
+              <button
+                key={s}
+                onClick={() => router.push(`/dashboard/ayo?msg=${encodeURIComponent(s)}`)}
+                className="font-body text-[11px] text-white/50 bg-white/[0.04] border border-white/[0.06] rounded-full px-3 py-1.5 hover:border-[#C30100]/30 hover:text-[#C30100] hover:bg-[#C30100]/5 transition-all"
+              >
+                {s}
+              </button>
+            ))}
           </div>
-          <SimpleChart data={analyticsChart} />
+
+          {/* Chat input */}
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (!ayoInput.trim()) return;
+              router.push(`/dashboard/ayo?msg=${encodeURIComponent(ayoInput.trim())}`);
+            }}
+            className="flex items-center gap-3 rounded-xl border border-white/[0.08] bg-[#0E0808] px-4 py-2.5"
+          >
+            <input
+              value={ayoInput}
+              onChange={(e) => setAyoInput(e.target.value)}
+              placeholder="Ask Ayo anything..."
+              className="flex-1 bg-transparent font-body text-white text-sm placeholder:text-white/25 outline-none"
+            />
+            <button
+              type="submit"
+              disabled={!ayoInput.trim()}
+              className="shrink-0 w-8 h-8 rounded-full bg-[#C30100] flex items-center justify-center hover:bg-[#a80000] transition-colors disabled:opacity-40"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="22" y1="2" x2="11" y2="13" /><polygon points="22 2 15 22 11 13 2 9 22 2" />
+              </svg>
+            </button>
+          </form>
         </div>
 
         {/* Features grid */}
@@ -208,44 +235,6 @@ export default function DashboardPage() {
       />
     )}
     </>
-  );
-}
-
-function SimpleChart({ data }: { data: { months: string[]; streams: number[]; revenue: number[] } }) {
-  const W = 800; const H = 160; const pad = 20;
-  if (!data.streams.length) return null;
-  const maxVal = Math.max(...data.streams, ...data.revenue, 1);
-  const toPath = (vals: number[]) => {
-    if (vals.length < 2) return "";
-    const pts = vals.map((v, i) => {
-      const x = pad + (i / (vals.length - 1)) * (W - pad * 2);
-      const y = H - pad - (v / maxVal) * (H - pad * 2);
-      return `${x},${y}`;
-    });
-    return `M${pts.join(" L")}`;
-  };
-  return (
-    <div className="relative">
-      <svg viewBox={`0 0 ${W} ${H + 30}`} className="w-full" preserveAspectRatio="none">
-        {[0, 25, 50, 75, 100].map((v) => {
-          const y = H - pad - (v / 100) * (H - pad * 2);
-          return (
-            <g key={v}>
-              <line x1={pad} y1={y} x2={W - pad} y2={y} stroke="rgba(255,255,255,0.05)" strokeWidth="1" />
-              <text x={pad - 4} y={y + 4} fill="rgba(255,255,255,0.2)" fontSize="10" textAnchor="end">{v}</text>
-            </g>
-          );
-        })}
-        <path d={`${toPath(data.revenue)} L${W - pad},${H - pad} L${pad},${H - pad} Z`} fill="rgba(139,106,75,0.15)" />
-        <path d={toPath(data.revenue)} fill="none" stroke="#8B6A4B" strokeWidth="2" />
-        <path d={`${toPath(data.streams)} L${W - pad},${H - pad} L${pad},${H - pad} Z`} fill="rgba(195,1,0,0.15)" />
-        <path d={toPath(data.streams)} fill="none" stroke="#C30100" strokeWidth="2.5" />
-        {data.months.map((m, i) => {
-          const x = pad + (i / (data.months.length - 1)) * (W - pad * 2);
-          return <text key={`${m}-${i}`} x={x} y={H + 20} fill="rgba(255,255,255,0.2)" fontSize="10" textAnchor="middle">{m}</text>;
-        })}
-      </svg>
-    </div>
   );
 }
 
