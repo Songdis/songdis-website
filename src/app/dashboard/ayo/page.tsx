@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, Suspense } from "react";
 import Image from "next/image";
 import { useSearchParams } from "next/navigation";
 import DashboardLayout from "@/components/dashboard/DashboardLayout";
@@ -348,7 +348,7 @@ function ChatTab({ initialMessage }: { initialMessage?: string }) {
 }
 
 /* ─── Page ────────────────────────────────────────────────────── */
-export default function AyoAIPage() {
+function AyoAIContent() {
   const searchParams = useSearchParams();
   const [tab, setTab] = useState<Tab>("chat");
 
@@ -401,6 +401,14 @@ export default function AyoAIPage() {
 
       </div>
     </DashboardLayout>
+  );
+}
+
+export default function AyoAIPage() {
+  return (
+    <Suspense>
+      <AyoAIContent />
+    </Suspense>
   );
 }
 
