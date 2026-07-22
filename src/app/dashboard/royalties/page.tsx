@@ -796,25 +796,6 @@ export default function RoyaltyReportPage() {
           <StatCard label="Territories"     value={stats.territories.value}    sub={stats.territories.sub}    icon={stats.territories.icon}    change={stats.territories.change} />
         </div>
 
-        {/* Ayo insight */}
-        <div className="rounded-2xl border border-white/[0.06] bg-[#180F0F] p-5">
-          <div className="flex items-start gap-3">
-            <div className="w-9 h-9 rounded-full bg-yellow-500/20 flex items-center justify-center shrink-0 mt-0.5">
-              <Image src="/images/ayo.svg" alt="Ayo" width={20} height={20} unoptimized />
-            </div>
-            <div className="flex-1">
-              <p className="font-body text-[#C30100] text-xs font-semibold mb-2">Ayo AI · Analytics Summary</p>
-              <p className="font-body text-white/60 text-sm leading-relaxed mb-4">
-                Your streams peaked in November with 530K+ streams — this correlates with your consistent social activity and a playlist placement on AfroBeats Daily. Nigeria is 61% of your audience. I recommend doubling down with Pidgin/Yoruba content to retain and grow that base while expanding into UK and US diaspora markets.
-              </p>
-              <div className="flex flex-wrap gap-2">
-                <button className="font-body text-white text-xs bg-[#C30100]/20 border border-[#C30100]/40 hover:bg-[#C30100]/40 rounded-full px-4 py-2 transition-colors">Plan content with Ayo</button>
-                <button className="font-body text-white/70 text-xs border border-white/10 hover:border-white/25 rounded-full px-4 py-2 transition-colors">View platform breakdown</button>
-              </div>
-            </div>
-          </div>
-        </div>
-
         {/* Filters — placed here since they directly scope the platform/release/territory data below */}
         <div className="flex flex-wrap items-center gap-3">
           <p className="font-body text-white/40 text-xs uppercase tracking-widest mr-1">Filter by</p>
