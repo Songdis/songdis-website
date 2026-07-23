@@ -76,9 +76,9 @@ export default function QuickDropModal({ onClose, releaseData }: QuickDropProps)
   };
 
   return (
-    <div className="fixed inset-0 z-[70] flex items-center justify-center px-4" onClick={onClose}>
+    <div className="fixed inset-0 z-[70] flex items-center justify-center p-3 sm:p-4" onClick={onClose}>
       <div
-        className="relative w-full max-w-[560px] rounded-2xl bg-[#1A0808] border border-white/[0.07] p-8"
+        className="relative w-full max-w-[560px] rounded-2xl bg-[#1A0808] border border-white/[0.07] p-5 sm:p-8 max-h-[90vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
         <button onClick={onClose} className="absolute top-5 right-5 text-white/40 hover:text-white transition-colors">
@@ -91,9 +91,9 @@ export default function QuickDropModal({ onClose, releaseData }: QuickDropProps)
         </div>
 
         {/* Info box */}
-        <div className="border border-dashed border-[#C30100]/30 rounded-xl p-5 mb-5">
-          <p className="font-body text-white text-sm font-semibold mb-3">Release within 7 days!</p>
-          <p className="font-body text-white/50 text-xs mb-4">
+        <div className="border border-dashed border-[#C30100]/30 rounded-xl p-4 sm:p-5 mb-4 sm:mb-5">
+          <p className="font-body text-white text-sm font-semibold mb-2 sm:mb-3">Release within 7 days!</p>
+          <p className="font-body text-white/50 text-xs mb-3 sm:mb-4">
             Skip the standard 7-14 day waiting period and get your music out faster
           </p>
           {[
@@ -135,9 +135,9 @@ export default function QuickDropModal({ onClose, releaseData }: QuickDropProps)
         )}
 
         {/* Fee */}
-        <div className="bg-[#0E0808] rounded-xl p-4 mb-4">
+        <div className="bg-[#0E0808] rounded-xl p-3 sm:p-4 mb-3 sm:mb-4">
           <p className="font-body text-white/40 text-xs mb-1">Quick Drop Fee</p>
-          <p className="font-heading text-white text-3xl font-bold">₦9,999</p>
+          <p className="font-heading text-white text-2xl sm:text-3xl font-bold">₦9,999</p>
           <p className="font-body text-white/30 text-xs mt-1">
             One-time payment · Non-refundable once processed
           </p>
@@ -147,17 +147,17 @@ export default function QuickDropModal({ onClose, releaseData }: QuickDropProps)
           After payment, you'll return to your upload to complete the release. Your chosen release date is locked in immediately.
         </p>
 
-        <div className="flex gap-3">
+        <div className="flex flex-col sm:flex-row gap-3">
           <button
             onClick={onClose}
-            className="flex-1 font-heading text-white uppercase text-xs tracking-widest rounded-full border border-white/20 py-4 hover:border-white/40 transition-colors"
+            className="flex-1 font-heading text-white uppercase text-[10px] sm:text-xs tracking-widest rounded-full border border-white/20 py-3 sm:py-4 hover:border-white/40 transition-colors"
           >
             Cancel
           </button>
           <button
             onClick={handlePayment}
             disabled={!date || isProcessing}
-            className="flex-1 font-heading text-white uppercase text-xs tracking-widest rounded-full border border-[#C30100] bg-[#C30100]/10 hover:bg-[#C30100] py-4 transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            className="flex-1 font-heading text-white uppercase text-[10px] sm:text-xs tracking-widest rounded-full border border-[#C30100] bg-[#C30100]/10 hover:bg-[#C30100] py-3 sm:py-4 transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
           >
             {isProcessing ? (
               <svg className="animate-spin" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">

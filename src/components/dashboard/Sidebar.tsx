@@ -6,6 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import { removeToken } from "@/lib/api/auth";
 import { clearUserCache } from "@/lib/hooks/useUser";
+import { useSubscription } from "@/lib/hooks/useSubscription";
 
 const MAIN_NAV = [
   { label: "Dashboard", href: "/dashboard", icon: "/images/home.svg" },
@@ -290,7 +291,8 @@ interface SidebarProps {
 export default function Sidebar({ onClose, isMobile, user }: SidebarProps) {
   const displayName = user ? `${user.first_name} ${user.last_name}`.trim() : "Artist";
   const avatar = user?.avatar_url || "/images/avatar-artiste.svg";
-  const plan = "Growth Plan";
+  const { planName } = useSubscription(0);
+  const plan = planName ?? "Free Plan";
   const pathname = usePathname();
   const router = useRouter();
   const [collapsed, setCollapsed] = useState(false);

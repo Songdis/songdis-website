@@ -1,10 +1,14 @@
 "use client";
 
-import { useRef, useState, useEffect } from "react";
-import type { UploadState, Contributor, StepFieldErrors } from "../UploadModal";
+import { useRef, useState, useEffect, useCallback } from "react";
+import type { UploadState, Contributor, AdditionalArtist, StepFieldErrors } from "../UploadModal";
 import { StepHeader, StepProgress, StepActions } from "../UploadModal";
+import { uploadAudio } from "@/lib/api/music";
+import { getProfile } from "@/lib/api/auth";
+import type { UploadProgress } from "@/lib/api/music";
+import type { ArtistProfile } from "@/components/dashboard/settings/ArtistProfileModal";
 
-/* ─── Genre / Sub-genre data (matches old app) ─────────────── */
+/* --- Genre / Sub-genre data (matches old app) --------------- */
 
 const GENRE_DATA: Record<string, string[]> = {
   Afrobeats: ["Afropop", "Afro-fusion", "Alté (Alternative)", "Afro-swing / Afro-bashment", "Afro-house", "Amapiano-infused Afrobeats"],
@@ -23,7 +27,7 @@ const GENRE_DATA: Record<string, string[]> = {
 
 const GENRE_OPTIONS = Object.keys(GENRE_DATA);
 
-/* ─── Role constants ───────────────────────────────────────── */
+/* --- Role constants ----------------------------------------- */
 
 const WRITER_ROLES = ["Adapter", "Arranger", "Composer", "Librettist", "Lyricist", "Songwriter", "Transcriber", "Vocal Adaptation"];
 
@@ -47,7 +51,7 @@ const PERFORMER_ROLES = [
   "Vocal Solo", "Vocals", "Whistle", "Xylophone",
 ];
 
-/* ─── Helpers ──────────────────────────────────────────────── */
+/* --- Helpers ------------------------------------------------ */
 
 function Field({ label, children, hint }: { label: string; children: React.ReactNode; hint?: string }) {
   return (
@@ -126,7 +130,7 @@ function SearchableRoleSelect({ value, onChange, options, placeholder }: { value
   );
 }
 
-/* ─── Contributor Row ──────────────────────────────────────── */
+/* --- Contributor Row ---------------------------------------- */
 
 function ContributorRow({ contributor, roleOptions, onChange, onRemove, canRemove }: {
   contributor: Contributor;
@@ -155,7 +159,7 @@ function ContributorRow({ contributor, roleOptions, onChange, onRemove, canRemov
   );
 }
 
-/* ─── Contributor Section ──────────────────────────────────── */
+/* --- Contributor Section ------------------------------------ */
 
 function ContributorSection({ label, type, contributors, roleOptions, updateContributors }: {
   label: string;
@@ -204,275 +208,61 @@ function ContributorSection({ label, type, contributors, roleOptions, updateCont
   );
 }
 
-/* ─── Main Component ───────────────────────────────────────── */
+/* --- Artist Name Input (type or select from profiles) ------- */
+function ArtistNameInput({ profiles, value, onChange }: { profiles: ArtistProfile[]; value: string; onChange: (name: string, artistId?: string) => void }) {
+  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState(value);
+  const ref = useRef<HTMLDivElement>(null);
 
-interface Props {
-  state: UploadState;
-  update: (patch: Partial<UploadState>) => void;
-  onBack: () => void;
-  onContinue: () => void;
-  onSaveDraft?: () => void;
-  fieldErrors?: StepFieldErrors;
-  clearFieldError?: (key: string) => void;
-}
-
-export default function UploadTrack({ state, update, onBack, onContinue, onSaveDraft, fieldErrors = {}, clearFieldError }: Props) {
-  const audioInputRef = useRef<HTMLInputElement>(null);
-  const audioElRef = useRef<HTMLAudioElement>(null);
-  const isSingle = state.releaseType === "single";
-
-  const [audioFile, setAudioFile] = useState<File | null>(null);
-  const [audioUrl, setAudioUrl] = useState<string | null>(null);
-  const [playing, setPlaying] = useState(false);
-  const [currentTime, setCurrentTime] = useState(0);
-  const [duration, setDuration] = useState(0);
-  const [tiktokStamp, setTiktokStamp] = useState("");
+  useEffect(() => { setSearch(value); }, [value]);
 
   useEffect(() => {
-    if (!audioFile) return;
-    const url = URL.createObjectURL(audioFile);
-    setAudioUrl(url);
-    setCurrentTime(0);
-    setDuration(0);
-    setPlaying(false);
-    return () => URL.revokeObjectURL(url);
-  }, [audioFile]);
+    if (!open) return;
+    const handleClick = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, [open]);
 
-  useEffect(() => {
-    const el = audioElRef.current;
-    if (!el) return;
-    if (playing) { el.play().catch(() => setPlaying(false)); } else { el.pause(); }
-  }, [playing]);
-
-  const handleAudio = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setAudioFile(file);
-    update({ audioFile: file });
-  };
-
-  const handleSeek = (e: React.MouseEvent<HTMLDivElement>) => {
-    const el = audioElRef.current;
-    if (!el || !duration) return;
-    const rect = e.currentTarget.getBoundingClientRect();
-    const pct = (e.clientX - rect.left) / rect.width;
-    el.currentTime = pct * duration;
-  };
-
-  const setTikTokStampFromCurrent = () => {
-    const mins = Math.floor(currentTime / 60);
-    const secs = Math.floor(currentTime % 60);
-    setTiktokStamp(`${mins}:${String(secs).padStart(2, "0")}`);
-    update({ tiktokTimestamp: Math.floor(currentTime) });
-  };
-
-  const fmt = (s: number) => {
-    const m = Math.floor(s / 60);
-    const sec = Math.floor(s % 60);
-    return `${m}:${String(sec).padStart(2, "0")}`;
-  };
-
-  const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
-  const subGenres = state.genre ? (GENRE_DATA[state.genre] ?? []) : [];
-
-  const updateContributors = (type: "writers" | "producers" | "performers", list: Contributor[]) => {
-    update({ contributors: { ...state.contributors, [type]: list } });
-  };
+  const filtered = profiles.filter((p) => {
+    const name = p.stageName || p.fullName;
+    return name.toLowerCase().includes(search.toLowerCase());
+  });
 
   return (
-    <div className="p-8 max-h-[90vh] overflow-y-auto">
-      <StepHeader title="Upload Track" subtitle="Upload your audio files and complete all track information" />
-      <StepProgress current={2} />
-
-      <div className="flex flex-col gap-5">
-        <p className="font-body text-white text-sm font-medium">Track 1</p>
-
-        {/* Info notice */}
-        <div className="border border-dashed border-[#C30100]/30 rounded-xl p-4">
-          <p className="font-body text-white/60 text-xs font-semibold mb-2">Track Information:</p>
-          <ul className="space-y-1">
-            {[
-              "Each track requires complete metadata including writers and performers",
-              "ISRC codes will be auto-generated if not provided",
-              "Singles can only have one track",
-            ].map((item) => (
-              <li key={item} className="flex items-start gap-2 font-body text-white/40 text-xs">
-                <span className="text-[#C30100] shrink-0 mt-0.5">·</span>
-                {item}
-              </li>
-            ))}
-          </ul>
-        </div>
-
-        {/* Audio drop zone */}
-        <button
-          onClick={() => audioInputRef.current?.click()}
-          className={[
-            "w-full border-2 border-dashed rounded-xl py-10 flex flex-col items-center gap-2 transition-colors",
-            fieldErrors.audio ? "border-[#C30100] bg-[#C30100]/5" : audioFile ? "border-[#C30100]/60 bg-[#C30100]/5" : "border-white/10 hover:border-white/25",
-          ].join(" ")}
-        >
-          <AudioIcon />
-          <p className="font-body text-white/50 text-sm">
-            {audioFile ? audioFile.name : "Drop your audio file or click to browse"}
-          </p>
-          <p className="font-body text-white/25 text-xs">WAV, MP3, FLAC · Max 500MB · 24-bit recommended</p>
-        </button>
-        {fieldErrors.audio && <p className="font-body text-[#C30100] text-xs mt-1">{fieldErrors.audio}</p>}
-        <input ref={audioInputRef} type="file" accept=".mp3,.wav,.flac,.aac,.ogg,.m4a,audio/mpeg,audio/wav,audio/flac,audio/aac,audio/ogg,audio/mp4" className="hidden" onChange={handleAudio} />
-
-        {/* Hidden audio element */}
-        {audioUrl && (
-          <audio
-            ref={audioElRef}
-            src={audioUrl}
-            onTimeUpdate={() => setCurrentTime(audioElRef.current?.currentTime ?? 0)}
-            onLoadedMetadata={() => {
-              const dur = audioElRef.current?.duration ?? 0;
-              setDuration(dur);
-              const m = Math.floor(dur / 60);
-              const s = Math.floor(dur % 60);
-              update({ audioDuration: `${m}:${String(s).padStart(2, "0")}` });
-            }}
-            onEnded={() => setPlaying(false)}
-            preload="metadata"
-          />
-        )}
-
-        {/* Add track button (for albums) */}
-        {state.releaseType !== "single" && (
-          <button className="w-full flex items-center justify-center gap-2 font-heading text-white/50 uppercase text-xs tracking-widest rounded-full border border-white/10 py-3.5 hover:border-white/25 transition-colors">
-            <span className="text-lg leading-none">+</span> Add Track
-          </button>
-        )}
-
-        {/* Track Details */}
-        <p className="font-body text-white text-sm font-medium mt-2">Track Details</p>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <Field label="Track Title">
-            {isSingle ? (
-              <input value={state.trackTitle} readOnly
-                className="w-full bg-[#0E0808]/50 border border-white/5 rounded-lg px-4 py-3 font-body text-white/50 text-sm cursor-not-allowed" />
-            ) : (
-              <input value={state.trackTitle} onChange={(e) => { update({ trackTitle: e.target.value }); clearFieldError?.("trackTitle"); }} placeholder="Enter track title"
-                className={`w-full bg-[#0E0808] border rounded-lg px-4 py-3 font-body text-white text-sm placeholder:text-white/25 outline-none transition-colors ${
-                  fieldErrors.trackTitle ? "border-[#C30100]" : "border-white/10 focus:border-[#C30100]"
-                }`} />
-            )}
-            {fieldErrors.trackTitle && <p className="font-body text-[#C30100] text-xs mt-1">{fieldErrors.trackTitle}</p>}
-          </Field>
-          <Field label="Mixed Version">
-            <input value={state.mixedVersion} onChange={(e) => update({ mixedVersion: e.target.value })} placeholder="eg radio edit"
-              className="w-full bg-[#0E0808] border border-white/10 rounded-lg px-4 py-3 font-body text-white text-sm placeholder:text-white/25 outline-none focus:border-[#C30100] transition-colors" />
-          </Field>
-        </div>
-
-        {/* Artist Details */}
-        <SectionBox label="Artist Details" noAction>
-          {isSingle ? (
-            <input value={state.artistDetails} readOnly
-              className="w-full bg-[#0E0808]/50 border border-white/5 rounded-lg px-4 py-3 font-body text-white/50 text-sm cursor-not-allowed" />
-          ) : (
-            <input value={state.artistDetails} onChange={(e) => update({ artistDetails: e.target.value })}
-              placeholder="e.g. Vjazzy (Main Artist), Davido (Featured)"
-              className="w-full bg-[#0E0808] border border-white/10 rounded-lg px-4 py-3 font-body text-white text-sm placeholder:text-white/25 outline-none focus:border-[#C30100] transition-colors" />
-          )}
-        </SectionBox>
-
-        {/* Classification */}
-        <SectionBox label="Classification" noAction>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
-            <Field label="Explicit Content">
-              <DashSelect value={state.explicitContent} onChange={(v) => { update({ explicitContent: v }); clearFieldError?.("explicit"); }} options={["Yes", "No", "Clean"]} />
-              {fieldErrors.explicit && <p className="font-body text-[#C30100] text-xs mt-1">{fieldErrors.explicit}</p>}
-            </Field>
-            <Field label="Genre">
-              <DashSelect value={state.genre} onChange={(v) => { update({ genre: v, subGenre: "" }); clearFieldError?.("genre"); }} placeholder="Select genre" options={GENRE_OPTIONS} />
-              {fieldErrors.genre && <p className="font-body text-[#C30100] text-xs mt-1">{fieldErrors.genre}</p>}
-            </Field>
-            <Field label="Sub-genre">
-              <DashSelect value={state.subGenre} onChange={(v) => { update({ subGenre: v }); clearFieldError?.("subGenre"); }} placeholder={subGenres.length ? "Select sub-genre" : "Select genre first"} options={subGenres} />
-              {fieldErrors.subGenre && <p className="font-body text-[#C30100] text-xs mt-1">{fieldErrors.subGenre}</p>}
-            </Field>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <Field label="Recorded Year">
-              <DashSelect value={state.recordedYear} onChange={(v) => update({ recordedYear: v })} options={["2026", "2025", "2024", "2023"]} />
-            </Field>
-            <Field label="ISRC">
-              <input value={state.isrc} onChange={(e) => update({ isrc: e.target.value })} placeholder="Auto-generated if blank"
-                className="w-full bg-[#0E0808] border border-white/10 rounded-lg px-4 py-3 font-body text-white text-sm placeholder:text-white/25 outline-none focus:border-[#C30100] transition-colors" />
-            </Field>
-            <Field label="Stereo AI Use">
-              <DashSelect value="None" onChange={() => {}} options={["None", "Partial", "Full"]} />
-            </Field>
-          </div>
-        </SectionBox>
-
-        {/* Writers */}
-        <ContributorSection label="Writers" type="writers" contributors={state.contributors.writers} roleOptions={WRITER_ROLES} updateContributors={updateContributors} />
-        {fieldErrors.writers && <p className="font-body text-[#C30100] text-xs mt-1">{fieldErrors.writers}</p>}
-
-        {/* Production */}
-        <ContributorSection label="Production" type="producers" contributors={state.contributors.producers} roleOptions={PRODUCTION_ROLES} updateContributors={updateContributors} />
-
-        {/* Performers */}
-        <ContributorSection label="Performers" type="performers" contributors={state.contributors.performers} roleOptions={PERFORMER_ROLES} updateContributors={updateContributors} />
-        {fieldErrors.performers && <p className="font-body text-[#C30100] text-xs mt-1">{fieldErrors.performers}</p>}
-
-        {/* Lyrics */}
-        <SectionBox label="Lyrics" noAction rightLabel={<DashSelect value="English" onChange={() => {}} options={["English", "Yoruba", "French"]} />}>
-          <textarea value={state.lyrics} onChange={(e) => update({ lyrics: e.target.value })} rows={4}
-            className="w-full bg-transparent font-body text-white/50 text-sm outline-none resize-none placeholder:text-white/20"
-            placeholder="Enter lyrics..." />
-        </SectionBox>
-
-        {/* Audio Preview */}
-        <SectionBox label="Audio Preview" noAction>
-          {!audioFile ? (
-            <p className="font-body text-white/30 text-xs">Upload an audio file above to preview it here.</p>
-          ) : (
-            <>
-              <div className="flex items-center gap-3">
-                <button onClick={() => setPlaying(!playing)}
-                  className="w-8 h-8 rounded-full border border-white/20 flex items-center justify-center text-white/60 hover:text-white transition-colors shrink-0">
-                  {playing ? <PauseIcon /> : <PlayIcon />}
-                </button>
-                <div className="flex-1 flex items-center gap-2">
-                  <span className="font-body text-white/40 text-xs shrink-0 tabular-nums">{fmt(currentTime)} / {fmt(duration)}</span>
-                  <div className="flex-1 h-1.5 bg-white/10 rounded-full cursor-pointer relative" onClick={handleSeek}>
-                    <div className="h-full bg-[#C30100] rounded-full pointer-events-none transition-all" style={{ width: `${progress}%` }} />
-                  </div>
-                </div>
-                <button className="text-white/30 hover:text-white/50 transition-colors"><VolumeIcon /></button>
-              </div>
-              <button onClick={setTikTokStampFromCurrent}
-                className="w-full mt-4 font-heading text-white uppercase text-xs tracking-widest rounded-full border border-[#C30100] py-3 hover:bg-[#C30100] transition-colors">
-                Set Current Time as TikTok Stamp
+    <div ref={ref} className="relative">
+      <input
+        type="text"
+        value={search}
+        onChange={(e) => { setSearch(e.target.value); onChange(e.target.value); }}
+        onFocus={() => setOpen(true)}
+        placeholder="Type or select artist..."
+        className="w-full bg-[#0E0808] border border-white/10 rounded-lg px-4 py-2.5 font-body text-white text-xs placeholder:text-white/25 outline-none focus:border-[#C30100] transition-colors"
+      />
+      {open && filtered.length > 0 && (
+        <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-[#1A0808] border border-white/[0.07] rounded-lg shadow-xl max-h-40 overflow-y-auto">
+          {filtered.map((p) => {
+            const name = p.stageName || p.fullName;
+            return (
+              <button
+                key={p.id}
+                type="button"
+                onMouseDown={(e) => { e.preventDefault(); onChange(name, p.id); setSearch(name); setOpen(false); }}
+                className="w-full text-left px-4 py-2 font-body text-white text-xs hover:bg-white/[0.05] transition-colors"
+              >
+                {name}
+                {p.fullName && p.stageName ? <span className="text-white/30 ml-1">({p.fullName})</span> : null}
               </button>
-            </>
-          )}
-        </SectionBox>
-
-        {/* TikTok Timestamp */}
-        <SectionBox label="TikTok Preview Timestamp (Optional)" noAction>
-          <p className="font-body text-white/30 text-xs mb-2">
-            Specify the start time for TikTok preview (format: mm:ss) · Use the audio player above to preview and select the best timestamp
-          </p>
-          <input value={tiktokStamp} onChange={(e) => setTiktokStamp(e.target.value)} placeholder="0:00"
-            className="w-24 bg-transparent border-b border-white/20 font-body text-white text-sm outline-none pb-1 placeholder:text-white/25" />
-        </SectionBox>
-      </div>
-
-      <div className="mt-8">
-        <StepActions onBack={onBack} onSaveDraft={onSaveDraft} onContinue={onContinue} />
-      </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
 
-/* ─── Shared UI primitives ──────────────────────────────────── */
+/* --- Shared UI primitives ------------------------------------ */
 
 function SectionBox({ label, actionLabel, onAction, noAction, rightLabel, children }: {
   label: string;
@@ -495,6 +285,915 @@ function SectionBox({ label, actionLabel, onAction, noAction, rightLabel, childr
     </div>
   );
 }
+
+/* --- Mini Audio Player (per track) ---------------------------- */
+function MiniAudioPlayer({ audioUrl, trackId }: { audioUrl: string; trackId: string }) {
+  const audioRef = useRef<HTMLAudioElement>(null);
+  const [playing, setPlaying] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
+
+  useEffect(() => {
+    const el = audioRef.current;
+    if (!el) return;
+    if (playing) { el.play().catch(() => setPlaying(false)); } else { el.pause(); }
+  }, [playing]);
+
+  useEffect(() => {
+    setPlaying(false);
+    setCurrentTime(0);
+    setDuration(0);
+  }, [audioUrl]);
+
+  const handleSeek = (e: React.MouseEvent<HTMLDivElement>) => {
+    const el = audioRef.current;
+    if (!el || !duration) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const pct = (e.clientX - rect.left) / rect.width;
+    el.currentTime = pct * duration;
+  };
+
+  const fmt = (s: number) => {
+    const m = Math.floor(s / 60);
+    const sec = Math.floor(s % 60);
+    return `${m}:${String(sec).padStart(2, "0")}`;
+  };
+
+  const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
+
+  return (
+    <div className="mt-3">
+      <audio
+        ref={audioRef}
+        src={audioUrl}
+        onTimeUpdate={() => setCurrentTime(audioRef.current?.currentTime ?? 0)}
+        onLoadedMetadata={() => setDuration(audioRef.current?.duration ?? 0)}
+        onEnded={() => setPlaying(false)}
+        preload="metadata"
+      />
+      <div className="flex items-center gap-3">
+        <button onClick={() => setPlaying(!playing)}
+          className="w-7 h-7 rounded-full border border-white/20 flex items-center justify-center text-white/60 hover:text-white transition-colors shrink-0">
+          {playing ? <PauseIcon /> : <PlayIcon />}
+        </button>
+        <span className="font-body text-white/40 text-[11px] shrink-0 tabular-nums w-16">{fmt(currentTime)} / {fmt(duration)}</span>
+        <div className="flex-1 h-1 bg-white/10 rounded-full cursor-pointer relative" onClick={handleSeek}>
+          <div className="h-full bg-[#C30100] rounded-full pointer-events-none transition-all" style={{ width: `${progress}%` }} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* -- Track completeness check ----------------------------------- */
+function getTrackMissingFields(track: UploadState["tracks"][number]): string[] {
+  const missing: string[] = [];
+  if (!track.trackTitle?.trim()) missing.push("Title");
+  if (!track.genre) missing.push("Genre");
+  if (!track.subGenre) missing.push("Sub-genre");
+  if (!track.explicitContent) missing.push("Explicit");
+  return missing;
+}
+
+/* --- Track Entry (for album/EP track list) -------------------- */
+function TrackEntry({ track, index, totalTracks, onEdit, onRemove, onMoveUp, onMoveDown }: {
+  track: UploadState["tracks"][number];
+  index: number;
+  totalTracks: number;
+  onEdit: () => void;
+  onRemove: () => void;
+  onMoveUp: () => void;
+  onMoveDown: () => void;
+}) {
+  const missingFields = getTrackMissingFields(track);
+  const isComplete = missingFields.length === 0;
+
+  return (
+    <div className="border border-white/10 rounded-xl overflow-hidden">
+      <div className="flex items-center gap-3 p-4">
+        {/* Track Number */}
+        <div className="flex flex-col items-center gap-1 shrink-0">
+          <button onClick={onMoveUp} disabled={index === 0}
+            className="text-white/20 hover:text-white/50 disabled:text-white/10 transition-colors">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="18 15 12 9 6 15"/></svg>
+          </button>
+          <span className="font-heading text-white/60 text-sm w-6 h-6 flex items-center justify-center rounded bg-white/5">{index + 1}</span>
+          <button onClick={onMoveDown} disabled={index === totalTracks - 1}
+            className="text-white/20 hover:text-white/50 disabled:text-white/10 transition-colors">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="6 9 12 15 18 9"/></svg>
+          </button>
+        </div>
+
+        {/* Track Info */}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2">
+            <p className="font-body text-white text-sm truncate">{track.trackTitle || "Untitled Track"}</p>
+            {isComplete ? (
+              <span className="shrink-0 w-2 h-2 rounded-full bg-green-500" title="Complete" />
+            ) : (
+              <span className="shrink-0 w-2 h-2 rounded-full bg-[#C30100] animate-pulse" title={`Missing: ${missingFields.join(", ")}`} />
+            )}
+          </div>
+          <div className="flex items-center gap-3 mt-1">
+            <span className="font-body text-white/40 text-xs">{track.audioDuration || "0:00"}</span>
+            {track.genre && <span className="font-body text-white/30 text-xs">{track.genre}</span>}
+            {track.explicitContent === "Yes" && (
+              <span className="font-body text-[#C30100] text-[10px] font-semibold bg-[#C30100]/10 px-1.5 py-0.5 rounded">E</span>
+            )}
+            {!isComplete && (
+              <button onClick={onEdit} className="font-body text-[#C30100] text-[10px] font-semibold hover:text-red-400 transition-colors">
+                {missingFields.length === 1 ? `Missing: ${missingFields[0]}` : `Missing: ${missingFields.length} fields`} — Click to edit
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Actions */}
+        <div className="flex items-center gap-1 shrink-0">
+          <button onClick={onEdit} title="Edit track"
+            className="p-2 text-white/30 hover:text-[#C30100] transition-colors rounded-lg hover:bg-white/5">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          </button>
+          <button onClick={onRemove} title="Remove track"
+            className="p-2 text-white/30 hover:text-red-400 transition-colors rounded-lg hover:bg-white/5">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
+          </button>
+        </div>
+      </div>
+
+      {/* Mini Audio Player */}
+      {track.audioUrl && <div className="px-4 pb-4"><MiniAudioPlayer audioUrl={track.audioUrl} trackId={track.id} /></div>}
+    </div>
+  );
+}
+
+/* -- Track Edit Modal ------------------------------------------- */
+function TrackEditModal({ track, profiles, onSave, onClose }: {
+  track: UploadState["tracks"][number];
+  profiles: ArtistProfile[];
+  onSave: (patch: Partial<UploadState["tracks"][number]>) => void;
+  onClose: () => void;
+}) {
+  const [title, setTitle] = useState(track.trackTitle);
+  const [lyrics, setLyrics] = useState(track.lyrics);
+  const [isrc, setIsrc] = useState(track.isrc);
+  const [genre, setGenre] = useState(track.genre);
+  const [subGenre, setSubGenre] = useState(track.subGenre);
+  const [explicit, setExplicit] = useState(track.explicitContent);
+  const [mixedVersion, setMixedVersion] = useState(track.mixedVersion);
+  const [contributors, setContributors] = useState(track.contributors);
+  const [additionalArtists, setAdditionalArtists] = useState(track.additionalArtists);
+
+  const subGenres = genre ? (GENRE_DATA[genre] ?? []) : [];
+
+  const updateContributors = (type: "writers" | "producers" | "performers", list: Contributor[]) => {
+    setContributors((prev) => ({ ...prev, [type]: list }));
+  };
+
+  const handleSave = () => {
+    onSave({
+      trackTitle: title,
+      lyrics,
+      isrc,
+      genre,
+      subGenre,
+      explicitContent: explicit,
+      mixedVersion,
+      contributors,
+      additionalArtists,
+    });
+    onClose();
+  };
+
+  return (
+    <div className="fixed inset-0 z-[100] flex items-start justify-center overflow-y-auto py-4 sm:py-6 px-3 sm:px-4">
+      <div className="fixed inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative w-full max-w-2xl rounded-2xl bg-[#1A0808] border border-white/[0.07] my-auto p-4 sm:p-6" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between mb-6">
+          <h3 className="font-heading text-white uppercase text-lg tracking-wide">Edit Track {track.trackTitle ? `"${track.trackTitle}"` : ""}</h3>
+          <button onClick={onClose} className="text-white/40 hover:text-white transition-colors">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+        </div>
+
+        <div className="flex flex-col gap-5 max-h-[70vh] overflow-y-auto pr-2">
+          {/* Track Title */}
+          <Field label="Track Title">
+            <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Enter track title"
+              className="w-full bg-[#0E0808] border border-white/10 rounded-lg px-4 py-3 font-body text-white text-sm placeholder:text-white/25 outline-none focus:border-[#C30100] transition-colors" />
+          </Field>
+
+          {/* Mixed Version */}
+          <Field label="Mixed Version">
+            <input value={mixedVersion} onChange={(e) => setMixedVersion(e.target.value)} placeholder="e.g. radio edit"
+              className="w-full bg-[#0E0808] border border-white/10 rounded-lg px-4 py-3 font-body text-white text-sm placeholder:text-white/25 outline-none focus:border-[#C30100] transition-colors" />
+          </Field>
+
+          {/* Classification */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <Field label="Explicit Content">
+              <DashSelect value={explicit} onChange={setExplicit} options={["Yes", "No", "Clean"]} />
+            </Field>
+            <Field label="Genre">
+              <DashSelect value={genre} onChange={(v) => { setGenre(v); setSubGenre(""); }} placeholder="Select genre" options={GENRE_OPTIONS} />
+            </Field>
+            <Field label="Sub-genre">
+              <DashSelect value={subGenre} onChange={setSubGenre} placeholder={subGenres.length ? "Select sub-genre" : "Select genre first"} options={subGenres} />
+            </Field>
+          </div>
+
+          {/* ISRC */}
+          <Field label="ISRC">
+            <input value={isrc} onChange={(e) => setIsrc(e.target.value)} placeholder="Auto-generated if blank"
+              className="w-full bg-[#0E0808] border border-white/10 rounded-lg px-4 py-3 font-body text-white text-sm placeholder:text-white/25 outline-none focus:border-[#C30100] transition-colors" />
+          </Field>
+
+          {/* Additional Artists */}
+          <SectionBox
+            label="Additional Artists"
+            actionLabel="+ Add"
+            onAction={() => {
+              const newArtist: AdditionalArtist = {
+                id: `artist_${Date.now()}_${Math.random()}`,
+                name: "",
+                artistId: "",
+                role: "featuring",
+              };
+              setAdditionalArtists((prev) => [...prev, newArtist]);
+            }}
+          >
+            {additionalArtists.length === 0 ? (
+              <p className="font-body text-white/30 text-xs">No additional artists added yet.</p>
+            ) : (
+              <div className="flex flex-col gap-2">
+                {additionalArtists.map((artist) => (
+                  <div key={artist.id} className="flex flex-col sm:flex-row gap-2">
+                    <div className="relative flex-1 min-w-0">
+                      <ArtistNameInput
+                        profiles={profiles}
+                        value={artist.name}
+                        onChange={(name, artistId) => {
+                          setAdditionalArtists((prev) =>
+                            prev.map((a) => a.id === artist.id ? { ...a, name, artistId: artistId || a.artistId } : a)
+                          );
+                        }}
+                      />
+                    </div>
+                    <select
+                      value={artist.role}
+                      onChange={(e) => {
+                        setAdditionalArtists((prev) =>
+                          prev.map((a) => a.id === artist.id ? { ...a, role: e.target.value as AdditionalArtist["role"] } : a)
+                        );
+                      }}
+                      className="w-full sm:w-36 appearance-none bg-[#0E0808] border border-white/10 rounded-lg px-3 py-2.5 font-body text-white text-xs outline-none focus:border-[#C30100] transition-colors"
+                    >
+                      <option value="primary">Primary Artist</option>
+                      <option value="featuring">Featuring</option>
+                      <option value="remixer">Remixer</option>
+                    </select>
+                    <button type="button" onClick={() => setAdditionalArtists((prev) => prev.filter((a) => a.id !== artist.id))}
+                      className="text-white/30 hover:text-[#C30100] transition-colors self-center shrink-0 p-1">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </SectionBox>
+
+          {/* Writers */}
+          <ContributorSection label="Writers" type="writers" contributors={contributors.writers} roleOptions={WRITER_ROLES} updateContributors={updateContributors} />
+
+          {/* Production */}
+          <ContributorSection label="Production" type="producers" contributors={contributors.producers} roleOptions={PRODUCTION_ROLES} updateContributors={updateContributors} />
+
+          {/* Performers */}
+          <ContributorSection label="Performers" type="performers" contributors={contributors.performers} roleOptions={PERFORMER_ROLES} updateContributors={updateContributors} />
+
+          {/* Lyrics */}
+          <SectionBox label="Lyrics" noAction>
+            <textarea value={lyrics} onChange={(e) => setLyrics(e.target.value)} rows={4}
+              className="w-full bg-transparent font-body text-white/50 text-sm outline-none resize-none placeholder:text-white/20"
+              placeholder="Enter lyrics..." />
+          </SectionBox>
+        </div>
+
+        {/* Actions */}
+        <div className="flex gap-3 mt-6 pt-4 border-t border-white/[0.06]">
+          <button onClick={onClose}
+            className="flex-1 font-heading text-white uppercase text-xs tracking-widest rounded-full border border-white/20 py-3.5 hover:border-white/40 transition-colors">
+            Cancel
+          </button>
+          <button onClick={handleSave}
+            className="flex-1 font-heading text-white uppercase text-xs tracking-widest rounded-full border border-[#C30100] bg-transparent hover:bg-[#C30100] py-3.5 transition-all">
+            Save Changes
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* --- Main Component ----------------------------------------- */
+
+interface Props {
+  state: UploadState;
+  update: (patch: Partial<UploadState>) => void;
+  updateTrack: (trackId: string, patch: Partial<UploadState["tracks"][number]>) => void;
+  removeTrack: (trackId: string) => void;
+  reorderTrack: (fromIndex: number, toIndex: number) => void;
+  onBack: () => void;
+  onContinue: () => void;
+  onSaveDraft?: () => void;
+  fieldErrors?: StepFieldErrors;
+  clearFieldError?: (key: string) => void;
+}
+
+export default function UploadTrack({ state, update, updateTrack, removeTrack, reorderTrack, onBack, onContinue, onSaveDraft, fieldErrors = {}, clearFieldError }: Props) {
+  const audioInputRef = useRef<HTMLInputElement>(null);
+  const isSingle = state.releaseType === "single";
+  const isMixtape = state.releaseType === "mixtape";
+  const releaseLabel = isSingle ? "Single" : isMixtape ? "Mixtape" : "Album/EP";
+
+  /* -- Local state for single mode audio preview ---------------- */
+  const [audioFile, setAudioFile] = useState<File | null>(null);
+  const [audioUrl, setAudioUrl] = useState<string | null>(null);
+  const [playing, setPlaying] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const [tiktokStamp, setTiktokStamp] = useState("");
+  const audioElRef = useRef<HTMLAudioElement>(null);
+
+  /* -- Local state for upload progress (album/EP) --------------- */
+  const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<UploadProgress | null>(null);
+  const [uploadingFileName, setUploadingFileName] = useState<string>("");
+  const tracksRef = useRef(state.tracks);
+  tracksRef.current = state.tracks;
+
+  /* -- Profiles for artist name input --------------------------- */
+  const [profiles, setProfiles] = useState<ArtistProfile[]>([]);
+
+  /* -- Track edit modal ----------------------------------------- */
+  const [editingTrackId, setEditingTrackId] = useState<string | null>(null);
+  const editingTrack = state.tracks.find((t) => t.id === editingTrackId) ?? null;
+
+  useEffect(() => {
+    getProfile().then((res) => {
+      if (res.error || !res.data) return;
+      const raw = res.data as unknown as Record<string, unknown>;
+      const list = Array.isArray(raw.profiles) ? raw.profiles : Array.isArray(res.data) ? res.data : Array.isArray(raw.data) ? raw.data : [];
+      const mapped = (list as Record<string, unknown>[]).map((p) => ({
+        id: String(p.id ?? ""),
+        stageName: (p.stage_name ?? p.stageName ?? "") as string,
+        fullName: (p.full_name ?? p.fullName ?? "") as string,
+        email: (p.email ?? "") as string,
+        phone: (p.phone ?? "") as string,
+        dob: (p.dob ?? "") as string,
+        location: (p.location ?? "") as string,
+        bio: (p.bio ?? "") as string,
+        instagram: (p.instagram_url ?? p.instagram ?? "") as string,
+        twitter: (p.twitter_url ?? p.twitter ?? "") as string,
+        facebook: (p.facebook_url ?? p.facebook ?? "") as string,
+        tiktok: (p.tiktok_url ?? p.tiktok ?? "") as string,
+        appleMusic: (p.apple_music_url ?? p.appleMusic ?? "") as string,
+        spotify: (p.spotify_url ?? p.spotify ?? "") as string,
+        cover: (p.cover ?? "") as string,
+        avatar: (p.profile_image ?? p.spotify_image_url ?? p.avatar_url ?? "/images/avatar-artiste.svg") as string,
+      }));
+      setProfiles(mapped);
+    });
+  }, []);
+
+  /* -- Single mode: sync audioUrl with state -------------------- */
+  useEffect(() => {
+    if (!audioFile) return;
+    const url = URL.createObjectURL(audioFile);
+    setAudioUrl(url);
+    setCurrentTime(0);
+    setDuration(0);
+    setPlaying(false);
+    return () => URL.revokeObjectURL(url);
+  }, [audioFile]);
+
+  useEffect(() => {
+    const el = audioElRef.current;
+    if (!el) return;
+    if (playing) { el.play().catch(() => setPlaying(false)); } else { el.pause(); }
+  }, [playing]);
+
+  /* -- Helpers -------------------------------------------------- */
+  const fmt = (s: number) => {
+    const m = Math.floor(s / 60);
+    const sec = Math.floor(s % 60);
+    return `${m}:${String(sec).padStart(2, "0")}`;
+  };
+
+  const formatDuration = (dur: number) => {
+    const m = Math.floor(dur / 60);
+    const s = Math.floor(dur % 60);
+    return `${m}:${String(s).padStart(2, "0")}`;
+  };
+
+  const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
+  const subGenres = state.genre ? (GENRE_DATA[state.genre] ?? []) : [];
+
+  const updateContributors = (type: "writers" | "producers" | "performers", list: Contributor[]) => {
+    update({ contributors: { ...state.contributors, [type]: list } });
+  };
+
+  /* -- Single mode: handle audio upload ------------------------- */
+  const handleAudio = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setAudioFile(file);
+    setUploading(true);
+    setUploadProgress(null);
+
+    try {
+      const result = await uploadAudio(file, (p) => setUploadProgress(p));
+      update({
+        audioUrl: result.file_url,
+        audioKey: result.s3_key,
+        audioBucket: result.s3_bucket,
+        audioFile: null,
+      });
+
+      const metadata = result.metadata as Record<string, unknown> | undefined;
+      if (metadata?.duration) {
+        const dur = metadata.duration as number;
+        update({ audioDuration: formatDuration(dur) });
+      }
+    } catch (err) {
+      console.error("Audio upload failed:", err);
+      setAudioFile(null);
+      update({ audioFile: null });
+    } finally {
+      setUploading(false);
+      setUploadProgress(null);
+    }
+  };
+
+  /* -- Album/EP mode: handle multiple file uploads -------------- */
+  const handleAlbumFiles = async (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+
+    const MAX_FILE_SIZE = 500 * 1024 * 1024;
+    const oversized = Array.from(files).filter((f) => f.size > MAX_FILE_SIZE);
+    if (oversized.length > 0) {
+      alert(`Files too large: ${oversized.map((f) => f.name).join(", ")}. Max size: 500MB`);
+      return;
+    }
+
+    setUploading(true);
+    setUploadProgress(null);
+
+    const fileList = Array.from(files);
+
+    for (let i = 0; i < fileList.length; i++) {
+      const file = fileList[i];
+      setUploadingFileName(file.name);
+      setUploadProgress(null);
+
+      const trackId = `track_${Date.now()}_${i}_${Math.random().toString(36).slice(2, 8)}`;
+
+      try {
+        const result = await uploadAudio(file, (p) => setUploadProgress(p));
+
+        const metadata = result.metadata as Record<string, unknown> | undefined;
+        const dur = metadata?.duration ? formatDuration(metadata.duration as number) : "0:00";
+
+        const newTrack: UploadState["tracks"][number] = {
+          id: trackId,
+          trackTitle: file.name.replace(/\.[^/.]+$/, ""),
+          audioUrl: result.file_url,
+          audioKey: result.s3_key,
+          audioBucket: result.s3_bucket,
+          audioDuration: dur,
+          isrc: "",
+          lyrics: "",
+          genre: state.genre || "",
+          subGenre: state.subGenre || "",
+          explicitContent: state.explicitContent || "Yes",
+          contributors: {
+            writers: state.primaryArtist ? [{ id: `writer_auto_${trackId}`, name: state.primaryArtist, role: "Songwriter", type: "writer" as const }] : [],
+            producers: [],
+            performers: state.primaryArtist ? [{ id: `performer_auto_${trackId}`, name: state.primaryArtist, role: "Lead Vocals", type: "performer" as const }] : [],
+          },
+          additionalArtists: [],
+          tiktokTimestamp: 0,
+          mixedVersion: "",
+        };
+
+        update({ tracks: [...tracksRef.current, newTrack] });
+      } catch (err) {
+        console.error(`Failed to upload ${file.name}:`, err);
+        alert(`Failed to upload ${file.name}. Please try again.`);
+      }
+    }
+
+    setUploading(false);
+    setUploadingFileName("");
+    setUploadProgress(null);
+
+    // Reset the file input
+    if (audioInputRef.current) audioInputRef.current.value = "";
+  };
+
+  /* -- Handle seek for single mode player ----------------------- */
+  const handleSeek = (e: React.MouseEvent<HTMLDivElement>) => {
+    const el = audioElRef.current;
+    if (!el || !duration) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const pct = (e.clientX - rect.left) / rect.width;
+    el.currentTime = pct * duration;
+  };
+
+  const setTikTokStampFromCurrent = () => {
+    const mins = Math.floor(currentTime / 60);
+    const secs = Math.floor(currentTime % 60);
+    setTiktokStamp(`${mins}:${String(secs).padStart(2, "0")}`);
+    update({ tiktokTimestamp: Math.floor(currentTime) });
+  };
+
+  /* -- File input accept attribute ------------------------------ */
+  const audioAccept = ".mp3,.wav,.flac,.aac,.ogg,.m4a,audio/mpeg,audio/wav,audio/flac,audio/aac,audio/ogg,audio/mp4";
+
+  return (
+    <div className="p-4 sm:p-8 max-h-[90vh] overflow-y-auto">
+      <StepHeader title="Upload Track" subtitle="Upload your audio files and complete all track information" />
+      <StepProgress current={2} />
+
+      <div className="flex flex-col gap-5">
+        {/* Info notice */}
+        <div className="border border-dashed border-[#C30100]/30 rounded-xl p-4">
+          <p className="font-body text-white/60 text-xs font-semibold mb-2">Track Information:</p>
+          <ul className="space-y-1">
+            {(isSingle
+              ? [
+                  "Each track requires complete metadata including writers and performers",
+                  "ISRC codes will be auto-generated if not provided",
+                  "Singles can only have one track",
+                ]
+              : [
+                  `Upload multiple audio files for your ${releaseLabel}`,
+                  "Each track requires complete metadata including writers and performers",
+                  "ISRC codes will be auto-generated if not provided",
+                  `Minimum 2 tracks required for ${releaseLabel}`,
+                  "Use the edit button on each track to set individual metadata",
+                ]
+            ).map((item) => (
+              <li key={item} className="flex items-start gap-2 font-body text-white/40 text-xs">
+                <span className="text-[#C30100] shrink-0 mt-0.5">·</span>
+                {item}
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        {/* -- Audio Drop Zone ------------------------------------ */}
+        {isSingle ? (
+          /* Single mode: existing behavior */
+          <>
+            <button
+              onClick={() => !uploading && audioInputRef.current?.click()}
+              disabled={uploading}
+              className={[
+                "w-full border-2 border-dashed rounded-xl py-10 flex flex-col items-center gap-2 transition-colors",
+                fieldErrors.audio ? "border-[#C30100] bg-[#C30100]/5" : audioFile ? "border-[#C30100]/60 bg-[#C30100]/5" : "border-white/10 hover:border-white/25",
+              ].join(" ")}
+            >
+              {uploading ? (
+                <>
+                  <svg className="animate-spin" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#C30100" strokeWidth="2">
+                    <path d="M21 12a9 9 0 11-6.219-8.56"/>
+                  </svg>
+                  <p className="font-body text-white/70 text-sm">Uploading {audioFile?.name}...</p>
+                  {uploadProgress && (
+                    <div className="w-48 mt-1">
+                      <p className="font-body text-white/50 text-xs text-center mb-1">{uploadProgress.percentage}%</p>
+                      <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
+                        <div className="h-full bg-[#C30100] rounded-full transition-all duration-300" style={{ width: `${uploadProgress.percentage}%` }} />
+                      </div>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <>
+                  <AudioIcon />
+                  <p className="font-body text-white/50 text-sm">
+                    {audioFile ? audioFile.name : "Drop your audio file or click to browse"}
+                  </p>
+                  <p className="font-body text-white/25 text-xs">WAV, MP3, FLAC · Max 500MB · 24-bit recommended</p>
+                </>
+              )}
+            </button>
+            {fieldErrors.audio && <p className="font-body text-[#C30100] text-xs mt-1">{fieldErrors.audio}</p>}
+            <input ref={audioInputRef} type="file" accept={audioAccept} className="hidden" onChange={handleAudio} />
+          </>
+        ) : (
+          /* Album/EP / Mixtape mode: track list with Add Track button */
+          <>
+            {/* Hidden file input */}
+            <input ref={audioInputRef} type="file" accept={audioAccept} multiple className="hidden" onChange={(e) => handleAlbumFiles(e.target.files)} />
+
+            {/* Uploading indicator */}
+            {uploading && (
+              <div className="border border-[#C30100]/30 rounded-xl p-4 flex flex-col items-center gap-2">
+                <svg className="animate-spin" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#C30100" strokeWidth="2">
+                  <path d="M21 12a9 9 0 11-6.219-8.56"/>
+                </svg>
+                <p className="font-body text-white/70 text-sm">Uploading {uploadingFileName}...</p>
+                {uploadProgress && (
+                  <div className="w-48 mt-1">
+                    <p className="font-body text-white/50 text-xs text-center mb-1">{uploadProgress.percentage}%</p>
+                    <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
+                      <div className="h-full bg-[#C30100] rounded-full transition-all duration-300" style={{ width: `${uploadProgress.percentage}%` }} />
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Track list */}
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center justify-between">
+                <p className="font-body text-white/70 text-xs font-semibold">Tracks ({state.tracks.length}) · {releaseLabel}</p>
+              </div>
+
+              {state.tracks.length === 0 && !uploading ? (
+                <div className="border border-dashed border-white/10 rounded-xl py-8 flex flex-col items-center gap-3">
+                  <AudioIcon />
+                  <p className="font-body text-white/40 text-sm">No tracks added yet</p>
+                  <p className="font-body text-white/25 text-xs">Click the button below to add your first track</p>
+                </div>
+              ) : (
+                state.tracks.map((track, idx) => (
+                  <TrackEntry
+                    key={track.id}
+                    track={track}
+                    index={idx}
+                    totalTracks={state.tracks.length}
+                    onEdit={() => setEditingTrackId(track.id)}
+                    onRemove={() => removeTrack(track.id)}
+                    onMoveUp={() => idx > 0 && reorderTrack(idx, idx - 1)}
+                    onMoveDown={() => idx < state.tracks.length - 1 && reorderTrack(idx, idx + 1)}
+                  />
+                ))
+              )}
+
+              {/* Add Track button */}
+              <button
+                onClick={() => !uploading && audioInputRef.current?.click()}
+                disabled={uploading}
+                className="w-full flex items-center justify-center gap-2 font-heading text-white/50 uppercase text-xs tracking-widest rounded-full border border-white/10 py-3.5 hover:border-[#C30100] hover:text-[#C30100] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                <span className="text-lg leading-none">+</span> Add Track
+              </button>
+            </div>
+          </>
+        )}
+
+        {/* -- Single mode: hidden audio element + preview -------- */}
+        {isSingle && audioUrl && (
+          <>
+            <audio
+              ref={audioElRef}
+              src={audioUrl}
+              onTimeUpdate={() => setCurrentTime(audioElRef.current?.currentTime ?? 0)}
+              onLoadedMetadata={() => {
+                const dur = audioElRef.current?.duration ?? 0;
+                setDuration(dur);
+                update({ audioDuration: formatDuration(dur) });
+              }}
+              onEnded={() => setPlaying(false)}
+              preload="metadata"
+            />
+          </>
+        )}
+
+        {fieldErrors.tracks && <p className="font-body text-[#C30100] text-xs">{fieldErrors.tracks}</p>}
+
+        {/* -- Track Details (single mode) / First track details �-- */}
+        {isSingle ? (
+          <>
+            {/* Single mode: existing track details */}
+            <p className="font-body text-white text-sm font-medium mt-2">Track Details</p>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <Field label="Track Title">
+                <input value={state.trackTitle} readOnly
+                  className="w-full bg-[#0E0808]/50 border border-white/5 rounded-lg px-4 py-3 font-body text-white/50 text-sm cursor-not-allowed" />
+              </Field>
+              <Field label="Mixed Version">
+                <input value={state.mixedVersion} onChange={(e) => update({ mixedVersion: e.target.value })} placeholder="eg radio edit"
+                  className="w-full bg-[#0E0808] border border-white/10 rounded-lg px-4 py-3 font-body text-white text-sm placeholder:text-white/25 outline-none focus:border-[#C30100] transition-colors" />
+              </Field>
+            </div>
+
+            {/* Artist Details */}
+            <SectionBox
+              label="Artist Details"
+              actionLabel="+ Add"
+              onAction={() => {
+                const newArtist: AdditionalArtist = {
+                  id: `artist_${Date.now()}_${Math.random()}`,
+                  name: "",
+                  artistId: "",
+                  role: "featuring",
+                };
+                update({ additionalArtists: [...state.additionalArtists, newArtist] });
+              }}
+            >
+              {state.additionalArtists.length === 0 ? (
+                <p className="font-body text-white/30 text-xs">
+                  Add other primary artists, featured artists, or remixers.
+                </p>
+              ) : (
+                <div className="flex flex-col gap-2">
+                  {state.additionalArtists.map((artist) => (
+                    <div key={artist.id} className="flex flex-col sm:flex-row gap-2">
+                      <div className="relative flex-1 min-w-0">
+                        <ArtistNameInput
+                          profiles={profiles}
+                          value={artist.name}
+                          onChange={(name, artistId) => {
+                            update({
+                              additionalArtists: state.additionalArtists.map((a) =>
+                                a.id === artist.id ? { ...a, name, artistId: artistId || a.artistId } : a
+                              ),
+                            });
+                          }}
+                        />
+                      </div>
+                      <select
+                        value={artist.role}
+                        onChange={(e) => {
+                          update({
+                            additionalArtists: state.additionalArtists.map((a) =>
+                              a.id === artist.id ? { ...a, role: e.target.value as AdditionalArtist["role"] } : a
+                            ),
+                          });
+                        }}
+                        className="w-full sm:w-36 appearance-none bg-[#0E0808] border border-white/10 rounded-lg px-3 py-2.5 font-body text-white text-xs outline-none focus:border-[#C30100] transition-colors"
+                      >
+                        <option value="primary">Primary Artist</option>
+                        <option value="featuring">Featuring</option>
+                        <option value="remixer">Remixer</option>
+                      </select>
+                      <button type="button" onClick={() => {
+                        update({ additionalArtists: state.additionalArtists.filter((a) => a.id !== artist.id) });
+                      }} className="text-white/30 hover:text-[#C30100] transition-colors self-center shrink-0 p-1">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </SectionBox>
+
+            {/* Classification */}
+            <SectionBox label="Classification" noAction>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
+                <Field label="Explicit Content">
+                  <DashSelect value={state.explicitContent} onChange={(v) => { update({ explicitContent: v }); clearFieldError?.("explicit"); }} options={["Yes", "No", "Clean"]} />
+                  {fieldErrors.explicit && <p className="font-body text-[#C30100] text-xs mt-1">{fieldErrors.explicit}</p>}
+                </Field>
+                <Field label="Genre">
+                  <DashSelect value={state.genre} onChange={(v) => { update({ genre: v, subGenre: "" }); clearFieldError?.("genre"); }} placeholder="Select genre" options={GENRE_OPTIONS} />
+                  {fieldErrors.genre && <p className="font-body text-[#C30100] text-xs mt-1">{fieldErrors.genre}</p>}
+                </Field>
+                <Field label="Sub-genre">
+                  <DashSelect value={state.subGenre} onChange={(v) => { update({ subGenre: v }); clearFieldError?.("subGenre"); }} placeholder={subGenres.length ? "Select sub-genre" : "Select genre first"} options={subGenres} />
+                  {fieldErrors.subGenre && <p className="font-body text-[#C30100] text-xs mt-1">{fieldErrors.subGenre}</p>}
+                </Field>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <Field label="Recorded Year">
+                  <DashSelect value={state.recordedYear} onChange={(v) => update({ recordedYear: v })} options={["2026", "2025", "2024", "2023"]} />
+                </Field>
+                <Field label="ISRC">
+                  <input value={state.isrc} onChange={(e) => update({ isrc: e.target.value })} placeholder="Auto-generated if blank"
+                    className="w-full bg-[#0E0808] border border-white/10 rounded-lg px-4 py-3 font-body text-white text-sm placeholder:text-white/25 outline-none focus:border-[#C30100] transition-colors" />
+                </Field>
+                <Field label="Stereo AI Use">
+                  <DashSelect value="None" onChange={() => {}} options={["None", "Partial", "Full"]} />
+                </Field>
+              </div>
+            </SectionBox>
+
+            {/* Writers */}
+            <ContributorSection label="Writers" type="writers" contributors={state.contributors.writers} roleOptions={WRITER_ROLES} updateContributors={updateContributors} />
+            {fieldErrors.writers && <p className="font-body text-[#C30100] text-xs mt-1">{fieldErrors.writers}</p>}
+
+            {/* Production */}
+            <ContributorSection label="Production" type="producers" contributors={state.contributors.producers} roleOptions={PRODUCTION_ROLES} updateContributors={updateContributors} />
+
+            {/* Performers */}
+            <ContributorSection label="Performers" type="performers" contributors={state.contributors.performers} roleOptions={PERFORMER_ROLES} updateContributors={updateContributors} />
+            {fieldErrors.performers && <p className="font-body text-[#C30100] text-xs mt-1">{fieldErrors.performers}</p>}
+
+            {/* Lyrics */}
+            <SectionBox label="Lyrics" noAction rightLabel={<DashSelect value="English" onChange={() => {}} options={["English", "Yoruba", "French"]} />}>
+              <textarea value={state.lyrics} onChange={(e) => update({ lyrics: e.target.value })} rows={4}
+                className="w-full bg-transparent font-body text-white/50 text-sm outline-none resize-none placeholder:text-white/20"
+                placeholder="Enter lyrics..." />
+            </SectionBox>
+
+            {/* Audio Preview */}
+            <SectionBox label="Audio Preview" noAction>
+              {!audioFile ? (
+                <p className="font-body text-white/30 text-xs">Upload an audio file above to preview it here.</p>
+              ) : (
+                <>
+                  <div className="flex items-center gap-3">
+                    <button onClick={() => setPlaying(!playing)}
+                      className="w-8 h-8 rounded-full border border-white/20 flex items-center justify-center text-white/60 hover:text-white transition-colors shrink-0">
+                      {playing ? <PauseIcon /> : <PlayIcon />}
+                    </button>
+                    <div className="flex-1 flex items-center gap-2">
+                      <span className="font-body text-white/40 text-xs shrink-0 tabular-nums">{fmt(currentTime)} / {fmt(duration)}</span>
+                      <div className="flex-1 h-1.5 bg-white/10 rounded-full cursor-pointer relative" onClick={handleSeek}>
+                        <div className="h-full bg-[#C30100] rounded-full pointer-events-none transition-all" style={{ width: `${progress}%` }} />
+                      </div>
+                    </div>
+                    <button className="text-white/30 hover:text-white/50 transition-colors"><VolumeIcon /></button>
+                  </div>
+                  <button onClick={setTikTokStampFromCurrent}
+                    className="w-full mt-4 font-heading text-white uppercase text-xs tracking-widest rounded-full border border-[#C30100] py-3 hover:bg-[#C30100] transition-colors">
+                    Set Current Time as TikTok Stamp
+                  </button>
+                </>
+              )}
+            </SectionBox>
+
+            {/* TikTok Timestamp */}
+            <SectionBox label="TikTok Preview Timestamp (Optional)" noAction>
+              <p className="font-body text-white/30 text-xs mb-2">
+                Specify the start time for TikTok preview (format: mm:ss) · Use the audio player above to preview and select the best timestamp
+              </p>
+              <input value={tiktokStamp} onChange={(e) => setTiktokStamp(e.target.value)} placeholder="0:00"
+                className="w-24 bg-transparent border-b border-white/20 font-body text-white text-sm outline-none pb-1 placeholder:text-white/25" />
+            </SectionBox>
+          </>
+        ) : (
+          /* Album/EP mode: shared classification (optional, can be overridden per track) */
+          <>
+            <SectionBox label="Shared Classification" noAction>
+              <p className="font-body text-white/30 text-xs mb-3">
+                These settings apply as defaults to all tracks in this {releaseLabel}. You can override them per track using the edit button.
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
+                <Field label="Explicit Content">
+                  <DashSelect value={state.explicitContent} onChange={(v) => { update({ explicitContent: v }); clearFieldError?.("explicit"); }} options={["Yes", "No", "Clean"]} />
+                  {fieldErrors.explicit && <p className="font-body text-[#C30100] text-xs mt-1">{fieldErrors.explicit}</p>}
+                </Field>
+                <Field label="Genre">
+                  <DashSelect value={state.genre} onChange={(v) => { update({ genre: v, subGenre: "" }); clearFieldError?.("genre"); }} placeholder="Select genre" options={GENRE_OPTIONS} />
+                  {fieldErrors.genre && <p className="font-body text-[#C30100] text-xs mt-1">{fieldErrors.genre}</p>}
+                </Field>
+                <Field label="Sub-genre">
+                  <DashSelect value={state.subGenre} onChange={(v) => { update({ subGenre: v }); clearFieldError?.("subGenre"); }} placeholder={subGenres.length ? "Select sub-genre" : "Select genre first"} options={subGenres} />
+                  {fieldErrors.subGenre && <p className="font-body text-[#C30100] text-xs mt-1">{fieldErrors.subGenre}</p>}
+                </Field>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <Field label="Recorded Year">
+                  <DashSelect value={state.recordedYear} onChange={(v) => update({ recordedYear: v })} options={["2026", "2025", "2024", "2023"]} />
+                </Field>
+                <Field label="Stereo AI Use">
+                  <DashSelect value="None" onChange={() => {}} options={["None", "Partial", "Full"]} />
+                </Field>
+              </div>
+            </SectionBox>
+
+            <p className="font-body text-white/40 text-xs text-center py-2">
+              Click the edit button on each track above to set track-specific metadata (title, lyrics, genre, ISRC, contributors).
+            </p>
+          </>
+        )}
+      </div>
+
+      <div className="mt-8">
+        <StepActions onBack={onBack} onSaveDraft={onSaveDraft} onContinue={onContinue} />
+      </div>
+
+      {/* -- Track Edit Modal ------------------------------------ */}
+      {editingTrack && (
+        <TrackEditModal
+          track={editingTrack}
+          profiles={profiles}
+          onSave={(patch) => updateTrack(editingTrack.id, patch)}
+          onClose={() => setEditingTrackId(null)}
+        />
+      )}
+    </div>
+  );
+}
+
+/* --- Icon helpers -------------------------------------------- */
 
 function AudioIcon() { return <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-white/30"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>; }
 function PlayIcon() { return <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>; }

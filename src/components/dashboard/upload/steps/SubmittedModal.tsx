@@ -7,9 +7,9 @@ interface SubmittedProps {
 
 export default function SubmittedModal({ onClose, onPitchDSPs }: SubmittedProps) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4">
       <div aria-hidden className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative z-10 w-full max-w-[520px] rounded-2xl bg-[#1A0808] border border-white/[0.07] p-10 text-center overflow-hidden">
+      <div className="relative z-10 w-full max-w-[520px] rounded-2xl bg-[#1A0808] border border-white/[0.07] p-6 sm:p-10 text-center overflow-hidden max-h-[90vh] overflow-y-auto">
         <button onClick={onClose} className="absolute top-5 right-5 text-white/40 hover:text-white transition-colors">
           <CloseIcon />
         </button>
@@ -35,7 +35,7 @@ export default function SubmittedModal({ onClose, onPitchDSPs }: SubmittedProps)
         <p className="font-body text-white/40 text-sm mb-8">Next step — Pitch to DSPs</p>
 
         {/* Platform cards mock */}
-        <div className="relative h-40 mb-8 flex items-center justify-center">
+        <div className="relative h-40 mb-6 sm:mb-8 flex items-center justify-center scale-75 sm:scale-100">
           {/* Back card: TIDAL */}
           <div
             className="absolute w-44 rounded-xl bg-[#0E1420] border border-blue-400/[0.15] p-3 text-left shadow-lg"

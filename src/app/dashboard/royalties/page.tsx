@@ -749,6 +749,7 @@ export default function RoyaltyReportPage() {
     topEarningReleases,
     revenueByTerritory,
     socialVsStreaming,
+    monthlyTrends,
   } = data ?? {
     stats: {
       totalEarnings:  { value: "...", change: "", sub: "", icon: "/images/earnings.svg" },
@@ -765,6 +766,7 @@ export default function RoyaltyReportPage() {
       socialPlatforms: [],
       streamingPlatforms: [],
     },
+    monthlyTrends: [],
   };
 
   // Paginated platform list
@@ -1015,6 +1017,45 @@ export default function RoyaltyReportPage() {
           )}
         </div>
 
+        {/* Monthly Breakdown */}
+        <div className="bg-white/[0.03] border border-white/[0.06] rounded-xl p-5 sm:p-6">
+          <div className="flex items-center justify-between mb-5">
+            <div>
+              <h2 className="font-body text-white text-base font-semibold">Monthly Breakdown</h2>
+              <p className="font-body text-white/40 text-xs mt-1">Earnings and streams per month</p>
+            </div>
+          </div>
+          {monthlyTrends.length > 0 ? (
+            <div className="overflow-x-auto -mx-5 px-5 sm:-mx-6 sm:px-6">
+              <table className="w-full min-w-[500px]">
+                <thead>
+                  <tr>
+                    <th className="text-left font-body text-white/30 text-[10px] uppercase tracking-wider font-medium pb-3 pl-1">Month</th>
+                    <th className="text-right font-body text-white/30 text-[10px] uppercase tracking-wider font-medium pb-3">Earnings</th>
+                    <th className="text-right font-body text-white/30 text-[10px] uppercase tracking-wider font-medium pb-3">Streams</th>
+                    <th className="text-right font-body text-white/30 text-[10px] uppercase tracking-wider font-medium pb-3 pr-1">Avg Rate</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {monthlyTrends.map((m, i) => (
+                    <tr key={i} className="border-t border-white/[0.04] hover:bg-white/[0.02] transition-colors">
+                      <td className="py-3 font-body text-white/90 text-xs font-medium pl-1">{m.month}</td>
+                      <td className="py-3 font-body text-[#C30100] text-xs font-semibold text-right">${m.earnings.toFixed(2)}</td>
+                      <td className="py-3 font-body text-white/60 text-xs text-right">{m.streams.toLocaleString()}</td>
+                      <td className="py-3 font-body text-white/60 text-xs text-right pr-1">${m.avgRate.toFixed(6)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <div className="py-10 text-center">
+              <p className="font-body text-white/30 text-sm">No monthly data yet</p>
+              <p className="font-body text-white/20 text-xs mt-1">Data appears after distribution goes live</p>
+            </div>
+          )}
+        </div>
+
       </div>
 
       {exportOpen && (
@@ -1044,6 +1085,9 @@ function exportCSV(data: RoyaltiesPageData | null, period: string, platform: str
   rows.push([]);
   rows.push(["Rank", "Country", "Earnings", "Streams"]);
   data.revenueByTerritory.forEach((t) => rows.push([String(t.rank), t.country, t.earnings, t.streams]));
+  rows.push([]);
+  rows.push(["Month", "Earnings", "Streams", "Avg Rate"]);
+  data.monthlyTrends.forEach((m) => rows.push([m.month, `$${m.earnings.toFixed(2)}`, String(m.streams), `$${m.avgRate.toFixed(6)}`]));
   const csv = rows.map((r) => r.map((c) => `"${c}"`).join(",")).join("\n");
   const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
   const url = URL.createObjectURL(blob);
@@ -1071,6 +1115,9 @@ function exportPDF(data: RoyaltiesPageData | null, period: string, platform: str
   <h2>Revenue by Territory</h2>
   <table><thead><tr><th>#</th><th>Country</th><th>Earnings</th><th>Streams</th></tr></thead>
   <tbody>${data.revenueByTerritory.map((t) => `<tr><td>${t.rank}</td><td>${t.country}</td><td>${t.earnings}</td><td>${t.streams}</td></tr>`).join("")}</tbody></table>
+  <h2>Monthly Breakdown</h2>
+  <table><thead><tr><th>Month</th><th>Earnings</th><th>Streams</th><th>Avg Rate</th></tr></thead>
+  <tbody>${data.monthlyTrends.map((m) => `<tr><td>${m.month}</td><td>$${m.earnings.toFixed(2)}</td><td>${m.streams.toLocaleString()}</td><td>$${m.avgRate.toFixed(6)}</td></tr>`).join("")}</tbody></table>
   </body></html>`;
   const win = window.open("", "_blank");
   if (!win) return;

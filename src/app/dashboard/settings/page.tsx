@@ -817,42 +817,137 @@ function EyeToggle({
 /* MOB-005: Cards stack on mobile, MOB-006: price nowrap */
 function SubscriptionTab() {
   const [billing, setBilling] = useState<BillingCycle>("yearly");
-  const plans = [
-    {
-      id: "starter",
-      name: "Starter",
-      tagline: "Best for: New & independent artists starting out",
-      priceMonthly: "₦4,000.00",
-      priceYearly: "₦44,000.00",
-      features: PLAN_FEATURES.starter,
-      current: false,
-      cta: "Get Help & Support",
-      ctaVariant: "outline" as const,
-    },
-    {
-      id: "growth",
-      name: "Growth Plan",
-      tagline: "Best for: Serious independent artists & growing teams",
-      priceMonthly: "₦14,000.00",
-      priceYearly: "₦140,000.00",
-      features: PLAN_FEATURES.growth,
-      current: true,
-      cta: "Upgrade to Growth",
-      ctaVariant: "red" as const,
-    },
-    {
-      id: "label",
-      name: "Label Plan",
-      tagline: "Best for: Small labels, managers & collectives",
-      priceMonthly: "₦16,000.00",
-      priceYearly: "₦150,000.00",
-      features: PLAN_FEATURES.label,
-      current: false,
-      cta: "Start a Label",
-      ctaVariant: "outline" as const,
-      addons: ["Add extra artist: ₦30,000 Per artist / year"],
-    },
-  ];
+  const [plans, setPlans] = useState<Array<{
+    id: number; name: string; slug: string; description: string;
+    price: number; currency: string; duration: string; features: string[];
+    artist_limit: number; royalty_share: number; is_popular: boolean;
+    is_contract_plan: boolean;
+  }>>([]);
+  const [loadingPlans, setLoadingPlans] = useState(true);
+  const [subscribing, setSubscribing] = useState<number | null>(null);
+  const [currentPlan, setCurrentPlan] = useState<string | null>(null);
+  const [promoCode, setPromoCode] = useState("");
+  const [promoLoading, setPromoLoading] = useState(false);
+  const { success, error: toastError } = useToast();
+
+  // Fetch plans from API
+  useEffect(() => {
+    (async () => {
+      try {
+        const { getPlans } = await import("@/lib/api/subscription");
+        const res = await getPlans("NGN");
+        if (res.data && !res.error) {
+          const raw = res.data as unknown as Record<string, unknown>;
+          const planList = (raw.plans ?? raw) as Array<Record<string, unknown>>;
+          if (Array.isArray(planList)) {
+            setPlans(planList.map((p) => ({
+              id: Number(p.id),
+              name: String(p.name ?? ""),
+              slug: String(p.slug ?? p.name ?? "").toLowerCase(),
+              description: String(p.description ?? ""),
+              price: Number(p.price ?? 0),
+              currency: String(p.currency ?? "NGN"),
+              duration: String(p.duration ?? "monthly"),
+              features: Array.isArray(p.features) ? p.features.map(String) : [],
+              artist_limit: Number(p.artist_limit ?? 1),
+              royalty_share: Number(p.royalty_share ?? 95),
+              is_popular: Boolean(p.is_popular),
+              is_contract_plan: Boolean(p.is_contract_plan),
+            })));
+          }
+        }
+      } catch { /* plans will remain empty */ }
+      setLoadingPlans(false);
+    })();
+  }, []);
+
+  // Fetch current subscription status
+  useEffect(() => {
+    (async () => {
+      try {
+        const { checkSubscription } = await import("@/lib/api/subscription");
+        const res = await checkSubscription();
+        if (res.data && !res.error) {
+          const raw = res.data as unknown as Record<string, unknown>;
+          const plan = raw.plan as Record<string, unknown> | null;
+          if (plan?.name) setCurrentPlan(String(plan.name).toLowerCase());
+        }
+      } catch { /* ignore */ }
+    })();
+  }, []);
+
+  const handleSubscribe = async (planId: number, planName: string) => {
+    setSubscribing(planId);
+    try {
+      const { subscribe } = await import("@/lib/api/subscription");
+      const res = await subscribe({
+        plan_id: planId,
+        billing_cycle: billing === "monthly" ? "monthly" : "annual",
+        currency: "NGN",
+        payment_provider: "startbutton",
+      });
+      if (res.error) {
+        toastError("Payment failed", res.error);
+      } else {
+        const raw = res.data as unknown as Record<string, unknown>;
+        const url = (raw.payment_url ?? raw.subscription_link) as string;
+        if (url) {
+          window.location.href = url;
+        } else {
+          toastError("Payment failed", "No payment URL returned");
+        }
+      }
+    } catch {
+      toastError("Payment failed", "Something went wrong");
+    } finally {
+      setSubscribing(null);
+    }
+  };
+
+  const handleRedeemPromo = async () => {
+    if (!promoCode.trim()) return;
+    setPromoLoading(true);
+    try {
+      const { redeemPromo } = await import("@/lib/api/subscription");
+      const res = await redeemPromo(promoCode.trim());
+      if (res.error) {
+        toastError("Promo failed", res.error);
+      } else {
+        success("Promo applied!", res.message ?? "Your plan has been activated.");
+        setPromoCode("");
+        // Refresh subscription status
+        const { checkSubscription } = await import("@/lib/api/subscription");
+        const statusRes = await checkSubscription();
+        if (statusRes.data && !statusRes.error) {
+          const raw = statusRes.data as unknown as Record<string, unknown>;
+          const plan = raw.plan as Record<string, unknown> | null;
+          if (plan?.name) setCurrentPlan(String(plan.name).toLowerCase());
+        }
+      }
+    } catch {
+      toastError("Promo failed", "Something went wrong");
+    } finally {
+      setPromoLoading(false);
+    }
+  };
+
+  // Map API plan names to feature lists
+  const getFeatures = (plan: { slug: string; name: string; features?: string[] }) => {
+    if (plan.features && plan.features.length > 0) return plan.features;
+    const slug = plan.slug.toLowerCase();
+    const name = plan.name.toLowerCase();
+    if (slug.includes("starter") || slug.includes("basic")) return PLAN_FEATURES.starter;
+    if (slug.includes("growth")) return PLAN_FEATURES.growth;
+    if (slug.includes("label") || slug.includes("professional")) return PLAN_FEATURES.label;
+    return PLAN_FEATURES.starter;
+  };
+
+  const isCurrentPlan = (plan: { slug: string; name: string }) => {
+    if (!currentPlan) return false;
+    return plan.name.toLowerCase().includes(currentPlan) ||
+           currentPlan.includes(plan.slug);
+  };
+
   return (
     <div className="rounded-2xl border border-dashed border-[#C30100]/30 bg-[#180F0F] p-6">
       <p className="font-nulshock text-white uppercase text-sm tracking-wide mb-1">
@@ -887,80 +982,127 @@ function SubscriptionTab() {
           </button>
         </div>
       </div>
-      {/* MOB-005: grid-cols-1 on mobile, 3 on desktop */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {plans.map((plan) => (
-          <div
-            key={plan.id}
-            className={[
-              "rounded-2xl p-5 flex flex-col border transition-colors",
-              plan.current
-                ? "bg-[#1A0808] border-[#C30100]"
-                : "bg-[#0E0808] border-white/[0.06]",
-            ].join(" ")}
-          >
-            {plan.current && (
-              <div className="flex justify-center mb-3">
-                <span className="font-montserrat text-white text-[10px] border border-white/20 rounded-full px-3 py-1">
-                  Current Plan
-                </span>
-              </div>
-            )}
-            <p className="font-nulshock text-white uppercase text-sm tracking-wide">
-              {plan.name}
-            </p>
-            <p className="font-montserrat text-white/40 text-[11px] mt-1 mb-3 leading-relaxed">
-              {plan.tagline}
-            </p>
-            {/* MOB-006: whitespace-nowrap prevents price truncation */}
-            <p className="font-nulshock text-white text-xl mb-1 whitespace-nowrap">
-              {billing === "yearly" ? plan.priceYearly : plan.priceMonthly}
-              <span className="font-montserrat text-white/30 text-xs">
-                /{billing === "yearly" ? "year" : "month"}
-              </span>
-            </p>
-            <div className="flex flex-col gap-2 mt-4 flex-1">
-              {plan.features.map((f) => (
-                <div key={f} className="flex items-start gap-2">
-                  <span className="w-4 h-4 rounded-full bg-[#C30100]/20 border border-[#C30100]/40 flex items-center justify-center shrink-0 mt-0.5">
-                    <CheckSmallIcon />
-                  </span>
-                  <span className="font-montserrat text-white/60 text-xs">
-                    {f}
-                  </span>
-                </div>
-              ))}
-            </div>
-            {"addons" in plan && plan.addons && (
-              <div className="mt-4">
-                <p className="font-nulshock text-white/50 uppercase text-[10px] tracking-widest mb-2">
-                  Add-Ons
-                </p>
-                {plan.addons.map((a) => (
-                  <div key={a} className="flex items-start gap-2">
-                    <span className="w-4 h-4 rounded-full bg-[#C30100]/20 border border-[#C30100]/40 flex items-center justify-center shrink-0 mt-0.5">
-                      <CheckSmallIcon />
-                    </span>
-                    <span className="font-montserrat text-white/60 text-xs">
-                      {a}
+
+      {loadingPlans ? (
+        <div className="flex justify-center py-12">
+          <svg className="animate-spin" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#C30100" strokeWidth="2">
+            <path d="M21 12a9 9 0 11-6.219-8.56"/>
+          </svg>
+        </div>
+      ) : plans.length === 0 ? (
+        <div className="text-center py-12">
+          <p className="font-montserrat text-white/40 text-sm">Unable to load plans. Please try again later.</p>
+        </div>
+      ) : (
+        /* MOB-005: grid-cols-1 on mobile, 3 on desktop */
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {plans
+            .filter((plan) => !plan.is_contract_plan)
+            .filter((plan) => {
+              const d = plan.duration.toLowerCase();
+              return billing === "monthly" ? d === "monthly" : d === "yearly" || d === "annual";
+            })
+            .map((plan) => {
+            const current = isCurrentPlan(plan);
+            const features = getFeatures(plan);
+            const displayPrice = `₦${plan.price.toLocaleString()}`;
+            const ctaLabel = current
+              ? "Current Plan"
+              : currentPlan
+                ? `Switch to ${plan.name}`
+                : `Get ${plan.name}`;
+
+            return (
+              <div
+                key={plan.id}
+                className={[
+                  "rounded-2xl p-5 flex flex-col border transition-colors",
+                  current
+                    ? "bg-[#1A0808] border-[#C30100]"
+                    : "bg-[#0E0808] border-white/[0.06]",
+                ].join(" ")}
+              >
+                {current && (
+                  <div className="flex justify-center mb-3">
+                    <span className="font-montserrat text-white text-[10px] border border-white/20 rounded-full px-3 py-1">
+                      Current Plan
                     </span>
                   </div>
-                ))}
+                )}
+                <p className="font-nulshock text-white uppercase text-sm tracking-wide">
+                  {plan.name}
+                </p>
+                <p className="font-montserrat text-white/40 text-[11px] mt-1 mb-3 leading-relaxed">
+                  {plan.description}
+                </p>
+                {/* MOB-006: whitespace-nowrap prevents price truncation */}
+                <p className="font-nulshock text-white text-xl mb-1 whitespace-nowrap">
+                  {displayPrice}
+                  <span className="font-montserrat text-white/30 text-xs">
+                    /{billing === "yearly" ? "year" : "month"}
+                  </span>
+                </p>
+                <div className="flex flex-col gap-2 mt-4 flex-1">
+                  {features.map((f) => (
+                    <div key={f} className="flex items-start gap-2">
+                      <span className="w-4 h-4 rounded-full bg-[#C30100]/20 border border-[#C30100]/40 flex items-center justify-center shrink-0 mt-0.5">
+                        <CheckSmallIcon />
+                      </span>
+                      <span className="font-montserrat text-white/60 text-xs">
+                        {f}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+                <button
+                  onClick={() => !current && handleSubscribe(plan.id, plan.name)}
+                  disabled={current || subscribing === plan.id}
+                  className={[
+                    "mt-5 w-full font-nulshock uppercase text-[10px] tracking-widest rounded-full py-3 transition-all min-h-[44px] flex items-center justify-center gap-2",
+                    current
+                      ? "border border-white/10 text-white/30 cursor-not-allowed"
+                      : subscribing === plan.id
+                        ? "border border-[#C30100] bg-[#C30100]/10 text-white/60 cursor-wait"
+                        : currentPlan
+                          ? "border border-white/20 text-white hover:border-white/40"
+                          : "border border-[#C30100] bg-[#C30100]/10 hover:bg-[#C30100] text-white",
+                  ].join(" ")}
+                >
+                  {subscribing === plan.id && (
+                    <svg className="animate-spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M21 12a9 9 0 11-6.219-8.56"/>
+                    </svg>
+                  )}
+                  {subscribing === plan.id ? "Processing..." : ctaLabel}
+                </button>
               </div>
-            )}
-            <button
-              className={[
-                "mt-5 w-full font-nulshock uppercase text-[10px] tracking-widest rounded-full py-3 transition-all min-h-[44px]",
-                plan.ctaVariant === "red"
-                  ? "border border-[#C30100] bg-[#C30100]/10 hover:bg-[#C30100] text-white"
-                  : "border border-white/20 text-white hover:border-white/40",
-              ].join(" ")}
-            >
-              {plan.cta}
-            </button>
-          </div>
-        ))}
+            );
+          })}
+        </div>
+      )}
+
+      {/* Promo Code */}
+      <div className="mt-6 flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+        <input
+          value={promoCode}
+          onChange={(e) => setPromoCode(e.target.value)}
+          placeholder="Enter promo code"
+          className="flex-1 bg-[#0E0808] border border-white/10 rounded-lg px-4 py-2.5 font-montserrat text-white text-sm placeholder:text-white/25 outline-none focus:border-[#C30100] transition-colors"
+        />
+        <button
+          onClick={handleRedeemPromo}
+          disabled={!promoCode.trim() || promoLoading}
+          className="font-nulshock uppercase text-[10px] tracking-widest rounded-full border border-white/20 px-5 py-2.5 text-white hover:border-white/40 transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+        >
+          {promoLoading && (
+            <svg className="animate-spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M21 12a9 9 0 11-6.219-8.56"/>
+            </svg>
+          )}
+          {promoLoading ? "Applying..." : "Apply"}
+        </button>
       </div>
+
       <div className="flex items-center justify-center gap-2 mt-5">
         <span className="w-2 h-2 rounded-full bg-[#C30100]" />
         <p className="font-montserrat text-white/40 text-xs">

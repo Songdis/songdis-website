@@ -2,10 +2,11 @@
 
 import { useState, useRef, useEffect } from "react";
 import Image from "next/image";
-import type { UploadState, StepFieldErrors } from "../UploadModal";
+import type { UploadState, AdditionalArtist, StepFieldErrors } from "../UploadModal";
 import { StepHeader, StepProgress, StepActions } from "../UploadModal";
 import { getProfile } from "@/lib/api/auth";
-import { getLabelPermission } from "@/lib/api/music";
+import { getLabelPermission, uploadArtwork } from "@/lib/api/music";
+import type { UploadProgress } from "@/lib/api/music";
 import ArtistProfileModal from "@/components/dashboard/settings/ArtistProfileModal";
 import type { ArtistProfile } from "@/components/dashboard/settings/ArtistProfileModal";
 
@@ -16,9 +17,9 @@ function ArtworkGenerator({
   onClose: () => void;
 }) {
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center px-4 py-6" onClick={onClose}>
+    <div className="fixed inset-0 z-[60] flex items-center justify-center p-3 sm:p-4" onClick={onClose}>
       <div
-        className="relative w-full max-w-[860px] rounded-2xl bg-[#1A0808] border border-white/[0.07] p-8 overflow-y-auto max-h-[90vh]"
+        className="relative w-full max-w-[860px] rounded-2xl bg-[#1A0808] border border-white/[0.07] p-5 sm:p-8 overflow-y-auto max-h-[90vh]"
         onClick={(e) => e.stopPropagation()}
       >
         <button onClick={onClose} className="absolute top-5 right-5 text-white/40 hover:text-white transition-colors">
@@ -87,6 +88,8 @@ export default function ReleaseDetails({ state, update, onBack, onContinue, onSa
   const [profiles, setProfiles] = useState<ArtistProfile[]>([]);
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [canEditLabel, setCanEditLabel] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<UploadProgress | null>(null);
 
   /* Check label edit permission on mount */
   useEffect(() => {
@@ -155,16 +158,51 @@ export default function ReleaseDetails({ state, update, onBack, onContinue, onSa
     state.releaseType === "single" ? "Upload Single" :
     state.releaseType === "album" ? "Upload Album" : "Upload Mixtape";
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const url = URL.createObjectURL(file);
-    update({ artwork: url, artworkFile: file });
+
+    // Validate minimum dimensions
+    const img = new window.Image();
+    const objectUrl = URL.createObjectURL(file);
+    await new Promise<void>((resolve) => {
+      img.onload = () => {
+        URL.revokeObjectURL(objectUrl);
+        resolve();
+      };
+      img.src = objectUrl;
+    });
+    if (img.width < 3000 || img.height < 3000) {
+      alert(`Artwork must be at least 3000×3000 pixels. Your image is ${img.width}×${img.height}.`);
+      if (fileRef.current) fileRef.current.value = "";
+      return;
+    }
+
+    const previewUrl = URL.createObjectURL(file);
+    update({ artwork: previewUrl, artworkFile: file });
+    setUploading(true);
+    setUploadProgress(null);
+
+    try {
+      const result = await uploadArtwork(file, (p) => setUploadProgress(p));
+      update({
+        artworkUrl: result.file_url,
+        artworkKey: result.s3_key,
+        artworkSizes: result.sizes ?? null,
+        artworkFile: null,
+      });
+    } catch (err) {
+      console.error("Artwork upload failed:", err);
+      update({ artwork: null, artworkFile: null });
+    } finally {
+      setUploading(false);
+      setUploadProgress(null);
+    }
   };
 
   return (
     <>
-      <div className="p-8 max-h-[90vh] overflow-y-auto">
+      <div className="p-4 sm:p-8 max-h-[90vh] overflow-y-auto">
         <StepHeader title={releaseTypeLabel} subtitle="Complete all steps to submit your release for distribution" />
         <StepProgress current={1} />
 
@@ -181,17 +219,34 @@ export default function ReleaseDetails({ state, update, onBack, onContinue, onSa
 
         {/* Artwork upload */}
         {state.artwork ? (
-          <div className="relative w-40 h-40 mx-auto mb-6 rounded-xl overflow-hidden group cursor-pointer" onClick={() => fileRef.current?.click()}>
+          <div className="relative w-40 h-40 mx-auto mb-6 rounded-xl overflow-hidden group cursor-pointer" onClick={() => !uploading && fileRef.current?.click()}>
             <Image src={state.artwork} alt="Artwork" fill className="object-cover" unoptimized />
-            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-              <p className="font-body text-white text-xs">Change</p>
-            </div>
+            {uploading && (
+              <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center gap-2">
+                <svg className="animate-spin" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#C30100" strokeWidth="2">
+                  <path d="M21 12a9 9 0 11-6.219-8.56"/>
+                </svg>
+                {uploadProgress && (
+                  <div className="w-24">
+                    <p className="font-body text-white text-xs text-center mb-1">{uploadProgress.percentage}%</p>
+                    <div className="h-1 bg-white/20 rounded-full overflow-hidden">
+                      <div className="h-full bg-[#C30100] rounded-full transition-all duration-300" style={{ width: `${uploadProgress.percentage}%` }} />
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+            {!uploading && (
+              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                <p className="font-body text-white text-xs">Change</p>
+              </div>
+            )}
           </div>
         ) : (
-          <button onClick={() => fileRef.current?.click()}
+          <button onClick={() => fileRef.current?.click()} disabled={uploading}
             className="w-full border-2 border-dashed border-[#C30100]/40 rounded-xl py-10 flex flex-col items-center gap-2 hover:border-[#C30100]/70 transition-colors mb-5">
             <UploadIcon />
-            <p className="font-body text-white/50 text-sm">Click to upload artwork</p>
+            <p className="font-body text-white/50 text-sm">{uploading ? "Uploading..." : "Click to upload artwork"}</p>
             <p className="font-body text-white/25 text-xs">or drag and drop · Min 3000×3000px · Max 10MB</p>
           </button>
         )}
@@ -236,6 +291,66 @@ export default function ReleaseDetails({ state, update, onBack, onContinue, onSa
               <ChevronIcon />
             </div>
           </Field>
+
+          {/* Additional Artists */}
+          <div className="sm:col-span-2">
+            <div className="flex items-center justify-between mb-2">
+              <label className="font-body text-white/70 text-xs">Additional Artists (Optional)</label>
+              <button type="button" onClick={() => {
+                const newArtist: AdditionalArtist = {
+                  id: `artist_${Date.now()}_${Math.random()}`,
+                  name: "",
+                  artistId: "",
+                  role: "featuring",
+                };
+                update({ additionalArtists: [...state.additionalArtists, newArtist] });
+              }} className="font-body text-[#C30100] text-xs hover:text-[#C30100]/80 transition-colors flex items-center gap-1">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                Add Artist
+              </button>
+            </div>
+            {state.additionalArtists.length > 0 && (
+              <div className="space-y-2">
+                {state.additionalArtists.map((artist) => (
+                  <div key={artist.id} className="flex flex-col sm:flex-row gap-2">
+                    <div className="relative flex-1 min-w-0">
+                      <ArtistNameInput
+                        profiles={profiles}
+                        value={artist.name}
+                        onChange={(name, artistId) => {
+                          update({
+                            additionalArtists: state.additionalArtists.map((a) =>
+                              a.id === artist.id ? { ...a, name, artistId: artistId || a.artistId } : a
+                            ),
+                          });
+                        }}
+                      />
+                    </div>
+                    <select
+                      value={artist.role}
+                      onChange={(e) => {
+                        update({
+                          additionalArtists: state.additionalArtists.map((a) =>
+                            a.id === artist.id ? { ...a, role: e.target.value as AdditionalArtist["role"] } : a
+                          ),
+                        });
+                      }}
+                      className="w-full sm:w-36 appearance-none bg-[#0E0808] border border-white/10 rounded-lg px-3 py-2.5 font-body text-white text-xs outline-none focus:border-[#C30100] transition-colors"
+                    >
+                      <option value="primary">Primary Artist</option>
+                      <option value="featuring">Featuring</option>
+                      <option value="remixer">Remixer</option>
+                    </select>
+                    <button type="button" onClick={() => {
+                      update({ additionalArtists: state.additionalArtists.filter((a) => a.id !== artist.id) });
+                    }} className="text-white/30 hover:text-[#C30100] transition-colors self-center shrink-0 p-1">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
 
           <Field label="Label" hint={canEditLabel ? "Label name that appears on stores. Defaults to SongDis Ltd." : "Defaults to SongDis Ltd (Growth plan required to customize)"}>
             <div className="relative">
@@ -282,10 +397,10 @@ export default function ReleaseDetails({ state, update, onBack, onContinue, onSa
               className="w-full bg-[#0E0808] border border-white/10 rounded-lg px-4 py-3 font-body text-white/50 text-sm outline-none cursor-not-allowed" />
           </Field>
 
-          <Field label="No of Tracks" hint={state.releaseType === "single" ? "Singles can only have 1 track." : "Enter the number of tracks."}>
-            <input type="number" min={1} max={50} value={state.noOfTracks}
+          <Field label="No of Tracks" hint={state.releaseType === "single" ? "Singles can only have 1 track." : "Estimated track count. Actual tracks are determined by files uploaded in the next step."}>
+            <input type="number" min={state.releaseType === "single" ? 1 : 2} max={50} value={state.noOfTracks}
               disabled={state.releaseType === "single"}
-              onChange={(e) => update({ noOfTracks: Math.max(1, parseInt(e.target.value) || 1) })}
+              onChange={(e) => update({ noOfTracks: Math.max(state.releaseType === "single" ? 1 : 2, parseInt(e.target.value) || 1) })}
               className={["w-full bg-[#0E0808] border border-white/10 rounded-lg px-4 py-3 font-body text-white text-sm outline-none focus:border-[#C30100] transition-colors",
                 state.releaseType === "single" ? "text-white/50 cursor-not-allowed" : ""].join(" ")} />
           </Field>
@@ -318,6 +433,60 @@ export default function ReleaseDetails({ state, update, onBack, onContinue, onSa
         />
       )}
     </>
+  );
+}
+
+/* ─── Artist Name Input (type or select from profiles) ─────── */
+function ArtistNameInput({ profiles, value, onChange }: { profiles: ArtistProfile[]; value: string; onChange: (name: string, artistId?: string) => void }) {
+  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState(value);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => { setSearch(value); }, [value]);
+
+  useEffect(() => {
+    if (!open) return;
+    const handleClick = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, [open]);
+
+  const filtered = profiles.filter((p) => {
+    const name = p.stageName || p.fullName;
+    return name.toLowerCase().includes(search.toLowerCase());
+  });
+
+  return (
+    <div ref={ref} className="relative">
+      <input
+        type="text"
+        value={search}
+        onChange={(e) => { setSearch(e.target.value); onChange(e.target.value); }}
+        onFocus={() => setOpen(true)}
+        placeholder="Type or select artist..."
+        className="w-full bg-[#0E0808] border border-white/10 rounded-lg px-4 py-2.5 font-body text-white text-xs placeholder:text-white/25 outline-none focus:border-[#C30100] transition-colors"
+      />
+      {open && filtered.length > 0 && (
+        <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-[#1A0808] border border-white/[0.07] rounded-lg shadow-xl max-h-40 overflow-y-auto">
+          {filtered.map((p) => {
+            const name = p.stageName || p.fullName;
+            return (
+              <button
+                key={p.id}
+                type="button"
+                onMouseDown={(e) => { e.preventDefault(); onChange(name, p.id); setSearch(name); setOpen(false); }}
+                className="w-full text-left px-4 py-2 font-body text-white text-xs hover:bg-white/[0.05] transition-colors"
+              >
+                {name}
+                {p.fullName && p.stageName ? <span className="text-white/30 ml-1">({p.fullName})</span> : null}
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
   );
 }
 

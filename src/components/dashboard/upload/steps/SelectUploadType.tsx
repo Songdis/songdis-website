@@ -110,8 +110,12 @@
 
 "use client";
 
+import { useState, useEffect } from "react";
 import type { ReleaseType } from "../UploadModal";
 import { StepHeader } from "../UploadModal";
+import { chat } from "@/lib/api/ayo";
+
+const FALLBACK_TIP = "Release consistently — one single every 4–6 weeks is the sweet spot for building algorithmic momentum right now.";
 
 const TYPES: {
   id: ReleaseType;
@@ -146,8 +150,30 @@ interface Props {
 }
 
 export default function SelectUploadType({ selected, onSelect, onContinue }: Props) {
+  const [ayoTip, setAyoTip] = useState<string>("");
+  const [ayoLoading, setAyoLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await chat([
+          { role: "user", content: "Based on my profile, release history, and streaming data, what upload type (Single, Album/EP, or Mixtape) do you recommend for me right now and why? Keep your response to 2-3 sentences max. Be specific to my situation." },
+        ]);
+        if (!cancelled && res.data?.reply) {
+          setAyoTip(res.data.reply);
+        }
+      } catch {
+        // use fallback
+      } finally {
+        if (!cancelled) setAyoLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
   return (
-    <div className="p-8">
+    <div className="p-4 sm:p-8">
       <StepHeader
         title="Select Upload Type"
         subtitle="What kind of release are you creating?"
@@ -190,14 +216,21 @@ export default function SelectUploadType({ selected, onSelect, onContinue }: Pro
 
       {/* Ayo tip */}
       <div className="flex items-start gap-3 rounded-xl border border-[#C30100]/20 bg-[#C30100]/5 px-4 py-4 mb-8">
-        <div className="w-8 h-8 rounded-full bg-[#C30100]/20 flex items-center justify-center shrink-0 mt-0.5">
-          <AyoIcon />
+        <div className="w-8 h-8 rounded-full shrink-0 mt-0.5 overflow-hidden">
+          <img src="/images/ayo.svg" alt="" className="w-full h-full object-contain" />
         </div>
-        <div>
-          <p className="font-body text-[#C30100] text-xs font-semibold mb-0.5">Ayo AI · Ayo on Singles</p>
-          <p className="font-body text-white/60 text-xs leading-relaxed">
-            Singles are ideal for your stage. They build algorithmic momentum faster than EPs. Release consistently, one single every 4–6 weeks is the sweet spot for Afrobeats right now
-          </p>
+        <div className="min-w-0">
+          <p className="font-body text-[#C30100] text-xs font-semibold mb-0.5">Ayo AI · Recommendation</p>
+          {ayoLoading ? (
+            <div className="space-y-1.5">
+              <div className="h-2.5 bg-white/10 rounded-full w-full animate-pulse" />
+              <div className="h-2.5 bg-white/10 rounded-full w-4/5 animate-pulse" />
+            </div>
+          ) : (
+            <p className="font-body text-white/60 text-xs leading-relaxed">
+              {ayoTip || FALLBACK_TIP}
+            </p>
+          )}
         </div>
       </div>
 
@@ -216,4 +249,3 @@ export default function SelectUploadType({ selected, onSelect, onContinue }: Pro
 function SingleIcon() { return <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3"/><path d="M12 9V3M15 12h6M12 15v6M9 12H3"/></svg>; }
 function AlbumIcon() { return <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r="1" fill="currentColor"/></svg>; }
 function MixtapeIcon() { return <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="2" y="6" width="20" height="14" rx="2"/><path d="M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2"/><circle cx="9" cy="13" r="2"/><circle cx="15" cy="13" r="2"/><path d="M11 13h2"/></svg>; }
-function AyoIcon() { return <svg width="14" height="14" viewBox="0 0 24 24" fill="#C30100"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>; }

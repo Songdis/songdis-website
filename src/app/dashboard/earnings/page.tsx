@@ -65,10 +65,9 @@ export default function EarningsPage() {
       <div className="flex flex-col gap-5">
 
         {/* Stat cards */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
            <StatCard label="Available Balance"  value={balanceLoading ? "..." : fmt(availableBalance)}  icon="/images/balance.svg"  highlight />
-           <StatCard label="This Month"     value={balanceLoading ? "..." : fmt(thisMonth)}     icon="/images/month.svg" />
-           <StatCard label="Total Balance"  value={balanceLoading ? "..." : fmt(totalEarnings)}  icon="/images/releases.svg" />
+           <StatCard label="Total Earnings"  value={balanceLoading ? "..." : fmt(totalEarnings)}  icon="/images/releases.svg" />
           <StatCard label="From Splits"    value={balanceLoading ? "..." : fmt(fromSplits)}    icon="/images/splits.svg" />
         </div>
 

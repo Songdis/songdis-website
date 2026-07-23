@@ -1,6 +1,5 @@
 import { request } from "./core";
 
-/* ─── Types ───────────────────────────────────────────────────── */
 export interface Curator {
   id: number;
   name: string;
@@ -58,15 +57,13 @@ export interface CreatePitchPayload {
   has_other_press: boolean;
 }
 
-/* ─── API functions ───────────────────────────────────────────── */
 
-/** GET /v1/pitches/curators?music_upload_id={id} */
 export async function getCurators(musicUploadId?: number) {
   const qs = musicUploadId ? `?music_upload_id=${musicUploadId}` : "";
   return request<Curator[]>(`/v1/pitches/curators${qs}`, { method: "GET" }, true);
 }
 
-/** POST /v1/pitches/check-eligibility */
+
 export async function checkEligibility(musicUploadId: number) {
   return request<{ eligible: boolean; reason?: string }>(
     "/v1/pitches/check-eligibility",
@@ -75,18 +72,15 @@ export async function checkEligibility(musicUploadId: number) {
   );
 }
 
-/** GET /v1/pitches?status={status} */
 export async function getPitches(status?: string) {
   const qs = status ? `?status=${status}` : "";
   return request<Pitch[]>(`/v1/pitches${qs}`, { method: "GET" }, true);
 }
 
-/** GET /v1/pitches/{id} */
 export async function getPitch(id: number) {
   return request<Pitch>(`/v1/pitches/${id}`, { method: "GET" }, true);
 }
 
-/** POST /v1/pitches */
 export async function createPitch(payload: CreatePitchPayload) {
   return request<Pitch>(
     "/v1/pitches",
@@ -95,7 +89,6 @@ export async function createPitch(payload: CreatePitchPayload) {
   );
 }
 
-/** PATCH /v1/pitches/{id} */
 export async function updatePitch(id: number, payload: Partial<CreatePitchPayload>) {
   return request<Pitch>(
     `/v1/pitches/${id}`,
@@ -104,7 +97,7 @@ export async function updatePitch(id: number, payload: Partial<CreatePitchPayloa
   );
 }
 
-/** POST /v1/pitches/{id}/submit */
+
 export async function submitPitch(id: number, payload: {
   release_story: string;
   similar_artists: string[];

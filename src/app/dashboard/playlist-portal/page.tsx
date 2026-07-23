@@ -17,14 +17,81 @@ import {
   type CreatePitchPayload,
 } from "@/lib/api/pitches";
 
-/* ─── Types ───────────────────────────────────────────────────── */
+
 type TabType = "available" | "approved" | "submissions";
 
 const MOOD_OPTIONS   = ["chill", "energetic", "romantic", "sad", "uplifting", "party", "spiritual", "afrobeats"];
 const ATTR_OPTIONS   = ["original", "cover", "remix", "live", "acoustic", "instrumental"];
 const STYLE_OPTIONS  = ["acoustic", "afrobeats", "afropop", "highlife", "amapiano", "afrosoul", "dancehall", "pop"];
 
-/* ─── Submit Pitch Modal ──────────────────────────────────────── */
+
+function PitchPortalHero({ onSubmitClick }: { onSubmitClick: () => void }) {
+  const partners = [
+    { name: "TIDAL Rising", sub: "TIDAL Editorial", color: "#1C2B4A", accent: "#3B6FE0", icon: <TidalIcon /> },
+    { name: "Fresh Finds", sub: "Spotify Editorial", color: "#0F3D28", accent: "#1ED760", icon: <SpotifyIcon /> },
+    { name: "New Music Daily", sub: "Apple Music", color: "#1A0808", accent: "#FA243C", icon: <AppleMusicIcon /> },
+    { name: "Sync Placements", sub: "Netflix", color: "#1A0808", accent: "#C30100", icon: <NetflixIcon /> },
+  ];
+
+  return (
+    <div className="rounded-2xl border border-white/[0.06] bg-[#180F0F] p-6 sm:p-8">
+      <h2 className="font-heading text-white text-2xl sm:text-3xl leading-tight mb-6">
+        Get your music<br />featured
+      </h2>
+
+      {/* Stacked partner cards */}
+      <div className="relative h-[180px] sm:h-[160px] mb-6">
+        {partners.map((p, i) => (
+          <div
+            key={p.name}
+            className="absolute left-0 right-0 rounded-xl border p-3.5 flex items-center gap-3 shadow-lg"
+            style={{
+              backgroundColor: p.color,
+              borderColor: `${p.accent}55`,
+              top: `${i * 34}px`,
+              transform: `translateX(${i * 16}px)`,
+              zIndex: i,
+              maxWidth: `calc(100% - ${i * 32}px)`,
+            }}
+          >
+            <div
+              className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0"
+              style={{ backgroundColor: p.accent }}
+            >
+              {p.icon}
+            </div>
+            <div className="min-w-0">
+              <p className="font-heading text-white text-sm font-semibold truncate">{p.name}</p>
+              <p className="font-body text-white/50 text-xs truncate">{p.sub}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <p className="font-body text-white/50 text-sm leading-relaxed max-w-md mb-6">
+        Submit your tracks to top editorial playlists, sync opportunities, brand
+        partnerships, and media placements — all in one place.
+      </p>
+
+      <div className="rounded-xl border border-dashed border-white/15 px-5 py-5 flex flex-col items-center gap-4">
+        <p className="font-body text-white/50 text-sm">Best shot is 4–6 weeks before release.</p>
+        <button
+          onClick={onSubmitClick}
+          className="font-heading text-white uppercase text-xs tracking-widest rounded-full bg-[#C30100] hover:bg-[#a80100] px-8 py-3.5 transition-colors min-h-[48px]"
+        >
+          Submit Release
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function TidalIcon() { return <svg width="14" height="14" viewBox="0 0 24 24" fill="white"><path d="M12 2l4 4-4 4-4-4 4-4zm-8 8l4 4-4 4-4-4 4-4zm16 0l4 4-4 4-4-4 4-4zm-8 8l4 4-4 4-4-4 4-4z"/></svg>; }
+function SpotifyIcon() { return <svg width="16" height="16" viewBox="0 0 24 24" fill="white"><path d="M12 2a10 10 0 100 20 10 10 0 000-20zm4.6 14.4a.6.6 0 01-.83.2c-2.27-1.4-5.15-1.7-8.53-.93a.6.6 0 11-.27-1.17c3.7-.85 6.87-.48 9.43 1.07a.6.6 0 01.2.83zm1.2-2.7a.75.75 0 01-1.04.25c-2.6-1.6-6.56-2.07-9.63-1.13a.75.75 0 11-.44-1.44c3.53-1.07 7.9-.55 10.86 1.28a.75.75 0 01.25 1.04zm.1-2.8C15.3 9.1 9.9 8.9 6.75 9.87a.9.9 0 11-.53-1.72c3.63-1.1 9.6-.87 13.4 1.4a.9.9 0 01-.92 1.55z"/></svg>; }
+function AppleMusicIcon() { return <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.5"><path d="M9 18V5l12-2v13M9 18a3 3 0 11-6 0 3 3 0 016 0zm12-2a3 3 0 11-6 0 3 3 0 016 0z"/></svg>; }
+function NetflixIcon() { return <span className="font-heading text-white text-sm font-bold">N</span>; }
+
+
 function SubmitPitchModal({
   curator,
   musicUploadId,
@@ -99,7 +166,6 @@ function SubmitPitchModal({
       has_other_press: false,
     };
 
-    // Create pitch then submit it
     const createRes = await createPitch(payload);
     if (createRes.error) {
       toastError("Submission failed", createRes.error);
@@ -247,7 +313,6 @@ function SubmitPitchModal({
   );
 }
 
-/* ─── Tag selector ────────────────────────────────────────────── */
 function TagSelect({ label, options, selected, onToggle }: {
   label: string; options: string[]; selected: string[]; onToggle: (v: string) => void;
 }) {
@@ -267,7 +332,6 @@ function TagSelect({ label, options, selected, onToggle }: {
   );
 }
 
-/* ─── Pitch status badge ──────────────────────────────────────── */
 function StatusBadge({ status }: { status: string }) {
   const map: Record<string, { label: string; color: string; bg: string; border: string }> = {
     approved:     { label: "Approved",     color: "#22c55e", bg: "rgba(34,197,94,0.10)",   border: "rgba(34,197,94,0.25)" },
@@ -285,7 +349,6 @@ function StatusBadge({ status }: { status: string }) {
   );
 }
 
-/* ─── Page ────────────────────────────────────────────────────── */
 export default function AmplifyPage() {
   const [tab, setTab] = useState<TabType>("available");
   const [curators, setCurators] = useState<Curator[]>([]);
@@ -338,6 +401,9 @@ export default function AmplifyPage() {
       customCta={{ label: "+ Submit Track", onClick: () => setTab("available") }}
     >
       <div className="flex flex-col gap-5">
+
+        {/* Hero / landing section — always visible */}
+        <PitchPortalHero onSubmitClick={() => setTab("available")} />
 
         {/* Release selector */}
         {releases.length > 0 && (
@@ -461,7 +527,6 @@ export default function AmplifyPage() {
   );
 }
 
-/* ─── Pitch card ──────────────────────────────────────────────── */
 function PitchCard({ pitch }: { pitch: Pitch }) {
   const title  = pitch.music_upload?.release_title ?? pitch.music_upload?.track_title ?? `Release #${pitch.music_upload_id}`;
   const artist = pitch.music_upload?.primary_artist ?? "";
@@ -497,7 +562,6 @@ function PitchCard({ pitch }: { pitch: Pitch }) {
   );
 }
 
-/* ─── Helpers ─────────────────────────────────────────────────── */
 function Field({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
   return (
     <div className="flex flex-col gap-1.5">

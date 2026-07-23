@@ -574,6 +574,12 @@ export interface RoyaltiesPageData {
     socialPlatforms: Array<{ platform: string; earnings: number; uses: number }>;
     streamingPlatforms: Array<{ platform: string; earnings: number; streams: number }>;
   };
+  monthlyTrends: Array<{
+    month: string;
+    earnings: number;
+    streams: number;
+    avgRate: number;
+  }>;
 }
 
 /* ─── Normaliser ──────────────────────────────────────────────── */
@@ -700,6 +706,12 @@ function normalise(
       socialPlatforms,
       streamingPlatforms,
     },
+    monthlyTrends: ((d.monthly_trends as Array<Record<string, unknown>>) ?? []).map((m) => ({
+      month: (m.month as string) ?? "",
+      earnings: parseFloat(String(m.total_earnings ?? 0)) || 0,
+      streams: (m.total_streams as number) ?? 0,
+      avgRate: parseFloat(String(m.avg_rate ?? 0)) || 0,
+    })),
   };
 }
 

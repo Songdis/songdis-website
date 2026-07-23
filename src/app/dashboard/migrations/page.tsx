@@ -127,7 +127,7 @@ export default function MigrationsPage() {
 
   return (
     <DashboardLayout>
-      <div className="p-8 max-h-[90vh] overflow-y-auto">
+      <div className="p-4 sm:p-8 max-h-[90vh] overflow-y-auto">
         {view === "list" ? (
           <MigrationList onStartNew={() => setView("new")} />
         ) : (
@@ -502,30 +502,30 @@ function MigrationWizard({ onBack, onSuccess }: { onBack: () => void; onSuccess:
             <h2 className="font-heading text-white uppercase text-sm tracking-widest mb-1">Find your artist on Spotify</h2>
             <p className="font-body text-white/40 text-xs">Search by artist name. We will show all their releases so you can pick what to migrate.</p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-col sm:flex-row gap-2">
             <input
               type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && searchArtists()}
               placeholder="e.g. Burna Boy, Wizkid, Tems..."
-              className="flex-1 bg-[#0E0808] border border-white/10 rounded-lg px-4 py-3 font-body text-white text-sm placeholder:text-white/25 outline-none focus:border-[#C30100] transition-colors"
+              className="flex-1 min-h-[48px] bg-[#0E0808] border border-white/10 rounded-lg px-4 py-3 font-body text-white text-sm placeholder:text-white/25 outline-none focus:border-[#C30100] transition-colors"
             />
             <button onClick={searchArtists} disabled={searching || !query.trim()}
-              className="font-heading text-white uppercase text-xs tracking-widest bg-[#C30100] hover:bg-[#C30100]/80 rounded-lg px-5 py-3 transition-colors disabled:opacity-40 flex items-center gap-2">
+              className="font-heading text-white uppercase text-xs tracking-widest bg-[#C30100] hover:bg-[#C30100]/80 rounded-lg px-5 py-3 transition-colors disabled:opacity-40 flex items-center justify-center gap-2 min-h-[48px]">
               {searching ? (
                 <svg className="animate-spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 12a9 9 0 11-6.219-8.56"/></svg>
               ) : (
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
               )}
-              {searching ? "Searching..." : "Search"}
+              <span className="hidden sm:inline">{searching ? "Searching..." : "Search"}</span>
             </button>
           </div>
           {artists.length > 0 && (
             <div className="flex flex-col gap-2">
               <p className="font-heading text-white/30 uppercase text-[10px] tracking-[0.25em]">Select your artist</p>
-              {artists.map((a) => (
-                <button key={a.spotify_id} onClick={() => pickArtist(a)}
+              {artists.map((a, i) => (
+                <button key={`${a.spotify_id}-${i}`} onClick={() => pickArtist(a)}
                   className="w-full flex items-center gap-3 p-3 rounded-xl border border-white/[0.06] hover:border-[#C30100]/40 hover:bg-[#C30100]/5 transition-all text-left group">
                   {a.image_url ? (
                     // eslint-disable-next-line @next/next/no-img-element
@@ -609,10 +609,10 @@ function MigrationWizard({ onBack, onSuccess }: { onBack: () => void; onSuccess:
                   : releases;
                 return (
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-[480px] overflow-y-auto pr-1">
-                    {filtered.map((r) => {
+                    {filtered.map((r, i) => {
                       const sel = selectedIds.has(r.id);
                       return (
-                        <button key={r.id} onClick={() => toggleRelease(r.id)}
+                        <button key={`${r.id}-${i}`} onClick={() => toggleRelease(r.id)}
                           className={[
                             "flex items-center gap-3 p-3 rounded-xl border text-left transition-all",
                             sel ? "border-[#C30100] bg-[#C30100]/5" : "border-white/[0.06] hover:border-white/20",

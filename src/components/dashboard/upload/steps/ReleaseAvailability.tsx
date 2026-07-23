@@ -1,8 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import Link from "next/link";
 import type { UploadState, StepFieldErrors } from "../UploadModal";
 import { StepHeader, StepProgress, StepActions } from "../UploadModal";
+import { useSubscription } from "@/lib/hooks/useSubscription";
 
 const DSP_LIST = [
   { id: "spotify", label: "Spotify", description: "Leading global streaming platform", color: "#1DB954" },
@@ -26,13 +28,24 @@ interface Props {
   onBack: () => void;
   onSubmit: () => void;
   onQuickDrop: () => void;
+  onSaveDraft?: () => void;
   isSubmitting?: boolean;
   fieldErrors?: StepFieldErrors;
   clearFieldError?: (key: string) => void;
 }
 
-export default function ReleaseAvailability({ state, update, onBack, onSubmit, onQuickDrop, isSubmitting, fieldErrors = {}, clearFieldError }: Props) {
+export default function ReleaseAvailability({ state, update, onBack, onSubmit, onQuickDrop, onSaveDraft, isSubmitting, fieldErrors = {}, clearFieldError }: Props) {
   const [search, setSearch] = useState("");
+  const { planName, isActive, isContractPlan } = useSubscription();
+  const isBasicPlan = !isActive || !planName || (!isContractPlan && (planName.toLowerCase().includes("basic") || planName.toLowerCase().includes("free")));
+
+  // Auto-select all platforms when first reaching this step
+  useEffect(() => {
+    if (state.selectedDSPs.length === 0) {
+      update({ selectedDSPs: DSP_LIST.map((d) => d.id) });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const toggleDSP = (id: string) => {
     const current = state.selectedDSPs;
@@ -46,6 +59,12 @@ export default function ReleaseAvailability({ state, update, onBack, onSubmit, o
   const selectAll = () => update({ selectedDSPs: DSP_LIST.map((d) => d.id) });
   const clearAll = () => update({ selectedDSPs: [] });
 
+  const getMinReleaseDate = () => {
+    const d = new Date();
+    d.setDate(d.getDate() + 7);
+    return d.toISOString().split("T")[0];
+  };
+
   const filtered = DSP_LIST.filter((d) =>
     d.label.toLowerCase().includes(search.toLowerCase())
   );
@@ -53,12 +72,26 @@ export default function ReleaseAvailability({ state, update, onBack, onSubmit, o
   const canSubmit = state.releaseDate && state.agreedToTerms;
 
   return (
-    <div className="p-8 max-h-[90vh] overflow-y-auto">
+    <div className="p-4 sm:p-8 max-h-[90vh] overflow-y-auto">
       <StepHeader
         title="Release Availability"
         subtitle="Configure distribution settings, territories, and platforms"
       />
       <StepProgress current={3} />
+
+      {/* Upgrade prompt for Basic plan users */}
+      {isBasicPlan && (
+        <div className="border border-[#C30100]/30 bg-[#C30100]/5 rounded-xl p-4 mb-5 flex items-center justify-between gap-4">
+          <div>
+            <p className="font-body text-white text-sm font-medium">Growth Plan Required</p>
+            <p className="font-body text-white/40 text-xs mt-1">Upgrade to Growth plan to distribute to all 13 platforms worldwide.</p>
+          </div>
+          <Link href="/dashboard/settings"
+            className="font-heading text-white uppercase text-[10px] tracking-widest bg-[#C30100] hover:bg-[#C30100]/80 rounded-full px-4 py-2 transition-colors shrink-0">
+            Upgrade
+          </Link>
+        </div>
+      )}
 
       <div className="flex flex-col gap-5">
         {/* Timeline */}
@@ -102,7 +135,7 @@ export default function ReleaseAvailability({ state, update, onBack, onSubmit, o
                 <label className="font-body text-white/70 text-xs">Release Date</label>
                 <button
                   onClick={onQuickDrop}
-                  className="font-heading text-white uppercase text-[10px] tracking-widest bg-[#C30100]/20 hover:bg-[#C30100]/40 border border-[#C30100]/50 rounded-full px-3 py-1 transition-colors"
+                  className="font-heading text-white uppercase text-[10px] tracking-widest bg-[#C30100]/20 hover:bg-[#C30100]/40 border border-[#C30100]/50 rounded-full px-3 py-1 transition-colors whitespace-nowrap"
                 >
                   Quick Drop
                 </button>
@@ -111,6 +144,7 @@ export default function ReleaseAvailability({ state, update, onBack, onSubmit, o
                 <input
                   type="date"
                   value={state.releaseDate}
+                  min={getMinReleaseDate()}
                   onChange={(e) => { update({ releaseDate: e.target.value }); clearFieldError?.("releaseDate"); }}
                   className={`w-full bg-[#0E0808] border rounded-lg px-4 py-3 font-body text-white text-sm outline-none transition-colors [color-scheme:dark] ${
                     fieldErrors.releaseDate ? "border-[#C30100]" : "border-white/10 focus:border-[#C30100]"
@@ -119,7 +153,7 @@ export default function ReleaseAvailability({ state, update, onBack, onSubmit, o
               </div>
               {fieldErrors.releaseDate && <p className="font-body text-[#C30100] text-xs mt-1">{fieldErrors.releaseDate}</p>}
               <p className="font-body text-white/30 text-[11px] mt-1">
-                Minimum 7-14 days from today. Need it faster? Try{" "}
+                Minimum 7 days from today. Need it faster? Try{" "}
                 <button onClick={onQuickDrop} className="text-[#C30100] hover:underline">Quick Drop</button>
               </p>
             </div>
@@ -172,7 +206,7 @@ export default function ReleaseAvailability({ state, update, onBack, onSubmit, o
                 className="flex-1 bg-transparent font-body text-white text-sm placeholder:text-white/25 outline-none"
               />
             </div>
-            <button className="font-heading text-white uppercase text-[10px] tracking-widest bg-[#C30100]/20 hover:bg-[#C30100]/40 border border-[#C30100]/50 rounded-lg px-4 transition-colors">
+            <button className="hidden sm:block font-heading text-white uppercase text-[10px] tracking-widest bg-[#C30100]/20 hover:bg-[#C30100]/40 border border-[#C30100]/50 rounded-lg px-4 transition-colors">
               Search
             </button>
           </div>
@@ -258,7 +292,7 @@ export default function ReleaseAvailability({ state, update, onBack, onSubmit, o
       <div className="mt-8">
         <StepActions
           onBack={onBack}
-          onSaveDraft={() => {}}
+          onSaveDraft={onSaveDraft}
           onContinue={onSubmit}
           continueLabel="Submit Release"
           isSubmit

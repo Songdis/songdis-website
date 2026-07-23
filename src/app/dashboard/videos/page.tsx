@@ -2,8 +2,10 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import DashboardLayout from "@/components/dashboard/DashboardLayout";
 import { useToast } from "@/components/ui/Toast";
+import { useSubscription } from "@/lib/hooks/useSubscription";
 import { fetchVideos, getMusic, submitVideo, type VideoRecord, type VideoStats } from "@/lib/api/music";
 import type { Release } from "@/lib/api/music";
 
@@ -27,13 +29,12 @@ const PLANS = [
 const LIMITED_TYPES = ["behind-the-scenes", "visualizer", "track-video"];
 
 const PRE_SUBMIT_NOTES = [
-  { title: "One fee, one video", text: "Each payment covers exactly one video. Plans start at ₦29,999.", color: "default" as const },
+  { title: "One video at a time", text: "Each video goes through our review process before distribution.", color: "default" as const },
   { title: "Not every video type goes everywhere", text: "Visualizers, BTS, and Track Videos go to fewer platforms.", color: "default" as const },
-  { title: "Royalties take time", text: "Video royalties arrive 2–3 months after release, reported monthly.", color: "default" as const },
+  { title: "Royalties take time", text: "Video royalties arrive 2-3 months after release, reported monthly.", color: "default" as const },
   { title: "Royalty split: 70% to you", text: "SongDis keeps 30%.", color: "default" as const },
-  { title: "No refunds after delivery", text: "No refunds once delivered to platforms.", color: "warning" as const },
-  { title: "Spotify US needs publishing rights", text: "Must be registered with MLC, all songwriters listed.", color: "default" as const },
-  { title: "Need help?", text: "Contact via email reply or WhatsApp, 24h response M–F.", color: "muted" as const },
+  { title: "Growth plan required", text: "Video distribution is available exclusively for Growth plan subscribers.", color: "warning" as const },
+  { title: "Need help?", text: "Contact via email reply or WhatsApp, 24h response M-F.", color: "muted" as const },
 ];
 
 const STATUS_COLORS: Record<string, string> = {
@@ -116,6 +117,8 @@ export default function VideosPage() {
   const [submitting, setSubmitting] = useState(false);
   const thumbRef = useRef<HTMLInputElement>(null);
   const { success: toastSuccess, error: toastError } = useToast();
+  const { planName, isActive, isContractPlan } = useSubscription();
+  const isGrowthPlan = !!(planName && isActive && (planName.toLowerCase().includes("growth") || planName.toLowerCase().includes("pro") || planName.toLowerCase().includes("unlimited") || isContractPlan));
 
   const update = useCallback((patch: Partial<FormData>) => setForm((f) => ({ ...f, ...patch })), []);
 
@@ -213,10 +216,8 @@ export default function VideosPage() {
       const res = await submitVideo(fd);
       if (res.error) {
         toastError("Submission failed", res.error);
-      } else if (res.data?.payment_url) {
-        window.location.href = res.data.payment_url;
       } else {
-        toastSuccess("Video submitted!", "Payment reference received.");
+        toastSuccess("Video submitted!", "Your video has been submitted for distribution.");
         setForm(EMPTY_FORM); setStep(1); setAcknowledged(false); setView("list");
       }
     } catch {
@@ -232,6 +233,7 @@ export default function VideosPage() {
         {view === "list" && (
           <VideosList
             videos={videos} stats={stats} loading={listLoading}
+            isGrowthPlan={isGrowthPlan}
             onStartNew={() => { setView("pre-submit"); setForm(EMPTY_FORM); setStep(1); setAcknowledged(false); }}
           />
         )}
@@ -252,8 +254,8 @@ export default function VideosPage() {
 
 /* ─── List View ─────────────────────────────────────────────── */
 
-function VideosList({ videos, stats, loading, onStartNew }: {
-  videos: VideoRecord[]; stats: VideoStats; loading: boolean; onStartNew: () => void;
+function VideosList({ videos, stats, loading, isGrowthPlan, onStartNew }: {
+  videos: VideoRecord[]; stats: VideoStats; loading: boolean; isGrowthPlan: boolean; onStartNew: () => void;
 }) {
   return (
     <div className="flex flex-col gap-5">
@@ -262,11 +264,18 @@ function VideosList({ videos, stats, loading, onStartNew }: {
           <h1 className="font-heading text-white uppercase text-xl tracking-wide">Videos</h1>
           <p className="font-body text-white/50 text-sm mt-1">Distribute and track your music videos</p>
         </div>
-        <button onClick={onStartNew}
-          className="font-heading text-white uppercase text-xs tracking-widest bg-[#C30100] hover:bg-[#C30100]/80 rounded-full px-5 py-3 transition-colors flex items-center justify-center gap-2">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-          Submit New Video
-        </button>
+        {isGrowthPlan ? (
+          <button onClick={onStartNew}
+            className="font-heading text-white uppercase text-xs tracking-widest bg-[#C30100] hover:bg-[#C30100]/80 rounded-full px-5 py-3 transition-colors flex items-center justify-center gap-2">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Submit New Video
+          </button>
+        ) : (
+          <Link href="/dashboard/settings"
+            className="font-heading text-white uppercase text-xs tracking-widest bg-[#C30100]/20 border border-[#C30100]/40 hover:bg-[#C30100]/40 rounded-full px-5 py-3 transition-colors flex items-center justify-center gap-2">
+            Upgrade to Growth to submit videos
+          </Link>
+        )}
       </div>
 
       {/* Stats */}
@@ -296,9 +305,15 @@ function VideosList({ videos, stats, loading, onStartNew }: {
           </div>
           <h3 className="font-heading text-white uppercase text-sm tracking-widest mb-2">No videos yet</h3>
           <p className="font-body text-white/40 text-sm max-w-sm mx-auto mb-6">Submit your first music video for distribution across major platforms.</p>
-          <button onClick={onStartNew} className="font-heading text-white uppercase text-xs tracking-widest bg-[#C30100] hover:bg-[#C30100]/80 rounded-full px-6 py-3 transition-colors">
-            Submit your first video
-          </button>
+          {isGrowthPlan ? (
+            <button onClick={onStartNew} className="font-heading text-white uppercase text-xs tracking-widest bg-[#C30100] hover:bg-[#C30100]/80 rounded-full px-6 py-3 transition-colors">
+              Submit your first video
+            </button>
+          ) : (
+            <Link href="/dashboard/settings" className="font-heading text-white uppercase text-xs tracking-widest bg-[#C30100]/20 border border-[#C30100]/40 hover:bg-[#C30100]/40 rounded-full px-6 py-3 transition-colors inline-block">
+              Upgrade to Growth to submit videos
+            </Link>
+          )}
         </div>
       )}
 
@@ -478,8 +493,8 @@ function VideoForm({ step, form, update, releases, loadingReleases, onBack, onNe
                 {p.popular && (
                   <span className="absolute top-3 right-3 text-[8px] font-heading tracking-widest px-2 py-0.5 rounded bg-[#C30100]/20 text-[#C30100]">MOST POPULAR</span>
                 )}
-                <p className="font-heading text-white text-lg mb-0.5">{p.price}</p>
-                <p className="font-body text-white/30 text-xs mb-3">per video · {p.name}</p>
+                <p className="font-heading text-white text-lg mb-0.5">{p.name}</p>
+                <p className="font-body text-white/30 text-xs mb-3">Included with Growth plan</p>
                 <div className="flex flex-col gap-1">
                   {p.platforms.map((pl) => (
                     <div key={pl} className="flex items-center gap-1.5">
@@ -581,7 +596,7 @@ function VideoForm({ step, form, update, releases, loadingReleases, onBack, onNe
           <div className="bg-[#1A0808] border border-white/[0.07] rounded-xl p-5 flex flex-col gap-3">
             <div className="flex items-center justify-between">
               <span className="font-body text-white/50 text-sm">{PLANS.find((p) => p.id === form.plan)?.name}</span>
-              <span className="font-heading text-white text-sm">{PLANS.find((p) => p.id === form.plan)?.price}</span>
+              <span className="font-heading text-green-400 text-xs">Included with Growth</span>
             </div>
             <p className="font-body text-white/30 text-xs">{typeName(form.videoType)}</p>
           </div>
@@ -662,7 +677,7 @@ function VideoForm({ step, form, update, releases, loadingReleases, onBack, onNe
           <div className="bg-[#1A0808] border border-white/[0.07] rounded-xl p-5 grid grid-cols-2 gap-3 text-xs">
             <div className="bg-white/[0.03] rounded-lg p-2.5">
               <p className="font-body text-white/30 text-[10px] uppercase tracking-wider mb-0.5">Plan</p>
-              <p className="font-body text-white">{PLANS.find((p) => p.id === form.plan)?.name} · {PLANS.find((p) => p.id === form.plan)?.price}</p>
+              <p className="font-body text-white">{PLANS.find((p) => p.id === form.plan)?.name}</p>
             </div>
             <div className="bg-white/[0.03] rounded-lg p-2.5">
               <p className="font-body text-white/30 text-[10px] uppercase tracking-wider mb-0.5">Video type</p>
@@ -705,7 +720,7 @@ function VideoForm({ step, form, update, releases, loadingReleases, onBack, onNe
         className="font-heading text-white uppercase text-xs tracking-widest bg-[#C30100] hover:bg-[#C30100]/80 rounded-full py-3.5 transition-colors disabled:opacity-40 flex items-center justify-center gap-2">
         {submitting && <svg className="animate-spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 12a9 9 0 11-6.219-8.56"/></svg>}
         {step === 10
-          ? `Pay ${PLANS.find((p) => p.id === form.plan)?.price ?? ""}`
+          ? "Submit Video"
           : "Continue"}
       </button>
     </div>
