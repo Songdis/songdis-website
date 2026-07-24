@@ -654,6 +654,9 @@ export function useMusicStats(releases: NormalisedRelease[]) {
     totalReleases: releases.length,
     singles: releases.filter((r) => r.type === "single").length,
     albumsEps: releases.filter((r) => r.type === "album_ep").length,
-    live: releases.filter((r) => r.status === "live" || r.status === "distributed").length,
+    live: releases.filter((r) => {
+      const s = r.status?.toLowerCase() ?? "";
+      return s === "live" || s === "distributed";
+    }).length,
   };
 }

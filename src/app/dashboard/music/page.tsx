@@ -102,7 +102,7 @@ export default function YourMusicPage() {
       list = list.filter((r) => r.title.toLowerCase().includes(q) || r.artist.toLowerCase().includes(q));
     }
     if (filterType !== "all") list = list.filter((r) => r.type === filterType);
-    if (filterStatus !== "all") list = list.filter((r) => r.status === filterStatus);
+    if (filterStatus !== "all") list = list.filter((r) => r.status?.toLowerCase() === filterStatus);
     if (filterSort === "oldest") list.reverse();
     return list;
   }, [releases, search, filterType, filterSort, filterStatus]);

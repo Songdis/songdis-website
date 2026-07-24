@@ -63,9 +63,9 @@ export default function DashboardPage() {
             </div>
             <div className="flex flex-col justify-center items-start px-5 py-6 flex-1">
               <p className="font-heading text-white uppercase text-sm tracking-wide leading-tight mb-5">Artist Spotlight of the Week</p>
-              <button className="font-heading text-white uppercase text-xs tracking-widest border border-[#C30100] rounded-full px-5 py-2.5 hover:bg-[#C30100] transition-all">
+              <a href="https://blog.songdis.com/" target="_blank" rel="noopener noreferrer" className="font-heading text-white uppercase text-xs tracking-widest border border-[#C30100] rounded-full px-5 py-2.5 hover:bg-[#C30100] transition-all">
                 Read Article
-              </button>
+              </a>
             </div>
           </div>
         </div>

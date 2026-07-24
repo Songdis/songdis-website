@@ -9,7 +9,6 @@ import {
   type NotificationType,
 } from "@/lib/api/notifications";
 
-/* ─── Time formatting ─────────────────────────────────────────── */
 function timeAgo(dateStr: string): string {
   const now = Date.now();
   const then = new Date(dateStr).getTime();
@@ -22,7 +21,6 @@ function timeAgo(dateStr: string): string {
   return new Date(dateStr).toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
-/* ─── Type icons ──────────────────────────────────────────────── */
 function TypeIcon({ type }: { type: NotificationType }) {
   const iconClass = "w-4 h-4";
   switch (type) {
@@ -67,7 +65,6 @@ function TypeIcon({ type }: { type: NotificationType }) {
   }
 }
 
-/* ─── Component ───────────────────────────────────────────────── */
 interface NotificationPanelProps {
   isOpen: boolean;
   onClose: () => void;
@@ -108,7 +105,7 @@ export default function NotificationPanel({ isOpen, onClose, onCountChange }: No
     }
   }, [isOpen, fetchNotifications]);
 
-  /* Close on outside click */
+
   useEffect(() => {
     if (!isOpen) return;
     function handleClick(e: MouseEvent) {

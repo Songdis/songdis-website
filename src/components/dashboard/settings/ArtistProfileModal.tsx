@@ -5,7 +5,6 @@ import { createProfile, searchSpotifyArtists, verifySpotifyUrl } from "@/lib/api
 import type { SpotifyArtist } from "@/lib/api/auth";
 import { useToast } from "@/components/ui/Toast";
 
-/* ─── Types ───────────────────────────────────────────────────── */
 export type ProfileModalStep = "info" | "social";
 
 export interface ArtistProfile {
@@ -27,7 +26,6 @@ export interface ArtistProfile {
   avatar: string;
 }
 
-/* ─── Shared UI Primitives ────────────────────────────────────── */
 function Field({
   label,
   children,

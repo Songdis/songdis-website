@@ -1,5 +1,7 @@
 "use client";
 
+import Image from "next/image";
+
 interface SubmittedProps {
   onClose: () => void;
   onPitchDSPs: () => void;
@@ -38,33 +40,33 @@ export default function SubmittedModal({ onClose, onPitchDSPs }: SubmittedProps)
         <div className="relative h-40 mb-6 sm:mb-8 flex items-center justify-center scale-75 sm:scale-100">
           {/* Back card: TIDAL */}
           <div
-            className="absolute w-44 rounded-xl bg-[#0E1420] border border-blue-400/[0.15] p-3 text-left shadow-lg"
+            className="absolute w-56 rounded-xl bg-[#0E1420] border border-blue-400/[0.15] p-4 text-left shadow-lg"
             style={{ transform: "translate(-64px, -18px) rotate(-10deg)", zIndex: 1 }}
           >
-            <div className="flex items-center gap-2 mb-6">
+            <div className="flex items-center gap-2.5 mb-8">
               <TidalIcon />
               <div>
-                <p className="font-body text-white text-xs font-semibold leading-tight">TIDAL Rising</p>
-                <p className="font-body text-white/30 text-[10px]">TIDAL · Editorial</p>
+                <p className="font-body text-white text-sm font-semibold leading-tight">TIDAL Rising</p>
+                <p className="font-body text-white/30 text-xs mt-0.5">TIDAL · Editorial</p>
               </div>
             </div>
           </div>
 
           {/* Middle card: Spotify */}
           <div
-            className="absolute w-44 rounded-xl bg-[#0E1410] border border-green-400/[0.15] p-3 text-left shadow-lg"
+            className="absolute w-56 rounded-xl bg-[#0E1410] border border-green-400/[0.15] p-4 text-left shadow-lg"
             style={{ transform: "translate(-24px, -6px) rotate(-5deg)", zIndex: 2 }}
           >
-            <div className="flex items-center gap-2 mb-6">
+            <div className="flex items-center gap-2.5 mb-8">
               <SpotifyIcon />
               <div>
-                <p className="font-body text-white text-xs font-semibold leading-tight">Fresh Finds</p>
-                <p className="font-body text-white/30 text-[10px]">Spotify · Editorial</p>
+                <p className="font-body text-white text-sm font-semibold leading-tight">Fresh Finds</p>
+                <p className="font-body text-white/30 text-xs mt-0.5">Spotify · Editorial</p>
               </div>
             </div>
           </div>
 
-          {/* Front card: Apple Music, with thumbnails */}
+          {/* Front card: Apple Music, with real thumbnails */}
           <div
             className="absolute w-52 rounded-xl bg-[#150808] border border-white/[0.08] p-3 text-left shadow-2xl"
             style={{ transform: "translate(20px, 8px) rotate(3deg)", zIndex: 3 }}
@@ -77,9 +79,15 @@ export default function SubmittedModal({ onClose, onPitchDSPs }: SubmittedProps)
               </div>
             </div>
             <div className="flex gap-1.5">
-              <div className="w-10 h-10 rounded-md bg-gradient-to-br from-orange-400 to-red-600" />
-              <div className="w-10 h-10 rounded-md bg-gradient-to-br from-fuchsia-400 to-indigo-600" />
-              <div className="w-10 h-10 rounded-md bg-gradient-to-br from-sky-400 to-blue-700" />
+              <div className="relative flex-1 aspect-square rounded-md overflow-hidden">
+                <Image src="/images/pitch-thumb-1.png" alt="Africa Now" fill className="object-cover" />
+              </div>
+              <div className="relative flex-1 aspect-square rounded-md overflow-hidden">
+                <Image src="/images/pitch-thumb-2.png" alt="Playlist cover" fill className="object-cover" />
+              </div>
+              <div className="relative flex-1 aspect-square rounded-md overflow-hidden">
+                <Image src="/images/pitch-thumb-3.png" alt="Heat" fill className="object-cover" />
+              </div>
             </div>
           </div>
         </div>

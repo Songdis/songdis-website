@@ -716,7 +716,7 @@ function normalise(
 }
 
 /* ─── Hook ────────────────────────────────────────────────────── */
-export function useRoyalties(period: string, platform: string) {
+export function useRoyalties(platform: string = "all") {
   const [data, setData] = useState<RoyaltiesPageData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -725,7 +725,7 @@ export function useRoyalties(period: string, platform: string) {
     setIsLoading(true);
     setError(null);
 
-    const params: RoyaltiesParams = { ...periodToDates(period), platform };
+    const params: RoyaltiesParams = { platform };
 
     const [royaltiesRes, socialRes] = await Promise.all([
       getRoyalties(params),
@@ -742,12 +742,9 @@ export function useRoyalties(period: string, platform: string) {
       ));
     }
     setIsLoading(false);
-  }, [period, platform]);
+  }, [platform]);
 
   useEffect(() => { load(); }, [load]);
 
   return { data, isLoading, error, refresh: load };
 }
-
-export const TIME_PERIODS = ["Last 7 days", "Last 3 months", "Last Year", "Last 2 years"];
-export const PLATFORMS    = ["All Platforms", "Spotify", "Apple Music", "YouTube Music", "Audiomack", "Boomplay"];

@@ -86,7 +86,6 @@ export function GeneralTab() {
   const [isEditingIdentity, setIsEditingIdentity] = useState(false);
 
   // Editable fields
-  const [accountType, setAccountType] = useState("");
   const [address,     setAddress]     = useState("");
   const [city,        setCity]        = useState("");
   const [state,       setState]       = useState("");
@@ -113,7 +112,6 @@ export function GeneralTab() {
         setFirstName((user.first_name   ?? "") as string);
         setLastName( (user.last_name    ?? "") as string);
         setEmail(    (user.email        ?? "") as string);
-        setAccountType((user.account_type ?? "") as string);
         setAddress(  (user.address      ?? "") as string);
         setCity(     (user.city         ?? "") as string);
         setState(    (user.state        ?? "") as string);
@@ -270,23 +268,6 @@ export function GeneralTab() {
             </Field>
           </div>
         )}
-
-        {/* Account type */}
-        <Field label="Account Type">
-          <div className="relative">
-            <select
-              value={accountType}
-              onChange={(e) => setAccountType(e.target.value)}
-              className="w-full appearance-none bg-[#0E0808] border border-white/10 rounded-lg px-4 py-3 font-montserrat text-white text-sm outline-none focus:border-[#C30100] transition-colors pr-8"
-            >
-              <option value="">Select type</option>
-              <option value="artist">Artist</option>
-              <option value="label">Label</option>
-              <option value="manager">Manager</option>
-            </select>
-            <ChevronDownIcon className="absolute right-3 top-1/2 -translate-y-1/2 text-white/30 pointer-events-none" />
-          </div>
-        </Field>
 
         <Field label="Address">
           <Input value={address} onChange={setAddress} placeholder="Enter your address" />
