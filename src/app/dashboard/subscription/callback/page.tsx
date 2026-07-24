@@ -1,12 +1,12 @@
 "use client";
 
-import { useEffect, useState, useRef, useCallback } from "react";
+import { Suspense, useEffect, useState, useRef, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 
 type Status = "loading" | "success" | "processing" | "error";
 
-export default function SubscriptionCallbackPage() {
+function CallbackContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [status, setStatus] = useState<Status>("loading");
@@ -51,9 +51,7 @@ export default function SubscriptionCallbackPage() {
     if (paymentStatus === "success") {
       setStatus("success");
       setMessage(msg ?? "Payment confirmed! Activating your subscription...");
-      // Poll to verify subscription is active
       pollRef.current = setInterval(verifySubscription, 3000);
-      // Also do an immediate check
       verifySubscription();
     } else if (paymentStatus === "processing") {
       setStatus("processing");
@@ -72,7 +70,6 @@ export default function SubscriptionCallbackPage() {
   return (
     <div className="min-h-screen bg-[#0A0505] flex items-center justify-center p-4">
       <div className="w-full max-w-md rounded-2xl bg-[#1A0808] border border-white/[0.07] p-8 text-center">
-        {/* Status icon */}
         <div className="flex justify-center mb-6">
           {status === "loading" && (
             <svg className="animate-spin" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#C30100" strokeWidth="2">
@@ -96,7 +93,7 @@ export default function SubscriptionCallbackPage() {
           {status === "error" && (
             <svg width="64" height="64" viewBox="0 0 64 64" fill="none">
               <circle cx="32" cy="32" r="30" stroke="#C30100" strokeWidth="2" opacity="0.5" />
-              <path d="M24 24L40 40M40 24L24 40" stroke="#C30100" strokeWidth="2.5" strokeLinecap="round" />
+              <path d="M24 24L40 40M40 24L24 40" stroke="#C30100" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
           )}
         </div>
@@ -134,5 +131,24 @@ export default function SubscriptionCallbackPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function SubscriptionCallbackPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-[#0A0505] flex items-center justify-center p-4">
+          <div className="w-full max-w-md rounded-2xl bg-[#1A0808] border border-white/[0.07] p-8 text-center">
+            <svg className="animate-spin mx-auto" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#C30100" strokeWidth="2">
+              <path d="M21 12a9 9 0 11-6.219-8.56"/>
+            </svg>
+            <p className="font-body text-white/40 text-sm mt-6">Loading...</p>
+          </div>
+        </div>
+      }
+    >
+      <CallbackContent />
+    </Suspense>
   );
 }
