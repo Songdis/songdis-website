@@ -91,7 +91,7 @@ export async function getRoyalties(params: RoyaltiesParams = {}) {
   const query = new URLSearchParams();
   if (params.start_date) query.set("start_date", params.start_date);
   if (params.end_date)   query.set("end_date",   params.end_date);
-  if (params.platform && params.platform !== "All Platforms") {
+  if (params.platform && params.platform !== "All Platforms" && params.platform !== "all") {
     query.set("platform", params.platform.toLowerCase().replace(/\s+/g, "_"));
   }
   const qs = query.toString() ? `?${query.toString()}` : "";

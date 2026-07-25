@@ -823,7 +823,7 @@ function ViewDropdown({ value, onChange }: { value: AnalyticsView; onChange: (v:
 
 /* ─── Page ────────────────────────────────────────────────────── */
 export default function AnalyticsPage() {
-  const [period, setPeriod] = useState<Period>("90D");
+  const [period, setPeriod] = useState<Period>("1YR");
   const [view, setView] = useState<AnalyticsView>("overview");
   // DES-006: custom date range state
   const [customStart, setCustomStart] = useState("");

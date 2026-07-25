@@ -429,9 +429,18 @@ export async function getYearlyReport() {
   );
 }
 
-export async function getSoundchartsDashboard() {
+export async function getSoundchartsStatus() {
   return request<Record<string, unknown>>(
-    "/soundcharts/dashboard",
+    "/soundcharts/status",
+    { method: "GET" },
+    true
+  );
+}
+
+export async function getSoundchartsDashboard(linkId?: number | string) {
+  const qs = linkId ? `?link_id=${linkId}` : "";
+  return request<Record<string, unknown>>(
+    `/soundcharts/dashboard${qs}`,
     { method: "GET" },
     true
   );

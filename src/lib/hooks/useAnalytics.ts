@@ -633,12 +633,9 @@
 import { useState, useEffect, useCallback } from "react";
 import {
   getStreams,
-  getTopReleases,
-  getTopPlatforms,
   getGeographic,
+  getSoundchartsStatus,
   getSoundchartsDashboard,
-  type TopRelease,
-  type TopPlatform,
   type GeographicData,
   type DateRangeParams,
 } from "@/lib/api/analytics";
@@ -750,28 +747,21 @@ const COUNTRY_CODES: Record<string, string> = {
 const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 
 function normalise(
-  // summaryNoParams: totals without date filter (for stat cards)
-  summaryNoParams: Record<string, unknown> | null,
-  // summaryWithParams: filtered by date range (for chart + top songs + platforms)
-  summaryWithParams: Record<string, unknown> | null,
-  releases: TopRelease[],
-  platforms: TopPlatform[],
+  summary: Record<string, unknown> | null,
   geographic: GeographicData[],
   soundcharts: Record<string, unknown> | null
 ): AnalyticsPageData {
-  // Stat cards come from the unfiltered /streams call (no date params)
-  const rawNoParams = unwrapObj(summaryNoParams);
-  const overviewNoParams = (rawNoParams.overview as Record<string, unknown>) ?? rawNoParams;
+  // All data comes from the date-filtered /streams call (same as old app)
+  const raw = unwrapObj(summary);
 
-  const totalStreams     = (overviewNoParams.total_streams         as number) ?? 0;
-  const avgPerDay       = (overviewNoParams.avg_streams_per_day   as number) ?? (overviewNoParams.avg_per_day as number) ?? 0;
-  const uniqueReleases  = (overviewNoParams.total_active_releases as number) ?? (overviewNoParams.unique_releases as number) ?? 0;
-  const countries       = (overviewNoParams.total_countries       as number) ?? (overviewNoParams.territories_reached as number) ?? 0;
-  const activePlatforms = (overviewNoParams.total_platforms       as number) ?? (overviewNoParams.active_platforms as number) ?? 0;
-  const playlists       = (overviewNoParams.playlists             as number) ?? 0;
-
-  // Chart data, Top Songs, Platform breakdown — from filtered /streams call
-  const raw = unwrapObj(summaryWithParams ?? summaryNoParams);
+  // Stat cards from overview
+  const overview = (raw.overview as Record<string, unknown>) ?? {};
+  const totalStreams     = (overview.total_streams         as number) ?? 0;
+  const avgPerDay       = (overview.avg_streams_per_day   as number) ?? (overview.avg_per_day as number) ?? 0;
+  const uniqueReleases  = (overview.total_active_releases as number) ?? (overview.unique_releases as number) ?? 0;
+  const countries       = (overview.total_countries       as number) ?? (overview.territories_reached as number) ?? 0;
+  const activePlatforms = (overview.total_platforms       as number) ?? (overview.active_platforms as number) ?? 0;
+  const playlists       = (overview.playlists             as number) ?? 0;
 
   // Streams over time — from daily_streams
   const dailyStreams = (raw.daily_streams as Array<Record<string, unknown>>) ?? [];
@@ -784,72 +774,42 @@ function normalise(
     months = []; streams = []; revenue = [];
   }
 
-  // Top releases — confirmed: GET /top-releases never returns album_art_url
-  // (only release_name, upc, isrc, artists, total_streams, platforms).
-  // GET /streams's top_tracks DOES return album_art_url per track.
-  // Build a lookup from top_tracks keyed by isrc (most specific) and upc,
-  // so we can recover the correct cover for each /top-releases entry.
+  // Top releases — use top_tracks from /streams (same as old app's top_tracks from /dashboard)
+  // Deduplicate by title+artist (backend may return duplicates when same track has multiple ISRCs/uploads)
   const topTracksFromStreams = (raw.top_tracks as Array<Record<string, unknown>>) ?? [];
-  const artByIsrc = new Map<string, string>();
-  const artByUpc  = new Map<string, string>();
-  topTracksFromStreams.forEach((t) => {
-    const art = (t.album_art_url as string) ?? "";
-    if (!art) return;
-    if (t.isrc) artByIsrc.set(String(t.isrc), art);
-    if (t.upc)  artByUpc.set(String(t.upc), art);
-  });
+  const seen = new Map<string, { streams: number; entry: Record<string, unknown> }>();
+  for (const t of topTracksFromStreams) {
+    const title  = String(t.track_title ?? t.release_name ?? t.title ?? "").trim().toLowerCase();
+    const artist = String(t.primary_artist ?? t.artists ?? t.artist ?? "").trim().toLowerCase();
+    const key = `${title}|||${artist}`;
+    const streams = Number(t.total_streams ?? t.streams ?? t.plays) || 0;
+    if (!seen.has(key) || streams > seen.get(key)!.streams) {
+      seen.set(key, { streams, entry: t });
+    }
+  }
+  const dedupedTracks = Array.from(seen.values()).sort((a, b) => b.streams - a.streams);
 
-  const topReleases = releases.slice(0, 10).map((r, i) => {
-    const raw_r = r as Record<string, unknown>;
-    const isrc = raw_r.isrc as string | undefined;
-    const upc  = raw_r.upc as string | undefined;
-    // Prefer the release's own album_art_url if present, otherwise look up
-    // by isrc/upc against the top_tracks data which does carry artwork.
-    const cover = (r.album_art_url as string)
-      || (isrc && artByIsrc.get(isrc))
-      || (upc && artByUpc.get(upc))
-      || (r.cover as string)
-      || "";
-
+  const finalTopReleases = dedupedTracks.slice(0, 10).map((item, i) => {
+    const t = item.entry;
     return {
-      id: String(raw_r.upload_id ?? r.id ?? i),
+      id: String(t.upload_id ?? i),
       rank: i + 1,
-      title:  (raw_r.release_name ?? r.release_title ?? r.title ?? "") as string,
-      artist: (raw_r.artists ?? r.primary_artist ?? r.artist ?? "") as string,
-      cover,
-      streams: fmtNum(r.total_streams ?? r.streams ?? r.plays),
+      title:  (t.track_title ?? t.release_name ?? t.title ?? "") as string,
+      artist: (t.primary_artist ?? t.artists ?? t.artist ?? "") as string,
+      cover:  (t.album_art_url ?? t.cover ?? "") as string,
+      streams: fmtNum(item.streams),
     };
   });
 
-  const finalTopReleases = topReleases.length > 0
-    ? topReleases
-    : topTracksFromStreams.slice(0, 10).map((t, i) => ({
-        id: String(t.upload_id ?? i),
-        rank: i + 1,
-        title:  (t.track_title ?? "") as string,
-        artist: (t.primary_artist ?? "") as string,
-        cover:  (t.album_art_url ?? "") as string,
-        streams: fmtNum(t.total_streams as number),
-      }));
-
-  // Platform breakdown — from /top-platforms, fallback to platform_breakdown in /streams
-  const platformBreakdown = platforms.length > 0
-    ? platforms.map((p) => {
-        const key = ((p as Record<string, unknown>).platform as string ?? p.name ?? "").toLowerCase();
-        return {
-          name: key.charAt(0).toUpperCase() + key.slice(1).replace(/_/g, " "),
-          streams: ((p as Record<string, unknown>).total_streams as number) ?? (p.streams as number) ?? 0,
-          color: PLATFORM_COLORS[key] ?? "#888888",
-        };
-      })
-    : ((raw.platform_breakdown as Array<Record<string, unknown>>) ?? []).map((p) => {
-        const key = ((p.platform_name ?? p.platform ?? "") as string).toLowerCase();
-        return {
-          name: key.charAt(0).toUpperCase() + key.slice(1).replace(/_/g, " "),
-          streams: (p.total_streams as number) ?? 0,
-          color: PLATFORM_COLORS[key] ?? "#888888",
-        };
-      });
+  // Platform breakdown — use platform_breakdown from /streams (same as old app)
+  const platformBreakdown = ((raw.platform_breakdown as Array<Record<string, unknown>>) ?? []).map((p) => {
+    const key = ((p.platform_name ?? p.platform ?? "") as string).toLowerCase();
+    return {
+      name: key.charAt(0).toUpperCase() + key.slice(1).replace(/_/g, " "),
+      streams: (p.total_streams as number) ?? 0,
+      color: PLATFORM_COLORS[key] ?? "#888888",
+    };
+  });
 
   // Geographic — from geographic_summary.top_countries in /streams
   const topCountries = ((raw.geographic_summary as Record<string, unknown>)?.top_countries as Array<Record<string, unknown>>)
@@ -1066,33 +1026,35 @@ export function useAnalytics(period: string, customStart?: string, customEnd?: s
       ? { start_date: customStart, end_date: customEnd }
       : periodToParams(period);
 
-    // Fire two /streams calls in parallel:
-    // 1. No params → for stat cards (total streams, avg/day, releases, countries, platforms)
-    // 2. With date params → for charts, top songs, platform breakdown
+    // 1. Get Soundcharts link_id first (old app does status → dashboard with link_id)
+    let scLinkId: number | string | undefined;
+    try {
+      const statusRes = await getSoundchartsStatus();
+      if (!statusRes.error) {
+        const statusData = (statusRes.data as Record<string, unknown>) ?? {};
+        const links = (statusRes.data as Record<string, unknown>)?.links as Array<Record<string, unknown>> | undefined;
+        if (links && links.length > 0) {
+          scLinkId = links[0].id as number | string;
+        }
+      }
+    } catch { /* no link_id, fallback to backend default */ }
+
+    // 2. Fire /streams (date-filtered) and /soundcharts/dashboard (with link_id) in parallel
     const [
-      summaryNoParamsRes,
-      summaryWithParamsRes,
-      releasesRes,
-      platformsRes,
+      streamsRes,
       geoRes,
       soundchartsRes,
     ] = await Promise.allSettled([
-      getStreams({}),            // No params — gives totals
-      getStreams(dateParams),    // With date range — for chart data
-      getTopReleases(),
-      getTopPlatforms(),
+      getStreams(dateParams),      // Date-filtered — gives overview, top_tracks, platform_breakdown, daily_streams
       getGeographic(dateParams),
-      getSoundchartsDashboard(),
+      getSoundchartsDashboard(scLinkId),
     ]);
 
-    const summaryNoParams    = summaryNoParamsRes.status    === "fulfilled" && !summaryNoParamsRes.value.error    ? summaryNoParamsRes.value.data    as Record<string, unknown> : null;
-    const summaryWithParams  = summaryWithParamsRes.status  === "fulfilled" && !summaryWithParamsRes.value.error  ? summaryWithParamsRes.value.data  as Record<string, unknown> : null;
-    const releases    = releasesRes.status   === "fulfilled" && !releasesRes.value.error   ? unwrap<TopRelease>(releasesRes.value.data)  : [];
-    const platforms   = platformsRes.status  === "fulfilled" && !platformsRes.value.error  ? unwrap<TopPlatform>(platformsRes.value.data) : [];
-    const geo         = geoRes.status        === "fulfilled" && !geoRes.value.error        ? unwrap<GeographicData>(geoRes.value.data)   : [];
-    const soundcharts = soundchartsRes.status === "fulfilled" && !soundchartsRes.value.error ? soundchartsRes.value.data as Record<string, unknown> : null;
+    const streamsData    = streamsRes.status    === "fulfilled" && !streamsRes.value.error    ? streamsRes.value.data    as Record<string, unknown> : null;
+    const geo            = geoRes.status        === "fulfilled" && !geoRes.value.error        ? unwrap<GeographicData>(geoRes.value.data)   : [];
+    const soundcharts    = soundchartsRes.status === "fulfilled" && !soundchartsRes.value.error ? soundchartsRes.value.data as Record<string, unknown> : null;
 
-    setData(normalise(summaryNoParams, summaryWithParams, releases, platforms, geo, soundcharts));
+    setData(normalise(streamsData, geo, soundcharts));
     setIsLoading(false);
   }, [period, customStart, customEnd]);
 
