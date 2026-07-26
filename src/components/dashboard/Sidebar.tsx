@@ -42,46 +42,69 @@ function NavItem({
   item,
   pathname,
   collapsed,
+  isExpired,
 }: {
   item: { label: string; href: string; icon?: string; highlight?: boolean; badge?: string; svgIcon?: React.ReactNode };
   pathname: string;
   collapsed: boolean;
+  isExpired?: boolean;
 }) {
   const active = pathname === item.href;
+  const blocked = isExpired && item.href !== "/dashboard" && item.href !== "/dashboard/settings";
 
   return (
     <li className="relative group/item">
-      <Link
-        href={item.href}
-        className={[
-          "flex items-center gap-2 px-2.5 py-2 rounded-lg transition-all duration-200",
-          collapsed ? "justify-center" : "",
-          active
-            ? item.highlight
-              ? "bg-[#C30100]/20 text-[#C30100]"
-              : "bg-white/[0.08] text-white"
-            : "text-white/60 hover:text-white hover:bg-white/[0.05]",
-        ].join(" ")}
-      >
-        <span className={[
-          "shrink-0 w-4 h-4 relative transition-opacity flex items-center justify-center",
-          active ? "opacity-100" : "opacity-40 group-hover/item:opacity-70",
-        ].join(" ")}>
-          {item.svgIcon ?? (
-            item.icon ? <Image src={item.icon} alt={item.label} fill className="object-contain" unoptimized /> : null
-          )}
-        </span>
-        {!collapsed && (
-          <span className="font-body text-[13px] flex items-center gap-1.5 truncate">
-            {item.label}
-            {item.badge && (
-              <span className="text-[8px] font-heading tracking-widest px-1 py-px rounded-sm bg-[#C30100]/20 text-[#C30100] leading-none">
-                {item.badge}
-              </span>
+      {blocked ? (
+        <span
+          className={[
+            "flex items-center gap-2 px-2.5 py-2 rounded-lg transition-all duration-200 cursor-not-allowed opacity-30",
+            collapsed ? "justify-center" : "",
+          ].join(" ")}
+        >
+          <span className="shrink-0 w-4 h-4 relative flex items-center justify-center opacity-40">
+            {item.svgIcon ?? (
+              item.icon ? <Image src={item.icon} alt={item.label} fill className="object-contain" unoptimized /> : null
             )}
           </span>
-        )}
-      </Link>
+          {!collapsed && (
+            <span className="font-body text-[13px] flex items-center gap-1.5 truncate">
+              {item.label}
+            </span>
+          )}
+        </span>
+      ) : (
+        <Link
+          href={item.href}
+          className={[
+            "flex items-center gap-2 px-2.5 py-2 rounded-lg transition-all duration-200",
+            collapsed ? "justify-center" : "",
+            active
+              ? item.highlight
+                ? "bg-[#C30100]/20 text-[#C30100]"
+                : "bg-white/[0.08] text-white"
+              : "text-white/60 hover:text-white hover:bg-white/[0.05]",
+          ].join(" ")}
+        >
+          <span className={[
+            "shrink-0 w-4 h-4 relative transition-opacity flex items-center justify-center",
+            active ? "opacity-100" : "opacity-40 group-hover/item:opacity-70",
+          ].join(" ")}>
+            {item.svgIcon ?? (
+              item.icon ? <Image src={item.icon} alt={item.label} fill className="object-contain" unoptimized /> : null
+            )}
+          </span>
+          {!collapsed && (
+            <span className="font-body text-[13px] flex items-center gap-1.5 truncate">
+              {item.label}
+              {item.badge && (
+                <span className="text-[8px] font-heading tracking-widest px-1 py-px rounded-sm bg-[#C30100]/20 text-[#C30100] leading-none">
+                  {item.badge}
+                </span>
+              )}
+            </span>
+          )}
+        </Link>
+      )}
       {collapsed && (
         <div className="pointer-events-none absolute left-full top-1/2 -translate-y-1/2 ml-3 z-50 opacity-0 group-hover/item:opacity-100 transition-opacity duration-150">
           <div className="relative">
@@ -104,11 +127,13 @@ function NavSection({
   items,
   pathname,
   collapsed,
+  isExpired,
 }: {
   label: string;
   items: { label: string; href: string; icon?: string; highlight?: boolean; badge?: string; svgIcon?: React.ReactNode }[];
   pathname: string;
   collapsed: boolean;
+  isExpired?: boolean;
 }) {
   return (
     <div>
@@ -121,7 +146,7 @@ function NavSection({
       )}
       <ul className="flex flex-col gap-px">
         {items.map((item) => (
-          <NavItem key={item.href} item={item} pathname={pathname} collapsed={collapsed} />
+          <NavItem key={item.href} item={item} pathname={pathname} collapsed={collapsed} isExpired={isExpired} />
         ))}
       </ul>
     </div>
@@ -133,9 +158,11 @@ function NavSection({
 function ReleaseDropdown({
   pathname,
   collapsed,
+  isExpired,
 }: {
   pathname: string;
   collapsed: boolean;
+  isExpired?: boolean;
 }) {
   const isActive = RELEASE_CHILDREN.some((c) => pathname === c.href || pathname.startsWith(c.href + "/"));
   const [open, setOpen] = useState(isActive);
@@ -143,6 +170,21 @@ function ReleaseDropdown({
   useEffect(() => {
     if (isActive) setOpen(true);
   }, [isActive]);
+
+  if (isExpired) {
+    return (
+      <li className="relative group/item">
+        <span className="flex items-center gap-2 px-2.5 py-2 rounded-lg transition-all duration-200 cursor-not-allowed opacity-30">
+          <span className="shrink-0 w-4 h-4 relative flex items-center justify-center opacity-40">
+            <ReleaseIcon />
+          </span>
+          {!collapsed && (
+            <span className="font-body text-[13px] flex-1">Release</span>
+          )}
+        </span>
+      </li>
+    );
+  }
 
   return (
     <li className="relative group/item">
@@ -291,8 +333,13 @@ interface SidebarProps {
 export default function Sidebar({ onClose, isMobile, user }: SidebarProps) {
   const displayName = user ? `${user.first_name} ${user.last_name}`.trim() : "Artist";
   const avatar = user?.avatar_url || "/images/avatar-artiste.svg";
-  const { planName } = useSubscription(0);
+  const { planName, isExpired, endDate } = useSubscription(0);
   const plan = planName ?? "Free Plan";
+  const expiryLabel = isExpired
+    ? "Expired"
+    : endDate && Math.ceil((new Date(endDate).getTime() - Date.now()) / 86400000) <= 3
+      ? `Expires ${Math.max(0, Math.ceil((new Date(endDate).getTime() - Date.now()) / 86400000))}d`
+      : null;
   const pathname = usePathname();
   const router = useRouter();
   const [collapsed, setCollapsed] = useState(false);
@@ -347,16 +394,16 @@ export default function Sidebar({ onClose, isMobile, user }: SidebarProps) {
         <div>
           <p className="font-heading text-white/30 uppercase text-[10px] tracking-[0.25em] px-2.5 mb-1.5">Main</p>
           <ul className="flex flex-col gap-px">
-            <NavItem item={MAIN_NAV[0]} pathname={pathname} collapsed={collapsed} />
-            <ReleaseDropdown pathname={pathname} collapsed={collapsed} />
+            <NavItem item={MAIN_NAV[0]} pathname={pathname} collapsed={collapsed} isExpired={isExpired} />
+            <ReleaseDropdown pathname={pathname} collapsed={collapsed} isExpired={isExpired} />
             {MAIN_NAV.slice(1).map((item) => (
-              <NavItem key={item.href} item={item} pathname={pathname} collapsed={collapsed} />
+              <NavItem key={item.href} item={item} pathname={pathname} collapsed={collapsed} isExpired={isExpired} />
             ))}
           </ul>
         </div>
-        <NavSection label="AI Tools"     items={AI_TOOLS}     pathname={pathname} collapsed={collapsed} />
-        <NavSection label="Artist Tools" items={ARTIST_TOOLS} pathname={pathname} collapsed={collapsed} />
-        <NavSection label="Settings"     items={SETTINGS_NAV} pathname={pathname} collapsed={collapsed} />
+        <NavSection label="AI Tools"     items={AI_TOOLS}     pathname={pathname} collapsed={collapsed} isExpired={isExpired} />
+        <NavSection label="Artist Tools" items={ARTIST_TOOLS} pathname={pathname} collapsed={collapsed} isExpired={isExpired} />
+        <NavSection label="Settings"     items={SETTINGS_NAV} pathname={pathname} collapsed={collapsed} isExpired={isExpired} />
       </nav>
 
       {/* Bottom */}
@@ -391,7 +438,7 @@ export default function Sidebar({ onClose, isMobile, user }: SidebarProps) {
             <div className="pointer-events-none absolute left-full top-1/2 -translate-y-1/2 ml-3 z-50 opacity-0 group-hover/user:opacity-100 transition-opacity duration-150">
               <div className="bg-[#1A0808] border border-white/[0.08] rounded-lg px-3 py-2 shadow-xl">
                 <p className="font-heading text-white text-xs uppercase tracking-wide whitespace-nowrap">{displayName}</p>
-                <p className="font-body text-white/40 text-[10px] whitespace-nowrap">{plan}</p>
+                <p className="font-body text-white/40 text-[10px] whitespace-nowrap">{plan}{expiryLabel ? ` \u00b7 ${expiryLabel}` : ""}</p>
               </div>
             </div>
           </div>
@@ -402,7 +449,9 @@ export default function Sidebar({ onClose, isMobile, user }: SidebarProps) {
             </div>
             <div className="min-w-0">
               <p className="font-heading text-white text-[11px] uppercase tracking-wide truncate">{displayName}</p>
-              <p className="font-body text-white/40 text-[9px] truncate">{plan}</p>
+              <p className={`font-body text-[9px] truncate ${isExpired ? "text-[#C30100]" : "text-white/40"}`}>
+                {plan}{expiryLabel ? ` \u00b7 ${expiryLabel}` : ""}
+              </p>
             </div>
           </div>
         )}

@@ -1,19 +1,5 @@
-/**
- * lib/api/earnings.ts
- *
- * Endpoint mapping (from Postman collection):
- *   GET  /withdrawal/royalties/balance
- *   POST /withdrawal/royalties/preview
- *   POST /withdrawal/royalties/send-otp
- *   POST /withdrawal/royalties/verify-and-initiate
- *   GET  /withdrawal/royalties/history
- *   GET  /startbutton/banks/NGN
- *   GET  /startbutton/verify-account
- */
-
 import { request } from "./core";
 
-/* ─── Types ───────────────────────────────────────────────────── */
 
 export interface BalanceData {
   balance_usd: number;
@@ -51,12 +37,10 @@ export interface WithdrawPayload {
   amount_usd: number;
   target_currency: string;
   payout_method: "bank_transfer" | "mobile_money";
-  // Bank transfer (NGN)
   bank_code?: string;
   account_number?: string;
   account_name?: string;
   country?: string;
-  // Mobile money (KES etc)
   mno?: string;
   msisdn?: string;
 }
@@ -84,7 +68,6 @@ export interface VerifiedAccount {
   [key: string]: unknown;
 }
 
-/* ─── API functions ───────────────────────────────────────────── */
 
 export async function getBalance() {
   return request<BalanceData>(

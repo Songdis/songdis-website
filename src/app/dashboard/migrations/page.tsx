@@ -17,7 +17,6 @@ import {
   type SpotifyTrack,
 } from "@/lib/api/music";
 
-/* ─── Types ─────────────────────────────────────────────────── */
 
 type View = "list" | "new";
 type Step = "search" | "releases" | "details" | "confirm";
@@ -78,7 +77,6 @@ interface ExtendedTrack extends SpotifyTrack {
   collaborators?: Collaborator[];
 }
 
-/* ─── Constants ─────────────────────────────────────────────── */
 
 const STEPS: { key: Step; label: string }[] = [
   { key: "search", label: "Find Artist" },
@@ -120,7 +118,6 @@ const EMPTY_FORM: Omit<ReleaseFormState, "release_title" | "primary_artist" | "u
   platforms: [], tracks: [], featured_artists: [], collaborators: [],
 };
 
-/* ─── Main Page ─────────────────────────────────────────────── */
 
 export default function MigrationsPage() {
   const [view, setView] = useState<View>("list");
@@ -138,7 +135,6 @@ export default function MigrationsPage() {
   );
 }
 
-/* ─── Migration List ────────────────────────────────────────── */
 
 function MigrationList({ onStartNew }: { onStartNew: () => void }) {
   const [migrations, setMigrations] = useState<Migration[]>([]);
@@ -252,7 +248,6 @@ function MigrationList({ onStartNew }: { onStartNew: () => void }) {
   );
 }
 
-/* ─── Migration Wizard ──────────────────────────────────────── */
 
 function MigrationWizard({ onBack, onSuccess }: { onBack: () => void; onSuccess: () => void }) {
   const { success: toastSuccess } = useToast();
@@ -771,7 +766,6 @@ function MigrationWizard({ onBack, onSuccess }: { onBack: () => void; onSuccess:
   );
 }
 
-/* ─── Release Details Form (per release in step 3) ──────────── */
 
 function ReleaseDetailsForm({
   form,
@@ -956,7 +950,6 @@ function ReleaseDetailsForm({
   );
 }
 
-/* ─── Album Track Row ───────────────────────────────────────── */
 
 function AlbumTrackRow({
   track,
@@ -1006,7 +999,6 @@ function AlbumTrackRow({
   );
 }
 
-/* ─── Shared Field wrapper ──────────────────────────────────── */
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (

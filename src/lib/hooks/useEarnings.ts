@@ -1,7 +1,3 @@
-/**
- * lib/hooks/useEarnings.ts
- */
-
 import { useState, useEffect, useCallback } from "react";
 import {
   getBalance,
@@ -18,7 +14,6 @@ import {
   type WithdrawPayload,
 } from "@/lib/api/earnings";
 
-/* ─── useEarningsBalance ──────────────────────────────────────── */
 export function useEarningsBalance() {
   const [balance, setBalance] = useState<BalanceData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -40,10 +35,6 @@ export function useEarningsBalance() {
 
   useEffect(() => { load(); }, [load]);
 
-  // Map confirmed API fields:
-  // data.total_available_usd  → Available Balance (withdrawable)
-  // data.total_earnings_usd   → Total Balance (lifetime earnings from releases)
-  // data.split_earnings_usd   → From Splits
   const d = balance as Record<string, unknown> | null;
   const breakdown = (d?.breakdown as Record<string, unknown>) ?? {};
   const availableBalance = (d?.total_available_usd ?? d?.balance_usd ?? d?.total_earnings ?? 0) as number;
@@ -54,7 +45,6 @@ export function useEarningsBalance() {
   return { balance, availableBalance, totalEarnings, thisMonth, fromSplits, isLoading, error, refresh: load };
 }
 
-/* ─── useWithdrawalHistory ────────────────────────────────────── */
 export function useWithdrawalHistory(pageSize = 10) {
   const [history, setHistory] = useState<WithdrawalRecord[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -94,7 +84,6 @@ export function useWithdrawalHistory(pageSize = 10) {
   return { history, isLoading, error, refresh: () => load(page), page, totalPages, goToPage };
 }
 
-/* ─── useBanks ────────────────────────────────────────────────── */
 export function useBanks(currency = "NGN") {
   const [banks, setBanks] = useState<Bank[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -119,7 +108,6 @@ export function useBanks(currency = "NGN") {
   return { banks, isLoading };
 }
 
-/* ─── useWithdrawal — full withdrawal flow ────────────────────── */
 export function useWithdrawal() {
   const [preview, setPreview] = useState<PreviewData | null>(null);
   const [isLoadingPreview, setIsLoadingPreview] = useState(false);

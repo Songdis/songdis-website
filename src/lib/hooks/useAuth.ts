@@ -1,13 +1,7 @@
-/**
- * lib/hooks/useAuth.ts
- * React hooks that wrap the real auth API.
- */
-
 import { useState, useCallback } from "react";
 import * as authApi from "@/lib/api/auth";
 import type { ApiResponse } from "@/lib/api/core";
 
-/* ─── Generic mutation hook factory ──────────────────────────── */
 function useMutation<TPayload, TData>(
   fn: (payload: TPayload) => Promise<ApiResponse<TData>>
 ) {
@@ -37,7 +31,6 @@ function useMutation<TPayload, TData>(
   return { mutate, isLoading, error };
 }
 
-/* ─── useSignUp ───────────────────────────────────────────────── */
 export function useSignUp() {
   return useMutation<
     Parameters<typeof authApi.signUp>[0],
@@ -45,21 +38,18 @@ export function useSignUp() {
   >(authApi.signUp);
 }
 
-/* ─── useSignIn ───────────────────────────────────────────────── */
 export function useSignIn() {
   return useMutation<authApi.LoginPayload, authApi.AuthSuccessResponse>(
     authApi.signIn
   );
 }
 
-/* ─── useForgotPassword ───────────────────────────────────────── */
 export function useForgotPassword() {
   return useMutation<authApi.ForgotPasswordPayload, { message: string }>(
     authApi.forgotPassword
   );
 }
 
-/* ─── useResetPassword ────────────────────────────────────────── */
 export function useResetPassword() {
   return useMutation<
     Parameters<typeof authApi.resetPassword>[0],
@@ -67,7 +57,6 @@ export function useResetPassword() {
   >(authApi.resetPassword);
 }
 
-/* ─── useVerifyOtp ────────────────────────────────────────────── */
 export function useVerifyOtp() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -93,7 +82,6 @@ export function useVerifyOtp() {
   return { mutate, isLoading, error };
 }
 
-/* ─── useResendOtp ────────────────────────────────────────────── */
 export function useResendOtp() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -116,7 +104,6 @@ export function useResendOtp() {
   return { trigger, isLoading, error };
 }
 
-/* ─── useGoogleSignIn ─────────────────────────────────────────── */
 export function useGoogleSignIn() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -130,7 +117,6 @@ export function useGoogleSignIn() {
       setIsLoading(false);
       return;
     }
-    // Backend returns a redirect URL — navigate to it
     const url = res.data?.url ?? (res.data as unknown as string);
     if (url) {
       window.location.href = url;
@@ -143,14 +129,12 @@ export function useGoogleSignIn() {
   return { trigger, isLoading, error };
 }
 
-/* ─── useChangePassword ───────────────────────────────────────── */
 export function useChangePassword() {
   return useMutation<authApi.ChangePasswordPayload, { message: string }>(
     authApi.changePassword
   );
 }
 
-/* ─── useLogout ───────────────────────────────────────────────── */
 export function useLogout() {
   const [isLoading, setIsLoading] = useState(false);
 
@@ -164,7 +148,6 @@ export function useLogout() {
   return { logout, isLoading };
 }
 
-/* ─── useCurrentUser ──────────────────────────────────────────── */
 export function useCurrentUser() {
   const [user, setUser] = useState<authApi.AuthUser | null>(null);
   const [isLoading, setIsLoading] = useState(false);

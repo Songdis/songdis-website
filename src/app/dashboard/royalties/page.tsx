@@ -462,7 +462,7 @@ export default function RoyaltyReportPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {monthlyTrends.map((m, i) => (
+                  {[...monthlyTrends].reverse().map((m, i) => (
                     <tr key={i} className="border-t border-white/[0.04] hover:bg-white/[0.02] transition-colors">
                       <td className="py-3 font-body text-white/90 text-xs font-medium pl-1">{formatMonth(m.month)}</td>
                       <td className="py-3 font-body text-[#C30100] text-xs font-semibold text-right">${m.earnings.toFixed(2)}</td>

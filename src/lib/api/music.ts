@@ -41,7 +41,6 @@ export interface Release {
   primary_genre?: string;
   platforms?: string;          
   created_at: string;
-  // Fields only present on GET /music/{uploadId} (single release detail)
   upc_code?: string;
   label?: string;
   metadata_language?: string;
@@ -146,7 +145,6 @@ export async function getMusic(params: MusicListParams = {}) {
   return request<Release[]>(`/music${qs}`, { method: "GET" }, true);
 }
 
-/** GET /music/{uploadId} — full detail for a single release, including tracks */
 export async function getSingleRelease(uploadId: number) {
   return request<Release>(`/music/${uploadId}`, { method: "GET" }, true);
 }
@@ -175,7 +173,6 @@ function getAuthToken(): string | null {
   return localStorage.getItem("songdis_token");
 }
 
-/** Upload artwork via XHR (for progress events) */
 export function uploadArtwork(
   file: File,
   onProgress?: (p: UploadProgress) => void
@@ -213,7 +210,6 @@ export function uploadArtwork(
   });
 }
 
-/** Upload audio via XHR (for progress events) — non-chunked, < 50MB */
 function uploadAudioSingle(
   file: File,
   onProgress?: (p: UploadProgress) => void
@@ -255,7 +251,6 @@ function uploadAudioSingle(
   });
 }
 
-/** Upload large audio via chunked upload — > 50MB */
 async function uploadAudioChunked(
   file: File,
   onProgress?: (p: UploadProgress) => void
@@ -310,7 +305,6 @@ async function uploadAudioChunked(
   throw new Error("Chunked upload completed but no final result received");
 }
 
-/** Smart audio upload — routes to chunked or single based on file size */
 export async function uploadAudio(
   file: File,
   onProgress?: (p: UploadProgress) => void

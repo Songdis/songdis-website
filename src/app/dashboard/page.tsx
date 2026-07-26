@@ -6,6 +6,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import DashboardLayout from "@/components/dashboard/DashboardLayout";
 import { useDashboard } from "@/lib/hooks/useDashboard";
+import { useSubscription } from "@/lib/hooks/useSubscription";
 import { ReleaseDetailModal } from "@/components/dashboard/music/ReleaseDetailModal";
 
 export default function DashboardPage() {
@@ -14,6 +15,7 @@ export default function DashboardPage() {
   const [activeReleaseMeta, setActiveReleaseMeta] = useState<{ cover?: string; title?: string; artist?: string }>({});
   const [ayoInput, setAyoInput] = useState("");
   const router = useRouter();
+  const { isExpired } = useSubscription(0);
 
   const { stats, wallet, recentReleases, features } =
     data ?? {
@@ -25,7 +27,6 @@ export default function DashboardPage() {
 
   return (
     <>
-    {/* DES-001: showWelcome only on the home dashboard page */}
     <DashboardLayout showWelcome>
       <div className="flex flex-col gap-5">
 
@@ -46,14 +47,24 @@ export default function DashboardPage() {
                 style={{ background: "radial-gradient(circle, rgba(195,1,0,0.8) 0%, transparent 70%)", filter: "blur(20px)" }} />
             </div>
 
-            <div className="rounded-2xl border border-white/[0.06] bg-[#180F0F] p-5">
-              <div className="flex items-center justify-between mb-3">
-                <p className="font-body text-white/60 text-sm">Total Earnings</p>
-                <button className="text-white/30 hover:text-white transition-colors"><DollarIcon /></button>
+            <div className="rounded-2xl border border-white/[0.06] bg-[#180F0F] p-5 relative overflow-hidden">
+              {isExpired && (
+                <div className="absolute inset-0 z-10 bg-[#180F0F]/80 backdrop-blur-[2px] flex flex-col items-center justify-center gap-2">
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.3)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/>
+                  </svg>
+                  <p className="font-body text-white/50 text-xs text-center">Renew your subscription</p>
+                </div>
+              )}
+              <div className={isExpired ? "opacity-30 pointer-events-none" : ""}>
+                <div className="flex items-center justify-between mb-3">
+                  <p className="font-body text-white/60 text-sm">Total Earnings</p>
+                  <button className="text-white/30 hover:text-white transition-colors"><DollarIcon /></button>
+                </div>
+                <p className="font-heading text-white text-3xl font-bold">
+                  ${stats.totalEarnings.toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                </p>
               </div>
-              <p className="font-heading text-white text-3xl font-bold">
-                ${stats.totalEarnings.toLocaleString("en-US", { minimumFractionDigits: 2 })}
-              </p>
             </div>
           </div>
 
@@ -125,34 +136,59 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          <div className="rounded-2xl border border-white/[0.06] bg-[#180F0F] p-5 flex flex-col">
-            <div className="flex items-center justify-between mb-4 shrink-0">
-              <p className="font-body text-white text-sm font-medium">My Wallet</p>
-              <Link href="/dashboard/earnings" className="font-body text-white/50 text-xs hover:text-white transition-colors flex items-center gap-1">
-                Manage <span>→</span>
-              </Link>
-            </div>
-            <div className="flex-1 rounded-xl bg-[#0E0808] border border-white/[0.06] p-5 relative overflow-hidden flex flex-col justify-between">
-              <div aria-hidden className="pointer-events-none absolute bottom-0 right-0 w-64 h-64 opacity-60"
-                style={{ background: "radial-gradient(circle at bottom right, rgba(195,1,0,0.55) 0%, transparent 65%)", filter: "blur(20px)" }} />
-              <div className="relative z-10">
-                <p className="font-body text-white/60 text-sm mb-2">Total Earnings</p>
-                <p className="font-heading text-white text-4xl font-bold mb-3">
-                  ${wallet.totalEarnings.toLocaleString("en-US", { minimumFractionDigits: 2 })}
-                </p>
-                <p className="font-body text-white/40 text-sm">
-                  {wallet.streams.toLocaleString()} streams &nbsp;·&nbsp; Avg ${wallet.avgPerStream.toFixed(4)}/stream
-                </p>
+          <div className="rounded-2xl border border-white/[0.06] bg-[#180F0F] p-5 flex flex-col relative overflow-hidden">
+            {isExpired && (
+              <div className="absolute inset-0 z-10 bg-[#180F0F]/80 backdrop-blur-[2px] flex flex-col items-center justify-center gap-3">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.3)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/>
+                </svg>
+                <p className="font-body text-white/50 text-sm text-center">Renew your subscription to view earnings</p>
+                <Link href="/dashboard/settings" className="font-heading text-white uppercase text-[10px] tracking-widest rounded-full bg-[#C30100] hover:bg-[#a80000] px-4 py-2 transition-colors">
+                  Renew Now
+                </Link>
               </div>
-              <Link href="/dashboard/earnings" className="relative z-10 block w-full mt-5 font-heading text-white uppercase text-xs tracking-widest rounded-full border border-[#C30100] bg-transparent hover:bg-[#C30100] py-3.5 transition-all duration-300 text-center">
-                Withdraw
-              </Link>
+            )}
+            <div className={isExpired ? "flex-1 flex flex-col opacity-30 pointer-events-none" : "flex-1 flex flex-col"}>
+              <div className="flex items-center justify-between mb-4 shrink-0">
+                <p className="font-body text-white text-sm font-medium">Earnings</p>
+                <Link href="/dashboard/earnings" className="font-body text-white/50 text-xs hover:text-white transition-colors flex items-center gap-1">
+                  Manage <span>→</span>
+                </Link>
+              </div>
+              <div className="flex-1 rounded-xl bg-[#0E0808] border border-white/[0.06] p-5 relative overflow-hidden flex flex-col justify-between">
+                <div aria-hidden className="pointer-events-none absolute bottom-0 right-0 w-64 h-64 opacity-60"
+                  style={{ background: "radial-gradient(circle at bottom right, rgba(195,1,0,0.55) 0%, transparent 65%)", filter: "blur(20px)" }} />
+                <div className="relative z-10">
+                  <p className="font-body text-white/60 text-sm mb-2">Total Earnings</p>
+                  <p className="font-heading text-white text-4xl font-bold mb-3">
+                    ${wallet.totalEarnings.toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                  </p>
+                  <p className="font-body text-white/40 text-sm">
+                    {wallet.streams.toLocaleString()} streams &nbsp;·&nbsp; Avg ${wallet.avgPerStream.toFixed(4)}/stream
+                  </p>
+                </div>
+                <Link href="/dashboard/earnings" className="relative z-10 block w-full mt-5 font-heading text-white uppercase text-xs tracking-widest rounded-full border border-[#C30100] bg-transparent hover:bg-[#C30100] py-3.5 transition-all duration-300 text-center">
+                  Withdraw
+                </Link>
+              </div>
             </div>
           </div>
         </div>
 
         {/* Ayo AI */}
-        <div className="rounded-2xl border border-white/[0.06] bg-[#180F0F] p-5">
+        <div className="rounded-2xl border border-white/[0.06] bg-[#180F0F] p-5 relative overflow-hidden">
+          {isExpired && (
+            <div className="absolute inset-0 z-10 bg-[#180F0F]/80 backdrop-blur-[2px] flex flex-col items-center justify-center gap-3">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.3)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/>
+              </svg>
+              <p className="font-body text-white/50 text-sm text-center">Renew your subscription to use Ayo AI</p>
+              <Link href="/dashboard/settings" className="font-heading text-white uppercase text-[10px] tracking-widest rounded-full bg-[#C30100] hover:bg-[#a80000] px-4 py-2 transition-colors">
+                Renew Now
+              </Link>
+            </div>
+          )}
+          <div className={isExpired ? "opacity-30 pointer-events-none" : ""}>
           <div className="flex items-center gap-3 mb-4">
             <div className="w-9 h-9 rounded-xl bg-[#C30100]/20 border border-[#C30100]/30 flex items-center justify-center overflow-hidden">
               <Image src="/images/ayo.svg" alt="Ayo AI" width={20} height={20} unoptimized className="object-contain" />
@@ -192,7 +228,7 @@ export default function DashboardPage() {
               value={ayoInput}
               onChange={(e) => setAyoInput(e.target.value)}
               placeholder="Ask Ayo anything..."
-              className="flex-1 bg-transparent font-body text-white text-sm placeholder:text-white/25 outline-none"
+              className="flex-1 bg-transparent font-body text-white text-base placeholder:text-white/25 outline-none"
             />
             <button
               type="submit"
@@ -204,6 +240,7 @@ export default function DashboardPage() {
               </svg>
             </button>
           </form>
+        </div>
         </div>
 
         {/* Features grid */}

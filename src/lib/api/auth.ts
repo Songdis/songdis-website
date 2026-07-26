@@ -71,10 +71,6 @@ export interface ProfileResponse {
 }
 
 
-/**
- * Register a new user.
- * The API uses first_name + last_name — split fullName here.
- */
 export async function signUp(payload: {
   fullName: string;
   email: string;
@@ -98,9 +94,7 @@ export async function signUp(payload: {
   });
 }
 
-/**
- * Log in. Stores the token on success.
- */
+
 export async function signIn(payload: LoginPayload) {
   const res = await request<AuthSuccessResponse>("/login", {
     method: "POST",
@@ -121,9 +115,7 @@ export async function signIn(payload: LoginPayload) {
   return res;
 }
 
-/**
- * Send forgot-password email.
- */
+
 export async function forgotPassword(payload: ForgotPasswordPayload) {
   return request<{ message: string }>("/forgot-password", {
     method: "POST",
@@ -149,17 +141,12 @@ export async function resetPassword(payload: {
   });
 }
 
-/**
- * Get the current authenticated user's details.
- */
+
 export async function getUser() {
   return request<AuthUser>("/user", { method: "GET" }, true);
 }
 
-/**
- * Get the authenticated user's artist profile(s).
- * Used to auto-fill Primary Artist on the upload flow.
- */
+
 export async function getProfile() {
   return request<ProfileResponse>("/profile", { method: "GET" }, true);
 }
@@ -178,9 +165,7 @@ export interface CreateProfilePayload {
   apple_music_url: string;
 }
 
-/**
- * Create a new artist profile.
- */
+
 export async function createProfile(payload: CreateProfilePayload) {
   return request<ArtistProfile>("/create-profile", {
     method: "POST",
@@ -198,9 +183,7 @@ export interface SpotifyArtist {
   spotify_url: string;
 }
 
-/**
- * Search Spotify artists by name.
- */
+
 export async function searchSpotifyArtists(query: string) {
   return request<{ artists: SpotifyArtist[] }>(`/search/artists?query=${encodeURIComponent(query)}`, {
     method: "GET",

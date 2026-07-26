@@ -1,7 +1,3 @@
-/**
- * lib/hooks/useSplit.ts
- */
-
 import { useState, useEffect, useCallback } from "react";
 import {
   getSplits,
@@ -21,7 +17,6 @@ import {
 } from "../api/splitr";
 import { useToast } from "@/components/ui/Toast";
 
-/* ─── Unwrap helper ───────────────────────────────────────────── */
 function unwrapList<T>(raw: unknown): T[] {
   if (Array.isArray(raw)) return raw as T[];
   if (raw && typeof raw === "object") {
@@ -35,7 +30,6 @@ function unwrapList<T>(raw: unknown): T[] {
   return [];
 }
 
-/* ─── Normalised split shape for the page ─────────────────────── */
 export interface NormalisedSplit {
   id: string;
   trackTitle: string;
@@ -83,7 +77,6 @@ function normaliseSplit(s: Split, userEmail?: string): NormalisedSplit {
   };
 }
 
-/* ─── useSplits — main list ───────────────────────────────────── */
 export function useSplits() {
   const [splits, setSplits] = useState<NormalisedSplit[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -122,7 +115,6 @@ export function useSplits() {
   return { splits, isLoading, error, refresh: load, remove, stats };
 }
 
-/* ─── useCreateSplit ──────────────────────────────────────────── */
 export function useCreateSplit() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -148,7 +140,6 @@ export function useCreateSplit() {
   return { create, isLoading, error };
 }
 
-/* ─── useUpdateSplit ──────────────────────────────────────────── */
 export function useUpdateSplit() {
   const [isLoading, setIsLoading] = useState(false);
   const { success, error: toastError } = useToast();
@@ -172,7 +163,6 @@ export function useUpdateSplit() {
   return { update, isLoading };
 }
 
-/* ─── useRecipients ───────────────────────────────────────────── */
 export function useRecipients(splitId: string) {
   const [isLoading, setIsLoading] = useState(false);
   const { success, error: toastError } = useToast();
@@ -226,7 +216,6 @@ export function useRecipients(splitId: string) {
   return { add, update, remove, isLoading };
 }
 
-/* ─── useSplitEarnings ────────────────────────────────────────── */
 export function useSplitEarnings() {
   const [earnings, setEarnings] = useState<SplitEarnings[]>([]);
   const [isLoading, setIsLoading] = useState(true);

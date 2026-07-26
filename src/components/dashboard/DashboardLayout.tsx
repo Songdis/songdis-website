@@ -1,11 +1,17 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { usePathname, useRouter } from "next/navigation";
 import Sidebar from "@/components/dashboard/Sidebar";
 import UploadModal from "@/components/dashboard/upload/UploadModal";
 import NotificationPanel from "@/components/dashboard/notifications/NotificationPanel";
+import SubscriptionBanner from "@/components/dashboard/SubscriptionBanner";
+import AyoChatWidget from "@/components/dashboard/ayo/AyoChatWidget";
 import { useUser } from "@/lib/hooks/useUser";
+import { useSubscription } from "@/lib/hooks/useSubscription";
 import { getUnreadCount } from "@/lib/api/notifications";
+
+const ALLOWED_ROUTES_WHEN_EXPIRED = ["/dashboard", "/dashboard/settings"];
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -22,6 +28,11 @@ export default function DashboardLayout({ children, customCta, showWelcome = fal
   const [notifOpen, setNotifOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
   const { firstName, user } = useUser();
+  const { isExpired, endDate, daysUntilExpiry, isLoading: subLoading } = useSubscription(0);
+  const pathname = usePathname();
+  const router = useRouter();
+
+  const isExpiredBlocked = !subLoading && isExpired && !ALLOWED_ROUTES_WHEN_EXPIRED.some((r) => pathname === r || pathname.startsWith(r + "/"));
 
   const fetchUnreadCount = useCallback(async () => {
     try {
@@ -46,6 +57,15 @@ export default function DashboardLayout({ children, customCta, showWelcome = fal
     return () => { cancelled = true; clearInterval(interval); };
   }, [fetchUnreadCount]);
 
+  // Route guard: redirect expired users to dashboard home
+  useEffect(() => {
+    if (isExpiredBlocked) {
+      router.replace("/dashboard");
+    }
+  }, [isExpiredBlocked, router]);
+
+  if (isExpiredBlocked) return null;
+
   return (
     <div className="flex h-screen w-full bg-[#0E0808] overflow-hidden">
 
@@ -68,6 +88,9 @@ export default function DashboardLayout({ children, customCta, showWelcome = fal
 
       {/* Main */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+
+        {/* Subscription expiry banner */}
+        {!subLoading && <SubscriptionBanner isExpired={isExpired} endDate={endDate} daysUntilExpiry={daysUntilExpiry} />}
 
         {/* Top bar */}
         <header className="flex items-center justify-between px-4 sm:px-6 lg:px-8 pt-4 sm:pt-6 pb-3 sm:pb-4 shrink-0 gap-3">
@@ -122,14 +145,16 @@ export default function DashboardLayout({ children, customCta, showWelcome = fal
               onCountChange={setUnreadCount}
             />
 
-            <button
-              onClick={customCta ? customCta.onClick : () => setUploadOpen(true)}
-              className="flex items-center gap-1.5 font-heading text-white uppercase text-[10px] sm:text-xs tracking-widest rounded-full border border-[#C30100] bg-[#140C0C] hover:bg-[#C30100] px-3 sm:px-5 py-2 sm:py-3 transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C30100] whitespace-nowrap"
-            >
-              {!customCta && <span className="text-sm leading-none">+</span>}
-              <span className="hidden sm:inline">{customCta ? customCta.label : "Upload New Release"}</span>
-              <span className="sm:hidden">{customCta ? customCta.label.replace("+ ", "").split(" ").slice(0, 2).join(" ") : "Upload"}</span>
-            </button>
+            {!isExpired && (
+              <button
+                onClick={customCta ? customCta.onClick : () => setUploadOpen(true)}
+                className="flex items-center gap-1.5 font-heading text-white uppercase text-[10px] sm:text-xs tracking-widest rounded-full border border-[#C30100] bg-[#140C0C] hover:bg-[#C30100] px-3 sm:px-5 py-2 sm:py-3 transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C30100] whitespace-nowrap"
+              >
+                {!customCta && <span className="text-sm leading-none">+</span>}
+                <span className="hidden sm:inline">{customCta ? customCta.label : "Upload New Release"}</span>
+                <span className="sm:hidden">{customCta ? customCta.label.replace("+ ", "").split(" ").slice(0, 2).join(" ") : "Upload"}</span>
+              </button>
+            )}
           </div>
         </header>
 
@@ -139,7 +164,8 @@ export default function DashboardLayout({ children, customCta, showWelcome = fal
         </main>
       </div>
 
-      <UploadModal isOpen={uploadOpen} onClose={() => setUploadOpen(false)} />
+      {!isExpired && <UploadModal isOpen={uploadOpen} onClose={() => setUploadOpen(false)} />}
+      {!isExpired && <AyoChatWidget />}
     </div>
   );
 }

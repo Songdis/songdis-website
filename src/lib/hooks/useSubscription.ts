@@ -9,6 +9,8 @@ interface SubscriptionState {
   isContractPlan: boolean;
   isActive: boolean;
   isExpired: boolean;
+  endDate: string | null;
+  daysUntilExpiry: number | null;
 }
 
 export function useSubscription(pollInterval = 40000) {
@@ -20,6 +22,8 @@ export function useSubscription(pollInterval = 40000) {
     isContractPlan: false,
     isActive: false,
     isExpired: false,
+    endDate: null,
+    daysUntilExpiry: null,
   });
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -55,6 +59,13 @@ export function useSubscription(pollInterval = 40000) {
         isContractPlan,
         isActive,
         isExpired: expiredData?.has_expired_subscription ?? false,
+        endDate: subData?.subscription?.end_date ?? expiredData?.subscription?.end_date ?? null,
+        daysUntilExpiry: (() => {
+          const raw = subData?.subscription?.end_date ?? expiredData?.subscription?.end_date;
+          if (!raw) return null;
+          const diff = Math.ceil((new Date(raw).getTime() - Date.now()) / 86400000);
+          return diff;
+        })(),
       });
     } catch {
       setState((prev) => ({ ...prev, isLoading: false }));

@@ -4,7 +4,6 @@ import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 
-// DES-008: Real testimonials from website, using actual artist images
 const TESTIMONIALS = [
   {
     quote:

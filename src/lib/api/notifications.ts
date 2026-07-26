@@ -1,6 +1,5 @@
 import { request } from "./core";
 
-/* ─── Types ───────────────────────────────────────────────────── */
 export type NotificationType = "release_status" | "split" | "withdrawal" | "request" | "subscription";
 
 export interface Notification {
@@ -30,9 +29,7 @@ export interface PaginatedNotifications {
   total: number;
 }
 
-/* ─── API functions ───────────────────────────────────────────── */
 
-/** Get paginated notifications for the authenticated user */
 export async function getNotifications(page = 1, perPage = 20) {
   return request<PaginatedNotifications>(
     `/notifications?page=${page}&per_page=${perPage}`,
@@ -41,7 +38,6 @@ export async function getNotifications(page = 1, perPage = 20) {
   );
 }
 
-/** Get unread notification count */
 export async function getUnreadCount() {
   return request<{ count: number }>(
     "/notifications/unread-count",
@@ -50,7 +46,6 @@ export async function getUnreadCount() {
   );
 }
 
-/** Mark a single notification as read */
 export async function markAsRead(id: number) {
   return request<Notification>(
     `/notifications/${id}/read`,
@@ -59,7 +54,6 @@ export async function markAsRead(id: number) {
   );
 }
 
-/** Mark all notifications as read */
 export async function markAllAsRead() {
   return request<unknown>(
     "/notifications/read-all",

@@ -5,7 +5,7 @@ import Image from "next/image";
 import DashboardLayout from "@/components/dashboard/DashboardLayout";
 import { request } from "@/lib/api/core";
 
-/* ─── Types ───────────────────────────────────────────────────── */
+
 interface ReleaseLink {
   id: string;
   trackTitle: string;
@@ -17,8 +17,7 @@ interface ReleaseLink {
   type?: string;
 }
 
-/* ─── Mock data ───────────────────────────────────────────────── */
-/* ─── Link card ───────────────────────────────────────────────── */
+
 function LinkCard({
   link,
   onCopy,
@@ -125,7 +124,6 @@ function LinkCard({
   );
 }
 
-/* ─── Normalise API link → ReleaseLink shape ──────────────────── */
 function normaliseLink(raw: Record<string, unknown>, i: number): ReleaseLink {
   return {
     id: String(raw.id ?? `link-${i}`),
@@ -150,7 +148,6 @@ function normaliseLink(raw: Record<string, unknown>, i: number): ReleaseLink {
   };
 }
 
-/* ─── Page ────────────────────────────────────────────────────── */
 export default function ReleaseLinksPage() {
   const [links, setLinks] = useState<ReleaseLink[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -389,7 +386,6 @@ export default function ReleaseLinksPage() {
   );
 }
 
-/* ─── Icons ───────────────────────────────────────────────────── */
 function SearchIcon() {
   return (
     <svg

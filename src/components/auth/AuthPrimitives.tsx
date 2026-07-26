@@ -2,9 +2,7 @@
 
 import React, { useState, useRef, useCallback } from "react";
 
-/* ─────────────────────────────────────────────────────────────────
-   AUTH INPUT
-───────────────────────────────────────────────────────────────── */
+
 interface AuthInputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   label: string;
   error?: string;
@@ -44,9 +42,7 @@ export const AuthInput = React.forwardRef<HTMLInputElement, AuthInputProps>(
 );
 AuthInput.displayName = "AuthInput";
 
-/* ─────────────────────────────────────────────────────────────────
-   PASSWORD INPUT (with show/hide toggle)
-───────────────────────────────────────────────────────────────── */
+
 interface PasswordInputProps
   extends Omit<React.InputHTMLAttributes<HTMLInputElement>, "type"> {
   label: string;
@@ -97,9 +93,7 @@ export const PasswordInput = React.forwardRef<
 });
 PasswordInput.displayName = "PasswordInput";
 
-/* ─────────────────────────────────────────────────────────────────
-   AUTH BUTTON
-───────────────────────────────────────────────────────────────── */
+
 interface AuthButtonProps
   extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   isLoading?: boolean;
@@ -135,9 +129,7 @@ export const AuthButton: React.FC<AuthButtonProps> = ({
   );
 };
 
-/* ─────────────────────────────────────────────────────────────────
-   OTP INPUT (6 boxes, auto-advance, paste support)
-───────────────────────────────────────────────────────────────── */
+
 interface OtpInputProps {
   length?: number;
   value: string;
@@ -223,9 +215,7 @@ export const OtpInput: React.FC<OtpInputProps> = ({
   );
 };
 
-/* ─────────────────────────────────────────────────────────────────
-   FORM ERROR BANNER
-───────────────────────────────────────────────────────────────── */
+
 export const FormError: React.FC<{ message: string | null }> = ({
   message,
 }) => {
@@ -237,9 +227,7 @@ export const FormError: React.FC<{ message: string | null }> = ({
   );
 };
 
-/* ─────────────────────────────────────────────────────────────────
-   SVG ICONS (inline — no icon library dependency)
-───────────────────────────────────────────────────────────────── */
+
 const EyeIcon = () => (
   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />

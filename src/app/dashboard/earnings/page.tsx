@@ -10,7 +10,6 @@ import { useSplitEarnings } from "@/lib/hooks/useSplit";
 import { MOCK_EARNINGS } from "@/app/mock/earnings";
 
 
-/* ─── Stat card ───────────────────────────────────────────────── */
 function StatCard({ label, value, icon, highlight }: {
   label: string; value: string; icon: string; highlight?: boolean;
 }) {
@@ -32,27 +31,12 @@ function StatCard({ label, value, icon, highlight }: {
   );
 }
 
-/* ─── Revenue bar ─────────────────────────────────────────────── */
-function RevenueBar({ platform, percentage, color }: { platform: string; percentage: number; color: string }) {
-  return (
-    <div className="flex items-center gap-3">
-      <p className="font-body text-white/60 text-xs w-28 shrink-0">{platform}</p>
-      <div className="flex-1 h-3 bg-white/[0.05] rounded-full overflow-hidden">
-        <div className="h-full rounded-full transition-all duration-700" style={{ width: `${percentage}%`, backgroundColor: color }} />
-      </div>
-      <p className="font-body text-white/50 text-xs w-8 text-right shrink-0">{percentage}%</p>
-    </div>
-  );
-}
-
 const fmt = (n: number) => `$${n.toLocaleString("en-US", { minimumFractionDigits: 2 })}`;
 
-/* ─── Page ────────────────────────────────────────────────────── */
 export default function EarningsPage() {
   const [withdrawOpen, setWithdrawOpen] = useState(false);
   const [withdrawSuccess, setWithdrawSuccess] = useState(false);
 
-  /* Real API data */
   const { availableBalance, totalEarnings, thisMonth, fromSplits, isLoading: balanceLoading, refresh: refreshBalance } = useEarningsBalance();
   const { history, isLoading: historyLoading, page: txPage, totalPages: txTotalPages, goToPage: txGoToPage } = useWithdrawalHistory(10);
 
@@ -165,19 +149,6 @@ export default function EarningsPage() {
           )}
         </div>
 
-        {/* Revenue by Platform — pending endpoint */}
-        <div className="rounded-2xl border border-white/[0.06] bg-[#180F0F] p-5">
-          <p className="font-body text-white text-sm font-medium mb-5">Revenue by platform</p>
-          <div className="flex flex-col items-center justify-center py-8 gap-2">
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-white/20">
-              <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
-            </svg>
-            <p className="font-body text-white/30 text-sm">No data available</p>
-            <p className="font-body text-white/20 text-xs">Platform revenue breakdown will appear once the endpoint is available.</p>
-          </div>
-        </div>
-
-        {/* Transaction History — real API with pagination */}
         <div className="rounded-2xl border border-white/[0.06] bg-[#180F0F] p-5">
           <div className="flex items-center justify-between mb-4">
             <p className="font-body text-white text-sm font-medium">Transaction History</p>

@@ -13,7 +13,6 @@ import {
 } from "@/lib/api/ayo";
 import { useToast } from "@/components/ui/Toast";
 
-/* ─── Types ───────────────────────────────────────────────────── */
 type Tab = "chat" | "bio";
 
 interface Message {
@@ -32,7 +31,6 @@ const INITIAL_MESSAGE: Message = {
   timestamp: new Date(),
 };
 
-/* ─── Shared field component ──────────────────────────────────── */
 function Field({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
   return (
     <div className="flex flex-col gap-1.5">
@@ -46,7 +44,6 @@ function Field({ label, hint, children }: { label: string; hint?: string; childr
 const inputCls = "w-full bg-[#0E0808] border border-white/10 rounded-lg px-4 py-3 font-body text-white text-sm placeholder:text-white/25 outline-none focus:border-[#C30100] transition-colors";
 const textareaCls = `${inputCls} resize-none`;
 
-/* ─── Bio Generator ───────────────────────────────────────────── */
 function BioGenerator() {
   const [form, setForm] = useState({
     artist_name: "",
@@ -174,7 +171,6 @@ function BioGenerator() {
   );
 }
 
-/* ─── Chat message bubble ─────────────────────────────────────── */
 function AyoMessage({ message, onChipClick }: { message: Message; onChipClick?: (chip: string) => void }) {
   return (
     <div className="flex items-start gap-3 max-w-[90%] sm:max-w-[80%]">
@@ -228,7 +224,6 @@ function TypingIndicator() {
   );
 }
 
-/* ─── Chat tab ────────────────────────────────────────────────── */
 function ChatTab({ initialMessage }: { initialMessage?: string }) {
   const [messages, setMessages] = useState<Message[]>([INITIAL_MESSAGE]);
   const [input, setInput] = useState("");
@@ -240,7 +235,6 @@ function ChatTab({ initialMessage }: { initialMessage?: string }) {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isLoading]);
 
-  // Auto-send incoming message from dashboard chat input
   useEffect(() => {
     if (initialMessage && !sentInitialRef.current && !isLoading) {
       sentInitialRef.current = true;
@@ -264,7 +258,6 @@ function ChatTab({ initialMessage }: { initialMessage?: string }) {
     setIsLoading(true);
 
     try {
-      // Build conversation history for the API
       const history: ChatMessage[] = messages
         .filter((m) => m.id !== "initial")
         .map((m) => ({
@@ -272,7 +265,6 @@ function ChatTab({ initialMessage }: { initialMessage?: string }) {
           content: m.content,
         }));
 
-      // Add the current user message
       history.push({ role: "user", content: text.trim() });
 
       const res = await chat(history);
@@ -329,7 +321,7 @@ function ChatTab({ initialMessage }: { initialMessage?: string }) {
             }}
             placeholder="Ask Ayo anything..."
             rows={1}
-            className="flex-1 bg-transparent font-body text-white text-sm placeholder:text-white/25 outline-none resize-none"
+            className="flex-1 bg-transparent font-body text-white text-base placeholder:text-white/25 outline-none resize-none"
           />
           <button
             onClick={() => sendMessage(input)}
@@ -347,7 +339,6 @@ function ChatTab({ initialMessage }: { initialMessage?: string }) {
   );
 }
 
-/* ─── Page ────────────────────────────────────────────────────── */
 function AyoAIContent() {
   const searchParams = useSearchParams();
   const [tab, setTab] = useState<Tab>("chat");
@@ -412,6 +403,5 @@ export default function AyoAIPage() {
   );
 }
 
-/* ─── Icons ───────────────────────────────────────────────────── */
 function SendIcon() { return <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>; }
 function CopyIcon() { return <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>; }

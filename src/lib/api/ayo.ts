@@ -1,6 +1,5 @@
 import { request } from "./core";
 
-/* ─── Types ───────────────────────────────────────────────────── */
 export interface BioPayload {
   artist_name: string;
   genre: string;
@@ -41,7 +40,6 @@ export interface AyoAccessResponse {
   [key: string]: unknown;
 }
 
-/* ─── API functions ───────────────────────────────────────────── */
 
 /** Send a chat message to Ayo (DeepSeek via backend) */
 export async function chat(messages: ChatMessage[]) {

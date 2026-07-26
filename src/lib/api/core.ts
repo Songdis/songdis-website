@@ -19,6 +19,18 @@ export function removeToken(): void {
   localStorage.removeItem(TOKEN_KEY);
 }
 
+/** Force logout: clear token + user cache, redirect to sign-in.
+ *  Guarded to prevent multiple simultaneous redirects. */
+let _redirecting = false;
+export function forceLogout(): void {
+  if (_redirecting) return;
+  _redirecting = true;
+  removeToken();
+  try { sessionStorage.removeItem("songdis_user"); } catch {}
+  // Short delay so any in-flight state updates don't fight the redirect
+  setTimeout(() => { window.location.href = "/sign-in"; }, 50);
+}
+
 export interface ApiResponse<T = unknown> {
   data: T | null;
   message: string | null;
@@ -63,6 +75,12 @@ export async function request<T>(
     const json = await res.json().catch(() => ({}));
 
     if (!res.ok) {
+      // Token expired or invalid -- force logout on the client
+      if (res.status === 401 && requiresAuth) {
+        forceLogout();
+        return { data: null, message: null, error: "Session expired", errors: null, status: 401 };
+      }
+
       const errorMessage =
         json?.message ??
         json?.error ??

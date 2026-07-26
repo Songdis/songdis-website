@@ -13,6 +13,7 @@ export const MOCK_EARNINGS = {
     "NGN (Naira) withdrawals are processed instantly (subject to network conditions)",
     "Other currency withdrawals are processed within 24-48 hours",
     "A 1% conversion fee applies when withdrawing to local currency",
+    "NGN withdrawals include a flat ₦14,000 bank transfer processing fee",
     "Minimum withdrawal amount: $50 USD",
     "OTP verification required for security",
   ],

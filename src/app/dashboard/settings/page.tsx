@@ -8,8 +8,8 @@ import DashboardLayout from "@/components/dashboard/DashboardLayout";
 import { GeneralTab } from "@/components/dashboard/settings/GeneralTab";
 import ArtistProfileModal from "@/components/dashboard/settings/ArtistProfileModal";
 import type { ArtistProfile } from "@/components/dashboard/settings/ArtistProfileModal";
+import { useSubscription } from "@/lib/hooks/useSubscription";
 
-/* ─── Types ───────────────────────────────────────────────────── */
 type Tab =
   | "general"
   | "artist-profile"
@@ -50,7 +50,6 @@ const PLAN_FEATURES = {
   ],
 };
 
-/* ─── Shared UI Primitives ────────────────────────────────────── */
 function Field({
   label,
   children,
@@ -124,141 +123,6 @@ function Toggle({
   );
 }
 
-/* ─── Tab: Artist Profile ─────────────────────────────────────── */
-// function ArtistProfileTab() {
-//   const [profiles, setProfiles] = useState<ArtistProfile[]>([]);
-//   const [isLoading, setIsLoading] = useState(true);
-//   const [showEditModal, setShowEditModal] = useState(false);
-//   const [editingProfile, setEditingProfile] = useState<ArtistProfile | null>(null);
-//   const [showLimitInfo, setShowLimitInfo] = useState(false);
-
-//   /* Load real profiles from GET /profile */
-//   useEffect(() => {
-//     setIsLoading(true);
-//     request<unknown>("/profile", { method: "GET" }, true).then((res) => {
-//       if (!res.error && res.data) {
-//         const raw = res.data as Record<string, unknown>;
-//         const list = Array.isArray(res.data)
-//           ? res.data
-//           : Array.isArray(raw.data)
-//           ? raw.data
-//           : [];
-//         setProfiles(
-//           (list as Record<string, unknown>[]).map((p) => ({
-//             id: String(p.id ?? ""),
-//             stageName: (p.stage_name ?? p.stageName ?? "") as string,
-//             fullName: (p.full_name ?? p.fullName ?? "") as string,
-//             email: (p.email ?? "") as string,
-//             phone: (p.phone ?? "") as string,
-//             dob: (p.dob ?? "") as string,
-//             location: (p.location ?? "") as string,
-//             bio: (p.bio ?? "") as string,
-//             instagram: (p.instagram_url ?? p.instagram ?? "") as string,
-//             twitter: (p.twitter_url ?? p.twitter ?? "") as string,
-//             facebook: (p.facebook_url ?? p.facebook ?? "") as string,
-//             tiktok: (p.tiktok_url ?? p.tiktok ?? "") as string,
-//             appleMusic: (p.apple_music_url ?? p.appleMusic ?? "") as string,
-//             spotify: (p.spotify_url ?? p.spotify ?? "") as string,
-//             cover: (p.cover ?? "") as string,
-//             avatar: (p.avatar_url ?? p.avatar ?? "/images/avatar-artiste.svg") as string,
-//           }))
-//         );
-//       }
-//       setIsLoading(false);
-//     });
-//   }, []);
-
-//   const isAtLimit = profiles.length >= 3;
-
-//   const handleEdit = (profile: ArtistProfile) => {
-//     setEditingProfile(profile);
-//     setShowEditModal(true);
-//   };
-
-//   const handleDelete = async (id: string) => {
-//     await request(`/profile/${id}`, { method: "DELETE" }, true);
-//     setProfiles((prev) => prev.filter((p) => p.id !== id));
-//   };
-
-//   return (
-//     <>
-//       <div className="rounded-2xl border border-dashed border-[#C30100]/30 bg-[#180F0F] p-5">
-//         <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
-//           <div className="flex items-center gap-3">
-//             <div className="w-8 h-8 rounded-lg bg-[#C30100]/10 border border-[#C30100]/20 flex items-center justify-center shrink-0">
-//               <UserGroupIcon />
-//             </div>
-//             <div>
-//               <p className="font-nulshock text-white text-sm uppercase tracking-wide">
-//                 Growth Plan — Artist Profiles
-//               </p>
-//               <p className="font-montserrat text-xs mt-0.5">
-//                 <span className="text-white/40">{profiles.length} of 3 profiles used</span>
-//                 {isAtLimit && (
-//                   <span className="text-[#C30100] ml-2">
-//                     Limit reached — extra profiles cost ₦30,000 per artist per year
-//                   </span>
-//                 )}
-//               </p>
-//             </div>
-//           </div>
-//           <button className="font-nulshock text-white uppercase text-xs tracking-widest rounded-full border border-white/20 px-5 py-2.5 hover:border-white/40 transition-colors shrink-0">
-//             Learn More
-//           </button>
-//         </div>
-
-//         {/* MOB-002: Profile cards - responsive grid */}
-//         {isLoading ? (
-//           <p className="font-montserrat text-white/30 text-sm text-center py-8">Loading profiles...</p>
-//         ) : profiles.length === 0 ? (
-//           <p className="font-montserrat text-white/30 text-sm text-center py-8">No artist profiles yet.</p>
-//         ) : (
-//           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mb-4">
-//             {profiles.map((profile) => (
-//               <ProfileCard
-//                 key={profile.id}
-//                 profile={profile}
-//                 onEdit={() => handleEdit(profile)}
-//                 onDelete={() => handleDelete(profile.id)}
-//               />
-//             ))}
-//           </div>
-//         )}
-
-//         <button
-//           onClick={() => { setEditingProfile(null); setShowEditModal(true); }}
-//           className="w-full rounded-xl border border-dashed border-[#C30100]/30 bg-transparent hover:bg-[#C30100]/5 transition-colors p-5 flex flex-col items-center gap-1.5"
-//         >
-//           <span className="text-white/40 text-2xl leading-none">+</span>
-//           <span className="font-montserrat text-white/50 text-sm">Add Another Artist</span>
-//           <span className="font-montserrat text-white/30 text-xs text-center">₦30,000 per artist · billed annually · activates immediately after payment</span>
-//         </button>
-//       </div>
-
-//       {showLimitInfo && (
-//         <LimitInfoModal
-//           onClose={() => setShowLimitInfo(false)}
-//           onAddArtist={() => setShowLimitInfo(false)}
-//         />
-//       )}
-
-//       {showEditModal && (
-//         <ArtistProfileModal
-//           profile={editingProfile}
-//           onClose={() => setShowEditModal(false)}
-//           onSave={(updated) => {
-//             if (editingProfile) {
-//               setProfiles((prev) => prev.map((p) => p.id === updated.id ? updated : p));
-//             } else {
-//               setProfiles((prev) => [...prev, { ...updated, id: String(Date.now()) }]);
-//             }
-//             setShowEditModal(false);
-//           }}
-//         />
-//       )}
-//     </>
-//   );
-// }
 
 function ArtistProfileTab() {
   const [profiles, setProfiles] = useState<ArtistProfile[]>([]);
@@ -275,7 +139,6 @@ function ArtistProfileTab() {
       if (!res.error && res.data) {
         const raw = res.data as Record<string, unknown>;
 
-        // API shape: { status: "success", profiles: [...] }
         const list = Array.isArray(raw.profiles)
           ? raw.profiles
           : Array.isArray(res.data)
@@ -424,8 +287,7 @@ function ArtistProfileTab() {
   );
 }
 
-/* MOB-003: Fixed avatar overflow — changed overflow-hidden on card to overflow-visible,
-   use z-index on avatar so it renders above the red header correctly */
+
 function ProfileCard({
   profile,
   onEdit,
@@ -507,7 +369,6 @@ function ProfileCard({
   );
 }
 
-/* ─── Limit Info Modal ────────────────────────────────────────── */
 function LimitInfoModal({
   onClose,
   onAddArtist,
@@ -623,7 +484,7 @@ function LimitInfoModal({
   );
 }
 
-/* ─── Tab: Ayo AI Preferences ─────────────────────────────────── */
+
 function AyoAITab() {
   const [proactive, setProactive] = useState(true);
   const [autoDraft, setAutoDraft] = useState(true);
@@ -680,7 +541,6 @@ function AyoAITab() {
   );
 }
 
-/* ─── Tab: Notification ───────────────────────────────────────── */
 function NotificationTab() {
   const [streamMilestones, setStreamMilestones] = useState(true);
   const [earningsUpdates, setEarningsUpdates] = useState(true);
@@ -730,7 +590,6 @@ function NotificationTab() {
   );
 }
 
-/* ─── Tab: Security ───────────────────────────────────────────── */
 function SecurityTab() {
   const [current, setCurrent] = useState("");
   const [newPass, setNewPass] = useState("");
@@ -813,10 +672,9 @@ function EyeToggle({
   );
 }
 
-/* ─── Tab: Subscription ───────────────────────────────────────── */
-/* MOB-005: Cards stack on mobile, MOB-006: price nowrap */
 function SubscriptionTab() {
-  const [billing, setBilling] = useState<BillingCycle>("yearly");
+  const { isExpired, planName, refresh: refreshSub } = useSubscription(0);
+  const [billing, setBilling] = useState<"monthly" | "annual">("monthly");
   const [plans, setPlans] = useState<Array<{
     id: number; name: string; slug: string; description: string;
     price: number; currency: string; duration: string; features: string[];
@@ -861,20 +719,13 @@ function SubscriptionTab() {
     })();
   }, []);
 
-  // Fetch current subscription status
   useEffect(() => {
-    (async () => {
-      try {
-        const { checkSubscription } = await import("@/lib/api/subscription");
-        const res = await checkSubscription();
-        if (res.data && !res.error) {
-          const raw = res.data as unknown as Record<string, unknown>;
-          const plan = raw.plan as Record<string, unknown> | null;
-          if (plan?.name) setCurrentPlan(String(plan.name).toLowerCase());
-        }
-      } catch { /* ignore */ }
-    })();
-  }, []);
+    if (isExpired || !planName) {
+      setCurrentPlan(null);
+    } else {
+      setCurrentPlan(planName.toLowerCase());
+    }
+  }, [isExpired, planName]);
 
   const handleSubscribe = async (planId: number, planName: string) => {
     setSubscribing(planId);
@@ -916,13 +767,7 @@ function SubscriptionTab() {
         success("Promo applied!", res.message ?? "Your plan has been activated.");
         setPromoCode("");
         // Refresh subscription status
-        const { checkSubscription } = await import("@/lib/api/subscription");
-        const statusRes = await checkSubscription();
-        if (statusRes.data && !statusRes.error) {
-          const raw = statusRes.data as unknown as Record<string, unknown>;
-          const plan = raw.plan as Record<string, unknown> | null;
-          if (plan?.name) setCurrentPlan(String(plan.name).toLowerCase());
-        }
+        refreshSub();
       }
     } catch {
       toastError("Promo failed", "Something went wrong");
@@ -931,7 +776,7 @@ function SubscriptionTab() {
     }
   };
 
-  // Map API plan names to feature lists
+ 
   const getFeatures = (plan: { slug: string; name: string; features?: string[] }) => {
     if (plan.features && plan.features.length > 0) return plan.features;
     const slug = plan.slug.toLowerCase();
@@ -970,10 +815,10 @@ function SubscriptionTab() {
             Monthly
           </button>
           <button
-            onClick={() => setBilling("yearly")}
+            onClick={() => setBilling("annual")}
             className={[
               "font-nulshock uppercase text-xs tracking-widest px-5 py-2 rounded-full transition-all",
-              billing === "yearly"
+              billing === "annual"
                 ? "bg-[#C30100] text-white"
                 : "text-white/40",
             ].join(" ")}
@@ -994,7 +839,6 @@ function SubscriptionTab() {
           <p className="font-montserrat text-white/40 text-sm">Unable to load plans. Please try again later.</p>
         </div>
       ) : (
-        /* MOB-005: grid-cols-1 on mobile, 3 on desktop */
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {plans
             .filter((plan) => !plan.is_contract_plan)
@@ -1039,7 +883,7 @@ function SubscriptionTab() {
                 <p className="font-nulshock text-white text-xl mb-1 whitespace-nowrap">
                   {displayPrice}
                   <span className="font-montserrat text-white/30 text-xs">
-                    /{billing === "yearly" ? "year" : "month"}
+                    /{billing === "annual" ? "year" : "month"}
                   </span>
                 </p>
                 <div className="flex flex-col gap-2 mt-4 flex-1">
@@ -1113,7 +957,6 @@ function SubscriptionTab() {
   );
 }
 
-/* ─── Tab config ──────────────────────────────────────────────── */
 const TABS: { id: Tab; label: string }[] = [
   { id: "general", label: "General" },
   { id: "artist-profile", label: "Artist Profile" },
@@ -1123,7 +966,6 @@ const TABS: { id: Tab; label: string }[] = [
   { id: "subscription", label: "Subscription" },
 ];
 
-/* ─── Page ────────────────────────────────────────────────────── */
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState<Tab>("general");
   const [showNewProfileModal, setShowNewProfileModal] = useState(false);
@@ -1185,7 +1027,6 @@ export default function SettingsPage() {
   );
 }
 
-/* ─── Icons ───────────────────────────────────────────────────── */
 function CloseIcon() {
   return (
     <svg
