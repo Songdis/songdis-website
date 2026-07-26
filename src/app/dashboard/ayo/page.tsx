@@ -26,7 +26,7 @@ interface Message {
 const INITIAL_MESSAGE: Message = {
   id: "initial",
   role: "ayo",
-  content: `Hey! I'm Ayo — your music intelligence assistant.\n\nI can help you grow your career, plan releases, and navigate the music industry. What would you like to work on today?`,
+  content: `Hey! I'm Ayo your music intelligence assistant.\n\nI can help you grow your career, plan releases, and navigate the music industry. I can also chat in English, Pidgin, Igbo, Hausa, and Yoruba. What would you like to work on today?`,
   chips: ["Draft my editorial pitch", "Plan my next release", "Help me grow my streams", "Generate bio"],
   timestamp: new Date(),
 };
@@ -364,7 +364,7 @@ function AyoAIContent() {
                 <span className="font-body text-[10px] text-yellow-400 bg-yellow-400/10 border border-yellow-400/30 rounded-full px-2 py-0.5 uppercase tracking-wider">AI Powered</span>
               </div>
               <p className="font-body text-white/50 text-xs mt-0.5">
-                Your music intelligence assistant
+                Your music intelligence assistant · Speaks English, Pidgin, Igbo, Hausa & Yoruba
               </p>
             </div>
           </div>

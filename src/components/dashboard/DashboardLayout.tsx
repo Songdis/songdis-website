@@ -165,7 +165,7 @@ export default function DashboardLayout({ children, customCta, showWelcome = fal
       </div>
 
       {!isExpired && <UploadModal isOpen={uploadOpen} onClose={() => setUploadOpen(false)} />}
-      {!isExpired && <AyoChatWidget />}
+      {!isExpired && pathname !== "/dashboard/ayo" && <AyoChatWidget />}
     </div>
   );
 }

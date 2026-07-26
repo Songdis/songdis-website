@@ -10,7 +10,9 @@ export type ReleaseStatus =
   | "delivered"
   | "distributed"
   | "need_documentation"
-  | "draft";
+  | "draft"
+  | "takedown"
+  | "rejected";
 
 export type ReleaseType = "single" | "album" | "mixtape" | "album_ep";
 
@@ -61,6 +63,8 @@ export const STATUS_CONFIG: Record<
   distributed:        { label: "Distributed",        color: "#2dd4bf", bg: "rgba(45,212,191,0.15)"  },
   need_documentation: { label: "Need Documentation", color: "#facc15", bg: "rgba(250,204,21,0.15)"  },
   draft:              { label: "Draft",              color: "#ffffff", bg: "rgba(255,255,255,0.15)" },
+  takedown:           { label: "Takedown",           color: "#f97316", bg: "rgba(249,115,22,0.15)"  },
+  rejected:           { label: "Rejected",           color: "#ef4444", bg: "rgba(239,68,68,0.15)"   },
 };
 
 /* ─── Mock releases ───────────────────────────────────────────── */

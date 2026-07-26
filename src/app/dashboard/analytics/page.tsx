@@ -463,7 +463,6 @@ import {
 import {
   TrendsView as TrendsSC,
   ChartsView as ChartsSC,
-  PlaylistsView as PlaylistsSC,
   RadioView as RadioSC,
   SocialsView as SocialsSC,
 } from "./soundcharts-views";
@@ -780,9 +779,6 @@ function TrendsView({ data }: { data: AnalyticsPageData | null }) {
 function ChartsView({ data }: { data: AnalyticsPageData | null }) {
   return <ChartsSC data={data} />;
 }
-function PlaylistsView({ data }: { data: AnalyticsPageData | null }) {
-  return <PlaylistsSC data={data} />;
-}
 function RadioView({ data }: { data: AnalyticsPageData | null }) {
   return <RadioSC data={data} />;
 }
@@ -843,7 +839,6 @@ export default function AnalyticsPage() {
       case "geography": return <GeographyView data={data} />;
       case "trends":    return <TrendsView data={data} />;
       case "charts":    return <ChartsView data={data} />;
-      case "playlists": return <PlaylistsView data={data} />;
       case "radio":     return <RadioView data={data} />;
       case "socials":   return <SocialsView data={data} />;
     }
@@ -854,12 +849,11 @@ export default function AnalyticsPage() {
       <div className="flex flex-col gap-5">
 
         {/* Stat rows */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
           <StatCard label="Total Streams" value={isLoading ? "..." : (s?.totalStreams.value ?? "0")} sub={s?.totalStreams.sub ?? "All DSPs"} icon={mock.totalStreams.icon} highlight badge={s?.totalStreams.change || undefined} />
           <StatCard label="Releases"      value={isLoading ? "..." : (s?.releases.value ?? "0")}     sub={s?.releases.sub ?? "With data"}  icon={mock.releases.icon} />
           <StatCard label="Countries"  value={isLoading ? "..." : (s?.countries.value ?? "0")}  sub={s?.countries.sub ?? "Territories"} icon={mock.countries.icon} />
           <StatCard label="Platforms"  value={isLoading ? "..." : (s?.platforms.value ?? "0")}  sub={s?.platforms.sub ?? "DSPs"}        icon={mock.platforms.icon} />
-          <StatCard label="Playlist"   value={isLoading ? "..." : (s?.playlists.value ?? "0")}  sub={s?.playlists.sub ?? "Active"}      icon={mock.playlists.icon} />
         </div>
 
         {/* Period + view controls */}

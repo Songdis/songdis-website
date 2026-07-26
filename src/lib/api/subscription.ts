@@ -107,3 +107,12 @@ export async function redeemPromo(code: string) {
     true
   );
 }
+
+/** POST /api/subscription/cancel — soft-cancel active subscription */
+export async function cancelSubscription() {
+  return request<{ message: string; subscription: { id: number; status: string; end_date: string; plan_name: string } }>(
+    "/subscription/cancel",
+    { method: "POST" },
+    true
+  );
+}

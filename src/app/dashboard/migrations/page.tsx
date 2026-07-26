@@ -675,7 +675,7 @@ function MigrationWizard({ onBack, onSuccess }: { onBack: () => void; onSuccess:
               />
             );
           })}
-          <div className="flex gap-3">
+          <div className="flex flex-col sm:flex-row gap-3">
             <button onClick={() => setStep("releases")}
               className="flex-1 font-heading text-white uppercase text-xs tracking-widest rounded-full border border-white/20 py-3 hover:border-white/40 transition-colors">
               Back
@@ -749,7 +749,7 @@ function MigrationWizard({ onBack, onSuccess }: { onBack: () => void; onSuccess:
               <p className="font-body text-[#C30100] text-xs bg-[#C30100]/5 border border-[#C30100]/20 rounded-xl p-3">{submitError}</p>
             )}
           </div>
-          <div className="flex gap-3">
+          <div className="flex flex-col sm:flex-row gap-3">
             <button onClick={() => setStep("details")}
               className="flex-1 font-heading text-white uppercase text-xs tracking-widest rounded-full border border-white/20 py-3 hover:border-white/40 transition-colors">
               Back
@@ -903,26 +903,28 @@ function ReleaseDetailsForm({
           ) : (
             <div className="flex flex-col gap-2">
               {(form.collaborators ?? []).map((c) => (
-                <div key={c.id} className="flex gap-2">
+                <div key={c.id} className="flex flex-col sm:flex-row gap-2">
                   <input type="text" value={c.name} placeholder="Name"
                     onChange={(e) => updateCollaborator(c.id, { name: e.target.value })}
                     className="flex-1 bg-[#0E0808] border border-white/10 rounded-lg px-3 py-2 font-body text-white text-xs placeholder:text-white/25 outline-none focus:border-[#C30100] transition-colors" />
-                  <select value={c.type}
-                    onChange={(e) => updateCollaborator(c.id, { type: e.target.value, role: "" })}
-                    className="bg-[#0E0808] border border-white/10 rounded-lg px-3 py-2 font-body text-white text-xs outline-none focus:border-[#C30100] transition-colors appearance-none">
-                    <option value="writer">Writer</option>
-                    <option value="producer">Producer</option>
-                    <option value="performer">Performer</option>
-                  </select>
-                  <select value={c.role}
-                    onChange={(e) => updateCollaborator(c.id, { role: e.target.value })}
-                    className="bg-[#0E0808] border border-white/10 rounded-lg px-3 py-2 font-body text-white text-xs outline-none focus:border-[#C30100] transition-colors appearance-none">
-                    <option value="">Role</option>
-                    {(COLLAB_TYPE_ROLES[c.type] ?? []).map((r) => <option key={r} value={r}>{r}</option>)}
-                  </select>
-                  <button onClick={() => removeCollaborator(c.id)} className="text-white/20 hover:text-[#C30100] transition-colors px-1">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-                  </button>
+                  <div className="flex gap-2">
+                    <select value={c.type}
+                      onChange={(e) => updateCollaborator(c.id, { type: e.target.value, role: "" })}
+                      className="flex-1 sm:flex-none bg-[#0E0808] border border-white/10 rounded-lg px-3 py-2 font-body text-white text-xs outline-none focus:border-[#C30100] transition-colors appearance-none">
+                      <option value="writer">Writer</option>
+                      <option value="producer">Producer</option>
+                      <option value="performer">Performer</option>
+                    </select>
+                    <select value={c.role}
+                      onChange={(e) => updateCollaborator(c.id, { role: e.target.value })}
+                      className="flex-1 sm:flex-none bg-[#0E0808] border border-white/10 rounded-lg px-3 py-2 font-body text-white text-xs outline-none focus:border-[#C30100] transition-colors appearance-none">
+                      <option value="">Role</option>
+                      {(COLLAB_TYPE_ROLES[c.type] ?? []).map((r) => <option key={r} value={r}>{r}</option>)}
+                    </select>
+                    <button onClick={() => removeCollaborator(c.id)} className="text-white/20 hover:text-[#C30100] transition-colors px-1 shrink-0">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>

@@ -43,6 +43,7 @@ export interface NormalisedRelease {
   genre: string;
   platforms: string[];
   createdAt: string;
+  trackCount: number;
 }
 
 function formatDate(raw: string | undefined): string {
@@ -81,6 +82,7 @@ function normaliseRelease(r: Release): NormalisedRelease {
     genre: r.primary_genre ?? "",
     platforms: safeParse<string[]>(r.platforms, []),
     createdAt: r.created_at ?? "",
+    trackCount: 1,
   };
 }
 
@@ -204,7 +206,17 @@ export function useMusic(params: MusicListParams = {}) {
     if (res.error) {
       setError(res.error);
     } else {
-      setReleases(unwrapList<Release>(res.data).map(normaliseRelease));
+      setReleases(unwrapList<Release>(res.data).map(normaliseRelease).reduce<NormalisedRelease[]>((acc, r) => {
+        if (r.type === "album_ep") {
+          const existing = acc.find((a) => a.title === r.title && a.type === "album_ep");
+          if (existing) {
+            existing.trackCount += 1;
+            return acc;
+          }
+        }
+        acc.push(r);
+        return acc;
+      }, []));
     }
     setIsLoading(false);
   }, [params.filter, params.page]);
@@ -324,7 +336,7 @@ export function useMusicStats(releases: NormalisedRelease[]) {
     singles: releases.filter((r) => r.type === "single").length,
     albumsEps: releases.filter((r) => r.type === "album_ep").length,
     live: releases.filter((r) => {
-      const s = r.status?.toLowerCase() ?? "";
+      const s = r.status?.toLowerCase().replace(/\s+/g, "_") ?? "";
       return s === "live" || s === "distributed";
     }).length,
   };

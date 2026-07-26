@@ -173,7 +173,6 @@ export type AnalyticsView =
   | "geography"
   | "trends"
   | "charts"
-  | "playlists"
   | "radio"
   | "socials";
 
@@ -184,7 +183,6 @@ export const VIEW_OPTIONS: { label: string; value: AnalyticsView; live?: boolean
   { label: "Geography", value: "geography" },
   { label: "Trends",    value: "trends",    live: true },
   { label: "Charts",    value: "charts",    live: true },
-  { label: "Playlist",  value: "playlists", live: true },
   { label: "Radio",     value: "radio",     live: true },
   { label: "Socials",   value: "socials",   live: true },
 ];

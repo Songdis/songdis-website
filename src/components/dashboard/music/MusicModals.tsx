@@ -27,7 +27,7 @@ function ModalShell({
   }, [onClose]);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center px-4 py-6">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:px-4 sm:py-6">
       <div aria-hidden className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
       <div className={`relative z-10 w-full ${maxWidth} rounded-2xl bg-[#1A0808] border border-white/[0.07] max-h-[90vh] overflow-y-auto`}>
         <button
@@ -157,7 +157,7 @@ export function RequestEditModal({
 
   return (
     <ModalShell onClose={onClose} maxWidth="max-w-[620px]">
-      <div className="p-7">
+      <div className="p-4 sm:p-7">
         <div className="text-center mb-6">
           <h2 className="font-heading text-white uppercase text-xl tracking-wide">Request Edit</h2>
           <p className="font-body text-white/50 text-sm mt-1">Submit changes for: {release.title}</p>
@@ -208,7 +208,7 @@ export function RequestEditModal({
           </div>
 
           {/* Actions */}
-          <div className="flex gap-3 mt-2">
+          <div className="flex flex-col sm:flex-row gap-3 mt-2">
             <button
               onClick={onClose}
               className="flex-1 font-heading text-white uppercase text-xs tracking-widest rounded-full border border-white/20 py-3.5 hover:border-white/40 transition-colors"
@@ -246,7 +246,7 @@ export function TakedownModal({
 
   return (
     <ModalShell onClose={onClose} maxWidth="max-w-[680px]">
-      <div className="p-7">
+      <div className="p-4 sm:p-7">
         <div className="text-center mb-6">
           <h2 className="font-heading text-white uppercase text-xl tracking-wide">Request Takedown</h2>
           <p className="font-body text-white/50 text-sm mt-1">This action will remove your track from all platforms</p>
@@ -313,7 +313,7 @@ export function TakedownModal({
           </label>
 
           {/* Actions */}
-          <div className="flex gap-3 mt-2">
+          <div className="flex flex-col sm:flex-row gap-3 mt-2">
             <button onClick={onClose} className="flex-1 font-heading text-white uppercase text-xs tracking-widest rounded-full border border-white/20 py-3.5 hover:border-white/40 transition-colors">
               Cancel
             </button>

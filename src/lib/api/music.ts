@@ -7,7 +7,9 @@ export type ReleaseStatus =
   | "delivered"
   | "distributed"
   | "need_documentation"
-  | "draft";
+  | "draft"
+  | "takedown"
+  | "rejected";
 
 export type ReleaseType = "single" | "album_ep";
 

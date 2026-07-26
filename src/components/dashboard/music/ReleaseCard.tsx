@@ -198,6 +198,7 @@ interface ReleaseCardProps {
 }
 
 export default function ReleaseCard({ release, onView, onEdit, onTakedown }: ReleaseCardProps) {
+  const rawStatus = (release.status ?? "").toLowerCase().replace(/\s+/g, "_");
   const status = STATUS_CONFIG[release.status as keyof typeof STATUS_CONFIG] ?? {
     label: release.status ?? "Unknown",
     color: "#ffffff",
@@ -227,20 +228,32 @@ export default function ReleaseCard({ release, onView, onEdit, onTakedown }: Rel
           className="absolute top-2.5 right-2.5 flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-body font-medium"
           style={{ color: status.color, backgroundColor: status.bg, backdropFilter: "blur(8px)" }}
         >
-          {release.status === "live" && (
+          {rawStatus === "live" && (
             <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse shrink-0" />
+          )}
+          {rawStatus === "need_documentation" && (
+            <div className="w-1.5 h-1.5 rounded-full bg-yellow-400 animate-pulse shrink-0" />
+          )}
+          {rawStatus === "rejected" && (
+            <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse shrink-0" />
+          )}
+          {rawStatus === "takedown" && (
+            <div className="w-1.5 h-1.5 rounded-full bg-orange-500 animate-pulse shrink-0" />
+          )}
+          {rawStatus === "pending" && (
+            <div className="w-1.5 h-1.5 rounded-full bg-orange-400 shrink-0" />
+          )}
+          {rawStatus === "delivered" && (
+            <div className="w-1.5 h-1.5 rounded-full bg-blue-400 shrink-0" />
           )}
           {status.label}
         </div>
       </div>
 
       <div className="p-3 flex flex-col gap-2 flex-1">
-        <div className="flex items-start justify-between gap-2">
-          <div className="min-w-0">
-            <p className="font-heading text-white uppercase text-xs tracking-wide truncate">{release.title}</p>
-            <p className="font-body text-white/50 text-[11px] mt-0.5 truncate">{release.artist}</p>
-          </div>
-          <p className="font-body text-white/30 text-[10px] shrink-0 mt-0.5">UPC: {release.upc}</p>
+        <div>
+          <p className="font-heading text-white uppercase text-xs tracking-wide truncate">{release.title}</p>
+          <p className="font-body text-white/50 text-[11px] mt-0.5 truncate">{release.artist}</p>
         </div>
 
         <div className="flex items-center justify-between">
@@ -249,11 +262,11 @@ export default function ReleaseCard({ release, onView, onEdit, onTakedown }: Rel
           </span>
           <span className="font-body text-white/40 text-[10px] flex items-center gap-1">
             <MusicNoteSmallIcon />
-            {(release.tracks?.length ?? 1)} Track{(release.tracks?.length ?? 1) > 1 ? "s" : ""}
+            {((release as unknown as { trackCount?: number }).trackCount ?? release.tracks?.length ?? 1)} Track{((release as unknown as { trackCount?: number }).trackCount ?? release.tracks?.length ?? 1) > 1 ? "s" : ""}
           </span>
         </div>
 
-        <div className="flex items-center justify-between pt-2 border-t border-white/[0.05]" onClick={(e) => e.stopPropagation()}>
+        <div className="flex flex-col gap-2 pt-2 border-t border-white/[0.05]" onClick={(e) => e.stopPropagation()}>
           <span className="font-body text-white/40 text-[10px] flex items-center gap-1">
             <CalendarIcon />
             {release.releaseDate}
@@ -261,16 +274,16 @@ export default function ReleaseCard({ release, onView, onEdit, onTakedown }: Rel
           <div className="flex items-center gap-1.5">
             <button
               onClick={(e) => { e.stopPropagation(); onEdit(release); }}
-              className="flex items-center gap-1 font-body text-white/60 text-[10px] hover:text-white border border-white/10 hover:border-white/30 rounded-full px-2.5 py-1 transition-colors"
+              className="flex items-center gap-1 font-body text-white/60 text-[10px] hover:text-white border border-white/10 hover:border-white/30 rounded-full px-2 py-1 transition-colors"
             >
-              <EditIcon /> Edit
+              <EditIcon /> <span className="hidden sm:inline">Edit</span>
             </button>
             <button
               onClick={(e) => { e.stopPropagation(); onTakedown(release); }}
-              className="flex items-center gap-1 font-body text-[10px] rounded-full px-2.5 py-1 transition-colors"
+              className="flex items-center gap-1 font-body text-[10px] rounded-full px-2 py-1 transition-colors"
               style={{ color: "#C30100", backgroundColor: "rgba(195,1,0,0.10)", border: "1px solid rgba(195,1,0,0.25)" }}
             >
-              <TakedownIcon /> Takedown
+              <TakedownIcon /> <span className="hidden sm:inline">Takedown</span>
             </button>
           </div>
         </div>

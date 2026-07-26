@@ -110,7 +110,7 @@ function SplitAgreementForm({ mode, split, musicUploadOptions, onClose, onSubmit
             {/* Collaborators */}
             {collaborators.map((collab, i) => (
               <div key={i} className="flex flex-col gap-3">
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="flex flex-col gap-1.5">
                     <label className="font-body text-white/70 text-xs">Full Name *</label>
                     <input
@@ -162,7 +162,7 @@ function SplitAgreementForm({ mode, split, musicUploadOptions, onClose, onSubmit
               </p>
             </div>
 
-            <div className="flex gap-3 mt-2 pb-[env(safe-area-inset-bottom)] sm:pb-0">
+            <div className="flex flex-col sm:flex-row gap-3 mt-2 pb-[env(safe-area-inset-bottom)] sm:pb-0">
               <button onClick={onClose} className="flex-1 font-heading text-white uppercase text-xs tracking-widest rounded-full border border-white/20 py-3.5 hover:border-white/40 transition-colors">
                 Cancel
               </button>
@@ -200,7 +200,7 @@ function DeleteModal({ onClose, onDelete, isLoading }: {
         <p className="font-body text-white/60 text-sm leading-relaxed mb-8">
           Are you sure you want to delete this agreement? This action cannot be undone
         </p>
-        <div className="flex gap-3">
+        <div className="flex flex-col sm:flex-row gap-3 pb-[env(safe-area-inset-bottom)] sm:pb-0">
           <button onClick={onClose} className="flex-1 font-heading text-white uppercase text-xs tracking-widest rounded-full border border-white/20 py-3.5 hover:border-white/40 transition-colors">
             Cancel
           </button>

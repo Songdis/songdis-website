@@ -102,7 +102,7 @@ export default function YourMusicPage() {
       list = list.filter((r) => r.title.toLowerCase().includes(q) || r.artist.toLowerCase().includes(q));
     }
     if (filterType !== "all") list = list.filter((r) => r.type === filterType);
-    if (filterStatus !== "all") list = list.filter((r) => r.status?.toLowerCase() === filterStatus);
+    if (filterStatus !== "all") list = list.filter((r) => r.status?.toLowerCase().replace(/\s+/g, "_") === filterStatus);
     if (filterSort === "oldest") list.reverse();
     return list;
   }, [releases, search, filterType, filterSort, filterStatus]);
@@ -164,8 +164,10 @@ export default function YourMusicPage() {
                   { label: "Live", value: "live" },
                   { label: "Pending", value: "pending" },
                   { label: "Delivered", value: "delivered" },
-                  { label: "Need Documentation", value: "need_documentation" },
                   { label: "Distributed", value: "distributed" },
+                  { label: "Need Documentation", value: "need_documentation" },
+                  { label: "Rejected", value: "rejected" },
+                  { label: "Takedown", value: "takedown" },
                 ]} />
             </div>
             {releasesLoading ? (

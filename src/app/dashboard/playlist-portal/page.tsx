@@ -5,6 +5,7 @@ import Image from "next/image";
 import DashboardLayout from "@/components/dashboard/DashboardLayout";
 import { SuccessModal } from "@/components/auth/SuccessModal";
 import { useMusic } from "@/lib/hooks/useMusic";
+import { useSubscription } from "@/lib/hooks/useSubscription";
 import { useToast } from "@/components/ui/Toast";
 import {
   getCurators,
@@ -419,6 +420,8 @@ export default function AmplifyPage() {
   const [heroVisible, setHeroVisible] = useState(true);
 
   const { releases } = useMusic();
+  const { planName, isActive, isContractPlan } = useSubscription(0);
+  const isGrowthPlan = !!(planName && isActive && (planName.toLowerCase().includes("growth") || planName.toLowerCase().includes("pro") || planName.toLowerCase().includes("unlimited") || isContractPlan));
 
   const load = useCallback(async () => {
     setIsLoading(true);
@@ -472,7 +475,23 @@ export default function AmplifyPage() {
     >
       <div className="flex flex-col gap-5">
 
-        {/* Hero / landing section */}
+        {!isGrowthPlan ? (
+          <div className="flex flex-col items-center justify-center py-16 gap-4">
+            <div className="w-16 h-16 rounded-full bg-[#C30100]/10 flex items-center justify-center">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#C30100" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/>
+              </svg>
+            </div>
+            <h2 className="font-heading text-white text-xl text-center">Growth Plan Required</h2>
+            <p className="font-body text-white/50 text-sm text-center max-w-sm">
+              Pitch Portal is available for Growth plan subscribers. Upgrade your plan to get your music featured on editorial playlists.
+            </p>
+            <a href="/dashboard/settings" className="font-heading text-white uppercase text-xs tracking-widest rounded-full bg-[#C30100] hover:bg-[#a80000] px-6 py-3 transition-all">
+              Upgrade Plan
+            </a>
+          </div>
+        ) : (
+          <>
         {heroVisible && (
           <PitchPortalHero onSubmitClick={goToAvailable} onApprovedClick={goToApproved} />
         )}
@@ -547,6 +566,8 @@ export default function AmplifyPage() {
               </div>
             )}
           </div>
+        )}
+          </>
         )}
       </div>
 

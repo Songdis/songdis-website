@@ -560,7 +560,7 @@ function VideoForm({ step, form, update, releases, loadingReleases, onBack, onNe
           <h2 className="font-heading text-white uppercase text-sm tracking-widest">Rights check</h2>
           <div className="bg-[#1A0808] border border-white/[0.07] rounded-xl p-5 flex flex-col gap-4">
             <p className="font-body text-white text-sm">Do you own 100% of the rights to this video?</p>
-            <div className="flex gap-3">
+            <div className="flex flex-col sm:flex-row gap-3">
               <button onClick={() => update({ owns100Percent: true })}
                 className={["flex-1 py-3 rounded-xl border text-sm font-heading transition-all", form.owns100Percent === true ? "border-green-500 bg-green-500/10 text-green-400" : "border-white/10 text-white/40 hover:border-white/25"].join(" ")}>Yes</button>
               <button onClick={() => update({ owns100Percent: false })}
@@ -618,7 +618,7 @@ function VideoForm({ step, form, update, releases, loadingReleases, onBack, onNe
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="flex flex-col gap-3">
               <Field label="YouTube Official Artist Channel?">
-                <div className="flex gap-2">
+                <div className="flex flex-col sm:flex-row gap-2">
                   {["yes", "no", "not-sure"].map((v) => (
                     <button key={v} onClick={() => update({ hasYouTubeOAC: v })}
                       className={["flex-1 py-2.5 rounded-lg border text-xs font-heading transition-all capitalize",
@@ -635,7 +635,7 @@ function VideoForm({ step, form, update, releases, loadingReleases, onBack, onNe
                   <p className="font-body text-green-400/70 text-[11px] mt-1">{detectProvider(form.videoFileLink)} link detected</p>
                 )}
                 <p className="font-body text-white/25 text-[11px] mt-1">Paste a shareable link from Google Drive, WeTransfer, or Dropbox</p>
-                <div className="flex gap-2 mt-2">
+                <div className="flex flex-wrap gap-2 mt-2">
                   {["Google Drive", "WeTransfer", "Dropbox"].map((p) => (
                     <span key={p} className="text-[10px] font-body text-white/25 bg-white/5 rounded px-2 py-0.5">{p}</span>
                   ))}

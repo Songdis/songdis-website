@@ -15,7 +15,7 @@ const montserrat = Montserrat({
 });
 
 export const metadata: Metadata = {
-  title: "Songdis — The Operating System for Artists & Labels",
+  title: "Songdis: The Operating System for Artists & Labels",
   description:
     "Upload your music on Spotify, Apple Music & more. Keep 100% ownership, access pro tools, and earn in any currency.",
   keywords: [
@@ -28,7 +28,7 @@ export const metadata: Metadata = {
     "songdis",
   ],
   openGraph: {
-    title: "Songdis — The Operating System for Artists & Labels",
+    title: "Songdis: The Operating System for Artists & Labels",
     description:
       "Upload your music on Spotify, Apple Music & more. Keep 100% ownership.",
     type: "website",
@@ -36,7 +36,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Songdis — The Operating System for Artists & Labels",
+    title: "Songdis: The Operating System for Artists & Labels",
     description:
       "Upload your music on Spotify, Apple Music & more. Keep 100% ownership.",
   },

@@ -68,13 +68,14 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          <div className="col-span-1 md:col-span-2 rounded-2xl border border-white/[0.06] bg-[#180F0F] overflow-hidden flex flex-row">
-            <div className="relative w-[55%] shrink-0 min-h-[220px]">
+          <div className="col-span-1 md:col-span-2 rounded-2xl border border-white/[0.06] bg-[#180F0F] overflow-hidden flex flex-col sm:flex-row">
+            <div className="relative w-full sm:w-[55%] shrink-0 min-h-[160px] sm:min-h-[220px]">
               <Image src="/images/into-the-night.svg" alt="Artist spotlight" fill className="object-cover object-center" />
             </div>
-            <div className="flex flex-col justify-center items-start px-5 py-6 flex-1">
-              <p className="font-heading text-white uppercase text-sm tracking-wide leading-tight mb-5">Artist Spotlight of the Week</p>
-              <a href="https://blog.songdis.com/" target="_blank" rel="noopener noreferrer" className="font-heading text-white uppercase text-xs tracking-widest border border-[#C30100] rounded-full px-5 py-2.5 hover:bg-[#C30100] transition-all">
+            <div className="flex flex-col justify-center items-start px-5 py-5 sm:py-6 flex-1">
+              <p className="font-heading text-white uppercase text-sm tracking-wide leading-tight mb-4 sm:mb-5">Artist Spotlight of the Week</p>
+              <a href="https://blog.songdis.com/" target="_blank" rel="noopener noreferrer"
+                className="font-heading text-white uppercase text-[10px] sm:text-xs tracking-widest rounded-full bg-[#C30100] hover:bg-[#a80000] px-5 py-2.5 sm:py-3 transition-all w-full sm:w-auto text-center">
                 Read Article
               </a>
             </div>
@@ -195,7 +196,7 @@ export default function DashboardPage() {
             </div>
             <div className="flex-1">
               <p className="font-body text-white text-sm font-medium">Ayo AI</p>
-              <p className="font-body text-white/40 text-xs">Ask anything about your music career</p>
+              <p className="font-body text-white/40 text-xs">Ask Ayo anything · English, Pidgin, Igbo, Hausa & Yoruba</p>
             </div>
             <Link href="/dashboard/ayo" className="font-body text-white/40 text-xs hover:text-white transition-colors">
               Open full chat →

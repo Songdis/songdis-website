@@ -159,7 +159,7 @@ export default function AyoChatWidget() {
                 </div>
                 <div>
                   <p className="font-heading text-white uppercase text-xs tracking-wide">Ayo AI</p>
-                  <p className="font-body text-white/40 text-[10px]">Music intelligence assistant</p>
+                  <p className="font-body text-white/40 text-[10px]">English · Pidgin · Igbo · Hausa · Yoruba</p>
                 </div>
               </div>
               <button onClick={() => setIsOpen(false)}

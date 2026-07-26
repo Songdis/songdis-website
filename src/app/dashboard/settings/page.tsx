@@ -686,6 +686,7 @@ function SubscriptionTab() {
   const [currentPlan, setCurrentPlan] = useState<string | null>(null);
   const [promoCode, setPromoCode] = useState("");
   const [promoLoading, setPromoLoading] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
   const { success, error: toastError } = useToast();
 
   // Fetch plans from API
@@ -773,6 +774,25 @@ function SubscriptionTab() {
       toastError("Promo failed", "Something went wrong");
     } finally {
       setPromoLoading(false);
+    }
+  };
+
+  const handleCancelSubscription = async () => {
+    if (!confirm("Are you sure you want to cancel your subscription? You'll keep access until the end of your billing period.")) return;
+    setCancelling(true);
+    try {
+      const { cancelSubscription } = await import("@/lib/api/subscription");
+      const res = await cancelSubscription();
+      if (res.error) {
+        toastError("Cancellation failed", res.error);
+      } else {
+        success("Subscription cancelled", res.message ?? "Your subscription has been cancelled. You'll keep access until the end of your billing period.");
+        refreshSub();
+      }
+    } catch {
+      toastError("Cancellation failed", "Something went wrong");
+    } finally {
+      setCancelling(false);
     }
   };
 
@@ -946,6 +966,27 @@ function SubscriptionTab() {
           {promoLoading ? "Applying..." : "Apply"}
         </button>
       </div>
+
+      {/* Cancel Subscription — only when active and not expired */}
+      {currentPlan && !isExpired && (
+        <div className="mt-5 pt-5 border-t border-white/[0.06]">
+          <button
+            onClick={handleCancelSubscription}
+            disabled={cancelling}
+            className="font-nulshock uppercase text-[10px] tracking-widest rounded-full border border-white/20 px-5 py-2.5 text-white/50 hover:text-[#C30100] hover:border-[#C30100]/50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+          >
+            {cancelling && (
+              <svg className="animate-spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M21 12a9 9 0 11-6.219-8.56"/>
+              </svg>
+            )}
+            {cancelling ? "Cancelling..." : "Cancel Subscription"}
+          </button>
+          <p className="font-montserrat text-white/30 text-[11px] text-center mt-2">
+            You'll keep access until the end of your current billing period.
+          </p>
+        </div>
+      )}
 
       <div className="flex items-center justify-center gap-2 mt-5">
         <span className="w-2 h-2 rounded-full bg-[#C30100]" />
