@@ -5,7 +5,7 @@ import Image from "next/image";
 import DashboardLayout from "@/components/dashboard/DashboardLayout";
 import { SuccessModal } from "@/components/auth/SuccessModal";
 import { useMusic } from "@/lib/hooks/useMusic";
-import { useSubscription } from "@/lib/hooks/useSubscription";
+import { useBilling } from "@/lib/hooks/useBilling";
 import { useToast } from "@/components/ui/Toast";
 import {
   getCurators,
@@ -420,8 +420,9 @@ export default function AmplifyPage() {
   const [heroVisible, setHeroVisible] = useState(true);
 
   const { releases } = useMusic();
-  const { planName, isActive, isContractPlan } = useSubscription(0);
-  const isGrowthPlan = !!(planName && isActive && (planName.toLowerCase().includes("growth") || planName.toLowerCase().includes("pro") || planName.toLowerCase().includes("unlimited") || isContractPlan));
+
+  const { can } = useBilling(0);
+  const isGrowthPlan = can("playlist_pitching");
 
   const load = useCallback(async () => {
     setIsLoading(true);

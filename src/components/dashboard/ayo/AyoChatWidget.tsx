@@ -73,6 +73,9 @@ function TypingIndicator() {
   );
 }
 
+
+const EXIT_MS = 150;
+
 export default function AyoChatWidget() {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([INITIAL_MESSAGE]);
@@ -80,6 +83,30 @@ export default function AyoChatWidget() {
   const [isLoading, setIsLoading] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+
+
+  const [isMounted, setIsMounted] = useState(false);
+  const [isVisible, setIsVisible] = useState(false);
+
+  useEffect(() => {
+    if (isOpen) {
+      setIsMounted(true);
+
+      let inner = 0;
+      const outer = requestAnimationFrame(() => {
+        inner = requestAnimationFrame(() => setIsVisible(true));
+      });
+
+      return () => {
+        cancelAnimationFrame(outer);
+        cancelAnimationFrame(inner);
+      };
+    }
+
+    setIsVisible(false);
+    const timer = setTimeout(() => setIsMounted(false), EXIT_MS);
+    return () => clearTimeout(timer);
+  }, [isOpen]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -147,8 +174,19 @@ export default function AyoChatWidget() {
   return (
     <>
       {/* Chat Panel */}
-      {isOpen && (
-        <div className="fixed bottom-24 right-4 sm:right-6 z-50 w-[calc(100vw-2rem)] sm:w-[400px] max-w-[400px]">
+      {isMounted && (
+        <div
+          className={[
+            "fixed bottom-24 right-4 sm:right-6 z-50 w-[calc(100vw-2rem)] sm:w-[400px] max-w-[400px]",
+            "origin-bottom-right will-change-[opacity,transform]",
+            "transition-[opacity,transform]",
+            isVisible
+              ? "opacity-100 translate-y-0 scale-100 duration-200 ease-out"
+              : "opacity-0 translate-y-2 scale-95 duration-150 ease-in pointer-events-none",
+            "motion-reduce:transform-none motion-reduce:transition-opacity",
+          ].join(" ")}
+          aria-hidden={!isVisible}
+        >
           <div className="flex flex-col h-[500px] max-h-[calc(100vh-8rem)] rounded-2xl border border-white/[0.12] bg-[#1C1212] shadow-2xl shadow-black/60 overflow-hidden">
 
             {/* Header */}
@@ -217,20 +255,38 @@ export default function AyoChatWidget() {
       <button
         onClick={() => setIsOpen(!isOpen)}
         className={[
-          "fixed bottom-6 right-4 sm:right-6 z-50 w-14 h-14 rounded-full flex items-center justify-center shadow-lg transition-all duration-300",
+          "fixed bottom-6 right-4 sm:right-6 z-50 w-14 h-14 rounded-full flex items-center justify-center shadow-lg",
+          "transition-[background-color,transform,border-color] duration-300 ease-out active:scale-95",
           isOpen
-            ? "bg-[#1A0808] border border-white/[0.15] rotate-0"
+            ? "bg-[#1A0808] border border-white/[0.15]"
             : "bg-[#C30100] hover:bg-[#a80000] hover:scale-105",
+          "motion-reduce:transition-none motion-reduce:transform-none",
         ].join(" ")}
         aria-label={isOpen ? "Close Ayo chat" : "Open Ayo chat"}
+        aria-expanded={isOpen}
       >
-        {isOpen ? (
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round">
-            <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
-          </svg>
-        ) : (
-          <Image src="/images/ayo.svg" alt="Ayo" width={26} height={26} unoptimized />
-        )}
+      
+        <span className="grid place-items-center [&>*]:col-start-1 [&>*]:row-start-1">
+          <span
+            className={[
+              "transition-[opacity,transform] duration-200 ease-out motion-reduce:transition-opacity motion-reduce:transform-none",
+              isOpen ? "opacity-100 rotate-0 scale-100" : "opacity-0 -rotate-90 scale-75",
+            ].join(" ")}
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round">
+              <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
+          </span>
+
+          <span
+            className={[
+              "transition-[opacity,transform] duration-200 ease-out motion-reduce:transition-opacity motion-reduce:transform-none",
+              isOpen ? "opacity-0 rotate-90 scale-75" : "opacity-100 rotate-0 scale-100",
+            ].join(" ")}
+          >
+            <Image src="/images/ayo.svg" alt="" width={26} height={26} unoptimized />
+          </span>
+        </span>
       </button>
     </>
   );

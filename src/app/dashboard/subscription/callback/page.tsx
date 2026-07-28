@@ -17,11 +17,11 @@ function CallbackContent() {
 
   const verifySubscription = useCallback(async () => {
     try {
-      const { checkSubscription } = await import("@/lib/api/subscription");
-      const res = await checkSubscription();
+
+      const { getBillingStatus } = await import("@/lib/api/billing");
+      const res = await getBillingStatus();
       if (res.data && !res.error) {
-        const raw = res.data as unknown as Record<string, unknown>;
-        if (raw.is_active) {
+        if (res.data.is_active) {
           setStatus("success");
           setMessage("Your subscription is now active!");
           if (pollRef.current) clearInterval(pollRef.current);

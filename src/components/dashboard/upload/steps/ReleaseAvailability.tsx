@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import type { UploadState, StepFieldErrors } from "../UploadModal";
 import { StepHeader, StepProgress, StepActions } from "../UploadModal";
-import { useSubscription } from "@/lib/hooks/useSubscription";
+import { useBilling } from "@/lib/hooks/useBilling";
 
 const DSP_LIST = [
   { id: "spotify", label: "Spotify", description: "Leading global streaming platform", color: "#1DB954" },
@@ -36,8 +36,8 @@ interface Props {
 
 export default function ReleaseAvailability({ state, update, onBack, onSubmit, onQuickDrop, onSaveDraft, isSubmitting, fieldErrors = {}, clearFieldError }: Props) {
   const [search, setSearch] = useState("");
-  const { planName, isActive, isContractPlan } = useSubscription();
-  const isBasicPlan = !isActive || !planName || (!isContractPlan && (planName.toLowerCase().includes("basic") || planName.toLowerCase().includes("free")));
+  const { can } = useBilling();
+  const isBasicPlan = !can("full_distribution");
 
   // Auto-select all platforms when first reaching this step
   useEffect(() => {

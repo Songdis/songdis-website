@@ -5,11 +5,10 @@ import Image from "next/image";
 import Link from "next/link";
 import DashboardLayout from "@/components/dashboard/DashboardLayout";
 import { useToast } from "@/components/ui/Toast";
-import { useSubscription } from "@/lib/hooks/useSubscription";
+import { useBilling } from "@/lib/hooks/useBilling";
 import { fetchVideos, getMusic, submitVideo, type VideoRecord, type VideoStats } from "@/lib/api/music";
 import type { Release } from "@/lib/api/music";
 
-/* ─── Constants ─────────────────────────────────────────────── */
 
 const VIDEO_TYPES = [
   { id: "official-video", name: "Official Video", description: "The main music video for your song." },
@@ -44,7 +43,6 @@ const STATUS_COLORS: Record<string, string> = {
   rejected: "bg-red-500/20 text-red-400",
 };
 
-/* ─── Helpers ───────────────────────────────────────────────── */
 
 function getPlatforms(plan: string, videoType: string): string[] {
   if (plan === "vevo-essentials") return ["VEVO", "Vimeo"];
@@ -102,7 +100,6 @@ const EMPTY_FORM: FormData = {
   confirmAccurate: false, agreeTerms: false,
 };
 
-/* ─── Page ──────────────────────────────────────────────────── */
 
 export default function VideosPage() {
   const [view, setView] = useState<"list" | "pre-submit" | "form">("list");
@@ -117,12 +114,13 @@ export default function VideosPage() {
   const [submitting, setSubmitting] = useState(false);
   const thumbRef = useRef<HTMLInputElement>(null);
   const { success: toastSuccess, error: toastError } = useToast();
-  const { planName, isActive, isContractPlan } = useSubscription();
-  const isGrowthPlan = !!(planName && isActive && (planName.toLowerCase().includes("growth") || planName.toLowerCase().includes("pro") || planName.toLowerCase().includes("unlimited") || isContractPlan));
+
+  const { can } = useBilling();
+  const isGrowthPlan = can("videos");
 
   const update = useCallback((patch: Partial<FormData>) => setForm((f) => ({ ...f, ...patch })), []);
 
-  /* Fetch videos list */
+ 
   const loadVideos = useCallback(async () => {
     setListLoading(true);
     try {
@@ -137,7 +135,6 @@ export default function VideosPage() {
 
   useEffect(() => { if (view === "list") loadVideos(); }, [view, loadVideos]);
 
-  /* Fetch releases when reaching step 1 */
   useEffect(() => {
     if (view === "form" && step === 1 && releases.length === 0) {
       setLoadingReleases(true);
@@ -252,7 +249,6 @@ export default function VideosPage() {
   );
 }
 
-/* ─── List View ─────────────────────────────────────────────── */
 
 function VideosList({ videos, stats, loading, isGrowthPlan, onStartNew }: {
   videos: VideoRecord[]; stats: VideoStats; loading: boolean; isGrowthPlan: boolean; onStartNew: () => void;
@@ -351,7 +347,6 @@ function VideosList({ videos, stats, loading, isGrowthPlan, onStartNew }: {
   );
 }
 
-/* ─── Pre-Submit ────────────────────────────────────────────── */
 
 function PreSubmit({ onBack, onStart, acknowledged, setAcknowledged }: {
   onBack: () => void; onStart: () => void; acknowledged: boolean; setAcknowledged: (v: boolean) => void;
@@ -394,7 +389,6 @@ function PreSubmit({ onBack, onStart, acknowledged, setAcknowledged }: {
   );
 }
 
-/* ─── Video Form (10 steps) ─────────────────────────────────── */
 
 function VideoForm({ step, form, update, releases, loadingReleases, onBack, onNext, canContinue, submitting, thumbRef }: {
   step: number; form: FormData; update: (p: Partial<FormData>) => void;
@@ -727,7 +721,6 @@ function VideoForm({ step, form, update, releases, loadingReleases, onBack, onNe
   );
 }
 
-/* ─── Shared pieces ─────────────────────────────────────────── */
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (

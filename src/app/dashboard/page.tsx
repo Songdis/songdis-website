@@ -6,7 +6,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import DashboardLayout from "@/components/dashboard/DashboardLayout";
 import { useDashboard } from "@/lib/hooks/useDashboard";
-import { useSubscription } from "@/lib/hooks/useSubscription";
+import { useBilling } from "@/lib/hooks/useBilling";
 import { ReleaseDetailModal } from "@/components/dashboard/music/ReleaseDetailModal";
 
 export default function DashboardPage() {
@@ -15,7 +15,12 @@ export default function DashboardPage() {
   const [activeReleaseMeta, setActiveReleaseMeta] = useState<{ cover?: string; title?: string; artist?: string }>({});
   const [ayoInput, setAyoInput] = useState("");
   const router = useRouter();
-  const { isExpired } = useSubscription(0);
+  const { isLocked, isExpired, hasSubscription } = useBilling(0);
+
+  // "Renew" is wrong for someone who has never subscribed.
+  const lapsed = isExpired || hasSubscription;
+  const lockLabel = lapsed ? "Renew your subscription" : "Subscribe to unlock";
+  const lockVerb  = lapsed ? "Renew your subscription" : "Subscribe";
 
   const { stats, wallet, recentReleases, features } =
     data ?? {
@@ -48,15 +53,15 @@ export default function DashboardPage() {
             </div>
 
             <div className="rounded-2xl border border-white/[0.06] bg-[#180F0F] p-5 relative overflow-hidden">
-              {isExpired && (
+              {isLocked && (
                 <div className="absolute inset-0 z-10 bg-[#180F0F]/80 backdrop-blur-[2px] flex flex-col items-center justify-center gap-2">
                   <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.3)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                     <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/>
                   </svg>
-                  <p className="font-body text-white/50 text-xs text-center">Renew your subscription</p>
+                  <p className="font-body text-white/50 text-xs text-center">{lockLabel}</p>
                 </div>
               )}
-              <div className={isExpired ? "opacity-30 pointer-events-none" : ""}>
+              <div className={isLocked ? "opacity-30 pointer-events-none" : ""}>
                 <div className="flex items-center justify-between mb-3">
                   <p className="font-body text-white/60 text-sm">Total Earnings</p>
                   <button className="text-white/30 hover:text-white transition-colors"><DollarIcon /></button>
@@ -138,18 +143,18 @@ export default function DashboardPage() {
           </div>
 
           <div className="rounded-2xl border border-white/[0.06] bg-[#180F0F] p-5 flex flex-col relative overflow-hidden">
-            {isExpired && (
+            {isLocked && (
               <div className="absolute inset-0 z-10 bg-[#180F0F]/80 backdrop-blur-[2px] flex flex-col items-center justify-center gap-3">
                 <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.3)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                   <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/>
                 </svg>
-                <p className="font-body text-white/50 text-sm text-center">Renew your subscription to view earnings</p>
+                <p className="font-body text-white/50 text-sm text-center">{lockVerb} to view earnings</p>
                 <Link href="/dashboard/settings" className="font-heading text-white uppercase text-[10px] tracking-widest rounded-full bg-[#C30100] hover:bg-[#a80000] px-4 py-2 transition-colors">
                   Renew Now
                 </Link>
               </div>
             )}
-            <div className={isExpired ? "flex-1 flex flex-col opacity-30 pointer-events-none" : "flex-1 flex flex-col"}>
+            <div className={isLocked ? "flex-1 flex flex-col opacity-30 pointer-events-none" : "flex-1 flex flex-col"}>
               <div className="flex items-center justify-between mb-4 shrink-0">
                 <p className="font-body text-white text-sm font-medium">Earnings</p>
                 <Link href="/dashboard/earnings" className="font-body text-white/50 text-xs hover:text-white transition-colors flex items-center gap-1">
@@ -178,18 +183,18 @@ export default function DashboardPage() {
 
         {/* Ayo AI */}
         <div className="rounded-2xl border border-white/[0.06] bg-[#180F0F] p-5 relative overflow-hidden">
-          {isExpired && (
+          {isLocked && (
             <div className="absolute inset-0 z-10 bg-[#180F0F]/80 backdrop-blur-[2px] flex flex-col items-center justify-center gap-3">
               <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.3)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                 <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/>
               </svg>
-              <p className="font-body text-white/50 text-sm text-center">Renew your subscription to use Ayo AI</p>
+              <p className="font-body text-white/50 text-sm text-center">{lockVerb} to use Ayo AI</p>
               <Link href="/dashboard/settings" className="font-heading text-white uppercase text-[10px] tracking-widest rounded-full bg-[#C30100] hover:bg-[#a80000] px-4 py-2 transition-colors">
                 Renew Now
               </Link>
             </div>
           )}
-          <div className={isExpired ? "opacity-30 pointer-events-none" : ""}>
+          <div className={isLocked ? "opacity-30 pointer-events-none" : ""}>
           <div className="flex items-center gap-3 mb-4">
             <div className="w-9 h-9 rounded-xl bg-[#C30100]/20 border border-[#C30100]/30 flex items-center justify-center overflow-hidden">
               <Image src="/images/ayo.svg" alt="Ayo AI" width={20} height={20} unoptimized className="object-contain" />

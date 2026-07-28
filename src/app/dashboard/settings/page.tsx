@@ -8,7 +8,8 @@ import DashboardLayout from "@/components/dashboard/DashboardLayout";
 import { GeneralTab } from "@/components/dashboard/settings/GeneralTab";
 import ArtistProfileModal from "@/components/dashboard/settings/ArtistProfileModal";
 import type { ArtistProfile } from "@/components/dashboard/settings/ArtistProfileModal";
-import { useSubscription } from "@/lib/hooks/useSubscription";
+import { useBilling } from "@/lib/hooks/useBilling";
+import PlanGrid from "@/components/billing/PlanGrid";
 
 type Tab =
   | "general"
@@ -17,38 +18,6 @@ type Tab =
   | "notification"
   | "security"
   | "subscription";
-type BillingCycle = "monthly" | "yearly";
-
-const PLAN_FEATURES = {
-  starter: [
-    "1 Artist Account",
-    "Unlimited Releases",
-    "Analytics",
-    "Lyrics Distribution",
-    "Keep 95% of Your Royalties",
-    "Fast Payments & Easy Withdrawals",
-    "Stream Links for Each Release",
-  ],
-  growth: [
-    "All Basic Plan Features",
-    "3 Artist Accounts",
-    "100% of Your Royalties",
-    "Customize Label Name",
-    "Editorial Playlist Pitch Portal",
-    "24/7 Support",
-  ],
-  label: [
-    "All Growth Plan Features",
-    "Up to 5 Artist Accounts",
-    "Central label dashboard",
-    "Multi-artist analytics & earnings view",
-    "Bulk release management",
-    "Faster release review & processing",
-    "Priority support",
-    "Customize Label Name",
-    "Invite team members",
-  ],
-};
 
 function Field({
   label,
@@ -673,145 +642,110 @@ function EyeToggle({
 }
 
 function SubscriptionTab() {
-  const { isExpired, planName, refresh: refreshSub } = useSubscription(0);
-  const [billing, setBilling] = useState<"monthly" | "annual">("monthly");
-  const [plans, setPlans] = useState<Array<{
-    id: number; name: string; slug: string; description: string;
-    price: number; currency: string; duration: string; features: string[];
-    artist_limit: number; royalty_share: number; is_popular: boolean;
-    is_contract_plan: boolean;
-  }>>([]);
-  const [loadingPlans, setLoadingPlans] = useState(true);
-  const [subscribing, setSubscribing] = useState<number | null>(null);
-  const [currentPlan, setCurrentPlan] = useState<string | null>(null);
-  const [promoCode, setPromoCode] = useState("");
-  const [promoLoading, setPromoLoading] = useState(false);
+  const {
+    isLoading,
+    status,
+    planName,
+    isActive,
+    isExpired,
+    isTrialing,
+    endDate,
+    daysUntilExpiry,
+    autoRenew,
+    renewsManually,
+    refresh: refreshBilling,
+  } = useBilling();
+
   const [cancelling, setCancelling] = useState(false);
+  const [startingTrial, setStartingTrial] = useState(false);
+  const [openingPortal, setOpeningPortal] = useState(false);
+  const [resuming, setResuming] = useState(false);
   const { success, error: toastError } = useToast();
 
-  // Fetch plans from API
-  useEffect(() => {
-    (async () => {
-      try {
-        const { getPlans } = await import("@/lib/api/subscription");
-        const res = await getPlans("NGN");
-        if (res.data && !res.error) {
-          const raw = res.data as unknown as Record<string, unknown>;
-          const planList = (raw.plans ?? raw) as Array<Record<string, unknown>>;
-          if (Array.isArray(planList)) {
-            setPlans(planList.map((p) => ({
-              id: Number(p.id),
-              name: String(p.name ?? ""),
-              slug: String(p.slug ?? p.name ?? "").toLowerCase(),
-              description: String(p.description ?? ""),
-              price: Number(p.price ?? 0),
-              currency: String(p.currency ?? "NGN"),
-              duration: String(p.duration ?? "monthly"),
-              features: Array.isArray(p.features) ? p.features.map(String) : [],
-              artist_limit: Number(p.artist_limit ?? 1),
-              royalty_share: Number(p.royalty_share ?? 95),
-              is_popular: Boolean(p.is_popular),
-              is_contract_plan: Boolean(p.is_contract_plan),
-            })));
-          }
-        }
-      } catch { /* plans will remain empty */ }
-      setLoadingPlans(false);
-    })();
-  }, []);
+  const handleCancel = async () => {
+    if (
+      !confirm(
+        "Cancel your subscription? You will keep access until the end of your current billing period."
+      )
+    )
+      return;
 
-  useEffect(() => {
-    if (isExpired || !planName) {
-      setCurrentPlan(null);
-    } else {
-      setCurrentPlan(planName.toLowerCase());
-    }
-  }, [isExpired, planName]);
-
-  const handleSubscribe = async (planId: number, planName: string) => {
-    setSubscribing(planId);
-    try {
-      const { subscribe } = await import("@/lib/api/subscription");
-      const res = await subscribe({
-        plan_id: planId,
-        billing_cycle: billing === "monthly" ? "monthly" : "annual",
-        currency: "NGN",
-        payment_provider: "startbutton",
-      });
-      if (res.error) {
-        toastError("Payment failed", res.error);
-      } else {
-        const raw = res.data as unknown as Record<string, unknown>;
-        const url = (raw.payment_url ?? raw.subscription_link) as string;
-        if (url) {
-          window.location.href = url;
-        } else {
-          toastError("Payment failed", "No payment URL returned");
-        }
-      }
-    } catch {
-      toastError("Payment failed", "Something went wrong");
-    } finally {
-      setSubscribing(null);
-    }
-  };
-
-  const handleRedeemPromo = async () => {
-    if (!promoCode.trim()) return;
-    setPromoLoading(true);
-    try {
-      const { redeemPromo } = await import("@/lib/api/subscription");
-      const res = await redeemPromo(promoCode.trim());
-      if (res.error) {
-        toastError("Promo failed", res.error);
-      } else {
-        success("Promo applied!", res.message ?? "Your plan has been activated.");
-        setPromoCode("");
-        // Refresh subscription status
-        refreshSub();
-      }
-    } catch {
-      toastError("Promo failed", "Something went wrong");
-    } finally {
-      setPromoLoading(false);
-    }
-  };
-
-  const handleCancelSubscription = async () => {
-    if (!confirm("Are you sure you want to cancel your subscription? You'll keep access until the end of your billing period.")) return;
     setCancelling(true);
     try {
-      const { cancelSubscription } = await import("@/lib/api/subscription");
-      const res = await cancelSubscription();
+      const { cancelBilling } = await import("@/lib/api/billing");
+      const res = await cancelBilling();
+
       if (res.error) {
         toastError("Cancellation failed", res.error);
       } else {
-        success("Subscription cancelled", res.message ?? "Your subscription has been cancelled. You'll keep access until the end of your billing period.");
-        refreshSub();
+        success(
+          "Subscription cancelled",
+          res.message ?? "You will keep access until your period ends."
+        );
+        refreshBilling();
       }
     } catch {
-      toastError("Cancellation failed", "Something went wrong");
+      toastError("Cancellation failed", "Something went wrong.");
     } finally {
       setCancelling(false);
     }
   };
 
- 
-  const getFeatures = (plan: { slug: string; name: string; features?: string[] }) => {
-    if (plan.features && plan.features.length > 0) return plan.features;
-    const slug = plan.slug.toLowerCase();
-    const name = plan.name.toLowerCase();
-    if (slug.includes("starter") || slug.includes("basic")) return PLAN_FEATURES.starter;
-    if (slug.includes("growth")) return PLAN_FEATURES.growth;
-    if (slug.includes("label") || slug.includes("professional")) return PLAN_FEATURES.label;
-    return PLAN_FEATURES.starter;
+  // Undoing a cancellation. Card subscriptions can only be reversed in the
+  // Bachs portal, so the server hands back a URL to continue at; local plans
+  // resume in place. Either way it's one button to the customer.
+  const handleResume = async () => {
+    setResuming(true);
+    try {
+      const { resumeBilling } = await import("@/lib/api/billing");
+      const res = await resumeBilling();
+
+      if (res.error) {
+        toastError("Could not resume", res.error);
+        return;
+      }
+
+      if (res.data?.requires_portal && res.data.portal_url) {
+        window.location.href = res.data.portal_url;
+        return;
+      }
+
+      success("Subscription resumed", res.message ?? "Your plan will continue.");
+      refreshBilling();
+    } catch {
+      toastError("Could not resume", "Something went wrong.");
+    } finally {
+      setResuming(false);
+    }
   };
 
-  const isCurrentPlan = (plan: { slug: string; name: string }) => {
-    if (!currentPlan) return false;
-    return plan.name.toLowerCase().includes(currentPlan) ||
-           currentPlan.includes(plan.slug);
+  // Bachs hosts card management, so there is nothing to build here for
+  // updating a card or changing a payment method.
+  const handlePortal = async () => {
+    setOpeningPortal(true);
+    try {
+      const { createPortalSession } = await import("@/lib/api/billing");
+      const res = await createPortalSession();
+
+      if (res.data?.portal_url) {
+        window.location.href = res.data.portal_url;
+      } else {
+        toastError("Unavailable", res.error ?? "Billing portal could not be opened.");
+      }
+    } catch {
+      toastError("Unavailable", "Billing portal could not be opened.");
+    } finally {
+      setOpeningPortal(false);
+    }
   };
+
+  const dateStr = endDate
+    ? new Date(endDate).toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+      })
+    : null;
 
   return (
     <div className="rounded-2xl border border-dashed border-[#C30100]/30 bg-[#180F0F] p-6">
@@ -821,171 +755,169 @@ function SubscriptionTab() {
       <p className="font-montserrat text-white/40 text-xs mb-6">
         Manage your plan and billing
       </p>
-      <div className="flex justify-center mb-6">
-        <div className="flex bg-[#0E0808] border border-white/[0.06] rounded-full p-1">
-          <button
-            onClick={() => setBilling("monthly")}
-            className={[
-              "font-nulshock uppercase text-xs tracking-widest px-5 py-2 rounded-full transition-all",
-              billing === "monthly"
-                ? "bg-white/10 text-white"
-                : "text-white/40",
-            ].join(" ")}
-          >
-            Monthly
-          </button>
-          <button
-            onClick={() => setBilling("annual")}
-            className={[
-              "font-nulshock uppercase text-xs tracking-widest px-5 py-2 rounded-full transition-all",
-              billing === "annual"
-                ? "bg-[#C30100] text-white"
-                : "text-white/40",
-            ].join(" ")}
-          >
-            Yearly
-          </button>
-        </div>
-      </div>
 
-      {loadingPlans ? (
-        <div className="flex justify-center py-12">
-          <svg className="animate-spin" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#C30100" strokeWidth="2">
-            <path d="M21 12a9 9 0 11-6.219-8.56"/>
-          </svg>
-        </div>
-      ) : plans.length === 0 ? (
-        <div className="text-center py-12">
-          <p className="font-montserrat text-white/40 text-sm">Unable to load plans. Please try again later.</p>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {plans
-            .filter((plan) => !plan.is_contract_plan)
-            .filter((plan) => {
-              const d = plan.duration.toLowerCase();
-              return billing === "monthly" ? d === "monthly" : d === "yearly" || d === "annual";
-            })
-            .map((plan) => {
-            const current = isCurrentPlan(plan);
-            const features = getFeatures(plan);
-            const displayPrice = `₦${plan.price.toLocaleString()}`;
-            const ctaLabel = current
-              ? "Current Plan"
-              : currentPlan
-                ? `Switch to ${plan.name}`
-                : `Get ${plan.name}`;
-
-            return (
-              <div
-                key={plan.id}
-                className={[
-                  "rounded-2xl p-5 flex flex-col border transition-colors",
-                  current
-                    ? "bg-[#1A0808] border-[#C30100]"
-                    : "bg-[#0E0808] border-white/[0.06]",
-                ].join(" ")}
-              >
-                {current && (
-                  <div className="flex justify-center mb-3">
-                    <span className="font-montserrat text-white text-[10px] border border-white/20 rounded-full px-3 py-1">
-                      Current Plan
-                    </span>
-                  </div>
-                )}
-                <p className="font-nulshock text-white uppercase text-sm tracking-wide">
-                  {plan.name}
+      {/* Current plan summary */}
+      {!isLoading && isActive && (
+        <div className="mb-6 rounded-xl border border-white/[0.08] bg-[#0E0808] px-4 py-4">
+          <div className="flex items-start justify-between gap-4 flex-wrap">
+            <div className="min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <p className="font-nulshock text-white uppercase text-xs tracking-wide">
+                  {planName ?? "Active plan"}
                 </p>
-                <p className="font-montserrat text-white/40 text-[11px] mt-1 mb-3 leading-relaxed">
-                  {plan.description}
-                </p>
-                {/* MOB-006: whitespace-nowrap prevents price truncation */}
-                <p className="font-nulshock text-white text-xl mb-1 whitespace-nowrap">
-                  {displayPrice}
-                  <span className="font-montserrat text-white/30 text-xs">
-                    /{billing === "annual" ? "year" : "month"}
+                {isTrialing && (
+                  <span className="font-montserrat text-[10px] rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/25 px-2 py-0.5">
+                    Free trial
                   </span>
-                </p>
-                <div className="flex flex-col gap-2 mt-4 flex-1">
-                  {features.map((f) => (
-                    <div key={f} className="flex items-start gap-2">
-                      <span className="w-4 h-4 rounded-full bg-[#C30100]/20 border border-[#C30100]/40 flex items-center justify-center shrink-0 mt-0.5">
-                        <CheckSmallIcon />
-                      </span>
-                      <span className="font-montserrat text-white/60 text-xs">
-                        {f}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-                <button
-                  onClick={() => !current && handleSubscribe(plan.id, plan.name)}
-                  disabled={current || subscribing === plan.id}
-                  className={[
-                    "mt-5 w-full font-nulshock uppercase text-[10px] tracking-widest rounded-full py-3 transition-all min-h-[44px] flex items-center justify-center gap-2",
-                    current
-                      ? "border border-white/10 text-white/30 cursor-not-allowed"
-                      : subscribing === plan.id
-                        ? "border border-[#C30100] bg-[#C30100]/10 text-white/60 cursor-wait"
-                        : currentPlan
-                          ? "border border-white/20 text-white hover:border-white/40"
-                          : "border border-[#C30100] bg-[#C30100]/10 hover:bg-[#C30100] text-white",
-                  ].join(" ")}
-                >
-                  {subscribing === plan.id && (
-                    <svg className="animate-spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path d="M21 12a9 9 0 11-6.219-8.56"/>
-                    </svg>
-                  )}
-                  {subscribing === plan.id ? "Processing..." : ctaLabel}
-                </button>
+                )}
+                {status?.source === "legacy" && (
+                  <span className="font-montserrat text-[10px] rounded-full bg-white/[0.06] text-white/50 border border-white/10 px-2 py-0.5">
+                    Existing plan
+                  </span>
+                )}
+                {status?.cancel_at_period_end && (
+                  <span className="font-montserrat text-[10px] rounded-full bg-[#C30100]/15 text-[#C30100] border border-[#C30100]/30 px-2 py-0.5">
+                    Cancels at period end
+                  </span>
+                )}
               </div>
-            );
-          })}
+
+              <p className="font-montserrat text-white/40 text-[11px] mt-1.5">
+                {dateStr
+                  ? autoRenew && !status?.cancel_at_period_end
+                    ? `Renews automatically on ${dateStr}`
+                    : `Access until ${dateStr}`
+                  : "Active"}
+                {daysUntilExpiry !== null && daysUntilExpiry <= 14 && daysUntilExpiry >= 0
+                  ? ` · ${
+                      daysUntilExpiry === 0
+                        ? "expires today"
+                        : `${daysUntilExpiry} day${daysUntilExpiry === 1 ? "" : "s"} left`
+                    }`
+                  : ""}
+              </p>
+
+              {/* Transfer plans cannot auto-charge, so say so plainly rather
+                  than letting people assume they will renew themselves. */}
+              {renewsManually && !status?.cancel_at_period_end && (
+                <p className="font-montserrat text-white/30 text-[11px] mt-1">
+                  This plan does not renew automatically — pay again before it ends to stay active.
+                </p>
+              )}
+            </div>
+
+            {status?.artists && (
+              <div className="text-right shrink-0">
+                <p className="font-nulshock text-white text-lg">
+                  {status.artists.used}
+                  <span className="text-white/30 text-sm">/{status.artists.limit}</span>
+                </p>
+                <p className="font-montserrat text-white/30 text-[10px]">
+                  artist profile{status.artists.limit === 1 ? "" : "s"}
+                </p>
+              </div>
+            )}
+          </div>
         </div>
       )}
 
-      {/* Promo Code */}
-      <div className="mt-6 flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-        <input
-          value={promoCode}
-          onChange={(e) => setPromoCode(e.target.value)}
-          placeholder="Enter promo code"
-          className="flex-1 bg-[#0E0808] border border-white/10 rounded-lg px-4 py-2.5 font-montserrat text-white text-sm placeholder:text-white/25 outline-none focus:border-[#C30100] transition-colors"
-        />
-        <button
-          onClick={handleRedeemPromo}
-          disabled={!promoCode.trim() || promoLoading}
-          className="font-nulshock uppercase text-[10px] tracking-widest rounded-full border border-white/20 px-5 py-2.5 text-white hover:border-white/40 transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-        >
-          {promoLoading && (
-            <svg className="animate-spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M21 12a9 9 0 11-6.219-8.56"/>
-            </svg>
-          )}
-          {promoLoading ? "Applying..." : "Apply"}
-        </button>
-      </div>
-
-      {/* Cancel Subscription — only when active and not expired */}
-      {currentPlan && !isExpired && (
-        <div className="mt-5 pt-5 border-t border-white/[0.06]">
-          <button
-            onClick={handleCancelSubscription}
-            disabled={cancelling}
-            className="font-nulshock uppercase text-[10px] tracking-widest rounded-full border border-white/20 px-5 py-2.5 text-white/50 hover:text-[#C30100] hover:border-[#C30100]/50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-          >
-            {cancelling && (
-              <svg className="animate-spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M21 12a9 9 0 11-6.219-8.56"/>
-              </svg>
-            )}
-            {cancelling ? "Cancelling..." : "Cancel Subscription"}
-          </button>
-          <p className="font-montserrat text-white/30 text-[11px] text-center mt-2">
-            You'll keep access until the end of your current billing period.
+      {!isLoading && isExpired && (
+        <div className="mb-6 rounded-xl border border-[#C30100]/30 bg-[#C30100]/[0.07] px-4 py-3">
+          <p className="font-montserrat text-white text-xs">
+            Your subscription {dateStr ? `expired on ${dateStr}` : "has expired"}. Choose a plan
+            below to restore access.
           </p>
         </div>
+      )}
+
+      {/* Free trial offer */}
+      {!isLoading && status?.trial_available && (
+        <TrialOffer
+          busy={startingTrial}
+          onStart={async (priceId) => {
+            setStartingTrial(true);
+            try {
+              const { startTrial } = await import("@/lib/api/billing");
+              const res = await startTrial(priceId);
+
+              if (res.error) {
+                toastError("Could not start trial", res.error);
+              } else {
+                success("Trial started", res.message ?? "Your free trial is active.");
+                refreshBilling();
+              }
+            } catch {
+              toastError("Could not start trial", "Something went wrong.");
+            } finally {
+              setStartingTrial(false);
+            }
+          }}
+        />
+      )}
+
+      <PlanGrid onChanged={refreshBilling} />
+
+      {/* Manage.
+          Hidden for `legacy` plans: those were bought on the previous billing
+          system and live in the old tables, so none of these actions apply.
+          Deliberately still shown once cancelled — that is exactly when the
+          customer needs Resume. */}
+      {isActive && status?.source !== "legacy" && (
+        <div className="mt-5 pt-5 border-t border-white/[0.06] flex flex-col sm:flex-row items-center justify-center gap-3">
+          {status?.track === "usd_card" && (
+            <button
+              onClick={handlePortal}
+              disabled={openingPortal}
+              className="font-nulshock uppercase text-[10px] tracking-widest rounded-full border border-white/20 px-5 py-2.5 text-white/70 hover:text-white hover:border-white/40 transition-colors disabled:opacity-40 min-h-[44px]"
+            >
+              {openingPortal ? "Opening..." : "Manage Payment Method"}
+            </button>
+          )}
+
+          {status?.cancel_at_period_end ? (
+            <button
+              onClick={handleResume}
+              disabled={resuming}
+              className="font-nulshock uppercase text-[10px] tracking-widest rounded-full border border-[#C30100] bg-[#C30100]/10 hover:bg-[#C30100] px-5 py-2.5 text-white transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2 min-h-[44px]"
+            >
+              {resuming && (
+                <svg className="animate-spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M21 12a9 9 0 11-6.219-8.56" />
+                </svg>
+              )}
+              {resuming ? "Resuming..." : "Keep My Subscription"}
+            </button>
+          ) : (
+            <button
+              onClick={handleCancel}
+              disabled={cancelling}
+              className="font-nulshock uppercase text-[10px] tracking-widest rounded-full border border-white/20 px-5 py-2.5 text-white/50 hover:text-[#C30100] hover:border-[#C30100]/50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2 min-h-[44px]"
+            >
+              {cancelling && (
+                <svg
+                  className="animate-spin"
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                >
+                  <path d="M21 12a9 9 0 11-6.219-8.56" />
+                </svg>
+              )}
+              {cancelling ? "Cancelling..." : "Cancel Subscription"}
+            </button>
+          )}
+        </div>
+      )}
+
+      {status?.cancel_at_period_end && (
+        <p className="font-montserrat text-white/35 text-[11px] text-center mt-3">
+          {status.end_date
+            ? `Your plan ends on ${new Date(status.end_date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}. Change your mind any time before then.`
+            : "Change your mind any time before your plan ends."}
+        </p>
       )}
 
       <div className="flex items-center justify-center gap-2 mt-5">
@@ -994,6 +926,67 @@ function SubscriptionTab() {
           Need a custom solution? Contact our sales team for enterprise options.
         </p>
       </div>
+    </div>
+  );
+}
+
+/**
+ * Offers the free trial on the cheapest monthly plan.
+ *
+ * Card plans get their trial from Bachs itself (the card is saved at checkout
+ * and charged when the trial ends); this is the no-card path, so nobody needs
+ * an international card just to try the product.
+ */
+function TrialOffer({
+  busy,
+  onStart,
+}: {
+  busy: boolean;
+  onStart: (priceId: number) => void;
+}) {
+  const [priceId, setPriceId] = useState<number | null>(null);
+  const [days, setDays] = useState<number>(14);
+  const [planLabel, setPlanLabel] = useState<string>("");
+
+  useEffect(() => {
+    (async () => {
+      const { getBillingPlans } = await import("@/lib/api/billing");
+      const res = await getBillingPlans("local_transfer");
+      const plans = res.data?.plans ?? [];
+
+      const cheapest = [...plans].sort((a, b) => a.tier - b.tier)[0];
+      const monthly = cheapest?.prices.find((p) => p.interval === "month");
+
+      if (monthly) {
+        setPriceId(monthly.id);
+        setPlanLabel(cheapest.name);
+
+        const withTrial = plans.flatMap((p) => p.prices).find((p) => p.trial_days);
+        setDays(withTrial?.trial_days ?? 14);
+      }
+    })();
+  }, []);
+
+  if (!priceId) return null;
+
+  return (
+    <div className="mb-6 rounded-xl border border-[#C30100]/25 bg-[#C30100]/[0.06] px-4 py-4 flex items-center justify-between gap-4 flex-wrap">
+      <div className="min-w-0">
+        <p className="font-nulshock text-white uppercase text-xs tracking-wide">
+          Start with {days} days free
+        </p>
+        <p className="font-montserrat text-white/40 text-[11px] mt-1">
+          Try {planLabel} free for {days} days. No card required.
+        </p>
+      </div>
+
+      <button
+        onClick={() => onStart(priceId)}
+        disabled={busy}
+        className="shrink-0 font-nulshock uppercase text-[10px] tracking-widest rounded-full border border-[#C30100] bg-[#C30100]/10 hover:bg-[#C30100] px-5 py-2.5 text-white transition-all disabled:opacity-40 min-h-[44px]"
+      >
+        {busy ? "Starting..." : "Start Free Trial"}
+      </button>
     </div>
   );
 }

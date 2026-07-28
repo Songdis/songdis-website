@@ -6,7 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import { removeToken } from "@/lib/api/auth";
 import { clearUserCache } from "@/lib/hooks/useUser";
-import { useSubscription } from "@/lib/hooks/useSubscription";
+import { useBilling } from "@/lib/hooks/useBilling";
 
 const MAIN_NAV = [
   { label: "Dashboard", href: "/dashboard", icon: "/images/home.svg" },
@@ -22,7 +22,7 @@ const RELEASE_CHILDREN: { label: string; href: string; icon?: string; svgIcon?: 
 ];
 
 const AI_TOOLS = [
-  { label: "Ayo AI", href: "/dashboard/ayo", icon: "/images/ayo.svg", highlight: true },
+  { label: "Ayo", href: "/dashboard/ayo", icon: "/images/ayo.svg", highlight: true },
 ];
 
 const ARTIST_TOOLS = [
@@ -36,21 +36,20 @@ const SETTINGS_NAV = [
   { label: "Settings", href: "/dashboard/settings", icon: "/images/settings.svg" },
 ];
 
-/* ─── Nav Item ──────────────────────────────────────────────── */
 
 function NavItem({
   item,
   pathname,
   collapsed,
-  isExpired,
+  isLocked,
 }: {
   item: { label: string; href: string; icon?: string; highlight?: boolean; badge?: string; svgIcon?: React.ReactNode };
   pathname: string;
   collapsed: boolean;
-  isExpired?: boolean;
+  isLocked?: boolean;
 }) {
   const active = pathname === item.href;
-  const blocked = isExpired && item.href !== "/dashboard" && item.href !== "/dashboard/settings";
+  const blocked = isLocked && item.href !== "/dashboard" && item.href !== "/dashboard/settings";
 
   return (
     <li className="relative group/item">
@@ -120,20 +119,19 @@ function NavItem({
   );
 }
 
-/* ─── Nav Section ───────────────────────────────────────────── */
 
 function NavSection({
   label,
   items,
   pathname,
   collapsed,
-  isExpired,
+  isLocked,
 }: {
   label: string;
   items: { label: string; href: string; icon?: string; highlight?: boolean; badge?: string; svgIcon?: React.ReactNode }[];
   pathname: string;
   collapsed: boolean;
-  isExpired?: boolean;
+  isLocked?: boolean;
 }) {
   return (
     <div>
@@ -146,23 +144,22 @@ function NavSection({
       )}
       <ul className="flex flex-col gap-px">
         {items.map((item) => (
-          <NavItem key={item.href} item={item} pathname={pathname} collapsed={collapsed} isExpired={isExpired} />
+          <NavItem key={item.href} item={item} pathname={pathname} collapsed={collapsed} isLocked={isLocked} />
         ))}
       </ul>
     </div>
   );
 }
 
-/* ─── Release Dropdown (inside Main section) ────────────────── */
 
 function ReleaseDropdown({
   pathname,
   collapsed,
-  isExpired,
+  isLocked,
 }: {
   pathname: string;
   collapsed: boolean;
-  isExpired?: boolean;
+  isLocked?: boolean;
 }) {
   const isActive = RELEASE_CHILDREN.some((c) => pathname === c.href || pathname.startsWith(c.href + "/"));
   const [open, setOpen] = useState(isActive);
@@ -171,7 +168,7 @@ function ReleaseDropdown({
     if (isActive) setOpen(true);
   }, [isActive]);
 
-  if (isExpired) {
+  if (isLocked) {
     return (
       <li className="relative group/item">
         <span className="flex items-center gap-2 px-2.5 py-2 rounded-lg transition-all duration-200 cursor-not-allowed opacity-30">
@@ -278,7 +275,6 @@ function ReleaseDropdown({
   );
 }
 
-/* ─── Small icons ───────────────────────────────────────────── */
 
 function ChevronDownIcon() {
   return (
@@ -322,21 +318,22 @@ function VideoIcon() {
   );
 }
 
-/* ─── Sidebar ───────────────────────────────────────────────── */
 
 interface SidebarProps {
   onClose?: () => void;
   isMobile?: boolean;
+  /** Passed down from DashboardLayout so the whole shell locks together. */
+  isLocked?: boolean;
   user?: { first_name: string; last_name: string; email: string; avatar_url?: string } | null;
 }
 
-export default function Sidebar({ onClose, isMobile, user }: SidebarProps) {
+export default function Sidebar({ onClose, isMobile, user, isLocked = false }: SidebarProps) {
   const displayName = user ? `${user.first_name} ${user.last_name}`.trim() : "Artist";
   const avatar = user?.avatar_url || "/images/avatar-artiste.svg";
-  const { planName, isExpired, endDate } = useSubscription(0);
+  const { planName, isExpired, hasSubscription, endDate } = useBilling(0);
   const plan = planName ?? "Free Plan";
-  const expiryLabel = isExpired
-    ? "Expired"
+  const expiryLabel = isLocked
+    ? (isExpired || hasSubscription ? "Expired" : "No plan")
     : endDate && Math.ceil((new Date(endDate).getTime() - Date.now()) / 86400000) <= 3
       ? `Expires ${Math.max(0, Math.ceil((new Date(endDate).getTime() - Date.now()) / 86400000))}d`
       : null;
@@ -394,16 +391,16 @@ export default function Sidebar({ onClose, isMobile, user }: SidebarProps) {
         <div>
           <p className="font-heading text-white/30 uppercase text-[10px] tracking-[0.25em] px-2.5 mb-1.5">Main</p>
           <ul className="flex flex-col gap-px">
-            <NavItem item={MAIN_NAV[0]} pathname={pathname} collapsed={collapsed} isExpired={isExpired} />
-            <ReleaseDropdown pathname={pathname} collapsed={collapsed} isExpired={isExpired} />
+            <NavItem item={MAIN_NAV[0]} pathname={pathname} collapsed={collapsed} isLocked={isLocked} />
+            <ReleaseDropdown pathname={pathname} collapsed={collapsed} isLocked={isLocked} />
             {MAIN_NAV.slice(1).map((item) => (
-              <NavItem key={item.href} item={item} pathname={pathname} collapsed={collapsed} isExpired={isExpired} />
+              <NavItem key={item.href} item={item} pathname={pathname} collapsed={collapsed} isLocked={isLocked} />
             ))}
           </ul>
         </div>
-        <NavSection label="AI Tools"     items={AI_TOOLS}     pathname={pathname} collapsed={collapsed} isExpired={isExpired} />
-        <NavSection label="Artist Tools" items={ARTIST_TOOLS} pathname={pathname} collapsed={collapsed} isExpired={isExpired} />
-        <NavSection label="Settings"     items={SETTINGS_NAV} pathname={pathname} collapsed={collapsed} isExpired={isExpired} />
+        <NavSection label="AI Tools"     items={AI_TOOLS}     pathname={pathname} collapsed={collapsed} isLocked={isLocked} />
+        <NavSection label="Artist Tools" items={ARTIST_TOOLS} pathname={pathname} collapsed={collapsed} isLocked={isLocked} />
+        <NavSection label="Settings"     items={SETTINGS_NAV} pathname={pathname} collapsed={collapsed} isLocked={isLocked} />
       </nav>
 
       {/* Bottom */}
@@ -449,7 +446,7 @@ export default function Sidebar({ onClose, isMobile, user }: SidebarProps) {
             </div>
             <div className="min-w-0">
               <p className="font-heading text-white text-[11px] uppercase tracking-wide truncate">{displayName}</p>
-              <p className={`font-body text-[9px] truncate ${isExpired ? "text-[#C30100]" : "text-white/40"}`}>
+              <p className={`font-body text-[9px] truncate ${isLocked ? "text-[#C30100]" : "text-white/40"}`}>
                 {plan}{expiryLabel ? ` \u00b7 ${expiryLabel}` : ""}
               </p>
             </div>
@@ -460,7 +457,6 @@ export default function Sidebar({ onClose, isMobile, user }: SidebarProps) {
   );
 }
 
-/* ─── Toggle icons ──────────────────────────────────────────── */
 
 function CollapseIcon() {
   return (
