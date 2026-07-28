@@ -70,6 +70,19 @@ export default function PlanGrid({ onChanged }: PlanGridProps) {
     setPromo(null);
   }, [interval, track]);
 
+  // Read from the catalog rather than hardcoding 14, so changing trial_days in
+  // admin updates the copy everywhere it appears.
+  //
+  // Must stay above the early returns below — a hook after a conditional
+  // return changes the hook count between renders and crashes React.
+  const trialDays = useMemo(
+    () =>
+      plans
+        .flatMap((p) => p.prices)
+        .find((p) => p.track === "usd_card" && p.trial_days)?.trial_days ?? 0,
+    [plans]
+  );
+
   const handleSubscribe = async (price: BillingPrice) => {
     setBusyPriceId(price.id);
 
@@ -218,6 +231,39 @@ export default function PlanGrid({ onChanged }: PlanGridProps) {
             {activeTrack.description}
           </p>
         )}
+
+        {/* The free trial only exists on the card track, because it needs a
+            card on file to charge when the trial ends. Saying so on both tabs
+            means a transfer customer learns the option exists instead of never
+            seeing it mentioned. */}
+        {trialDays > 0 && (
+          <div
+            className={[
+              "mt-1 rounded-xl border px-4 py-2.5 max-w-md text-center",
+              track === "usd_card"
+                ? "border-[#C30100]/30 bg-[#C30100]/[0.07]"
+                : "border-white/[0.08] bg-white/[0.03]",
+            ].join(" ")}
+          >
+            {track === "usd_card" ? (
+              <p className="font-montserrat text-white text-xs">
+                <span className="font-semibold">{trialDays} days free</span>: pay by card to start
+                your trial. Nothing is charged today.
+              </p>
+            ) : (
+              <p className="font-montserrat text-white/60 text-xs">
+                Want to try it first?{" "}
+                <button
+                  onClick={() => setTrack("usd_card")}
+                  className="text-[#C30100] font-semibold underline underline-offset-2 hover:text-white transition-colors"
+                >
+                  Pay by card
+                </button>{" "}
+                to get {trialDays} days free. Bank transfer has no trial.
+              </p>
+            )}
+          </div>
+        )}
       </div>
 
       {awaitingWebhook && (
@@ -333,9 +379,14 @@ function PlanCard({
         </span>
       </div>
 
-      <p className="font-montserrat text-white/30 text-[10px] mb-1">
+      <p className="font-montserrat text-white/80 text-sm font-bold mb-1.5 leading-snug">
         {price.auto_renews ? "Renews automatically" : "Renew manually each period"}
-        {price.trial_days ? ` · ${price.trial_days}-day free trial` : ""}
+        {price.trial_days ? (
+          <>
+            <span className="text-white/25 font-normal"> · </span>
+            <span className="text-[#C30100]">{price.trial_days}-day free trial</span>
+          </>
+        ) : null}
       </p>
 
       {discounted !== null && promo?.applies_to === "first_cycle" && (

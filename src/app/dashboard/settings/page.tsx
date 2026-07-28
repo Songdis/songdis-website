@@ -1,8 +1,9 @@
 "use client";
 import { useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { request } from "@/lib/api/core";
 import { useToast } from "@/components/ui/Toast";
-import { useState } from "react";
+import { useState, Suspense } from "react";
 import Image from "next/image";
 import DashboardLayout from "@/components/dashboard/DashboardLayout";
 import { GeneralTab } from "@/components/dashboard/settings/GeneralTab";
@@ -54,7 +55,6 @@ function Input({
         value={value}
         onChange={(e) => onChange?.(e.target.value)}
         placeholder={placeholder}
-        /* MOB-004: min-h-[48px] for touch targets */
         className="w-full min-h-[48px] bg-[#0E0808] border border-white/10 rounded-lg px-4 py-3 font-montserrat text-white text-sm placeholder:text-white/25 outline-none focus:border-[#C30100] transition-colors"
         style={icon ? { paddingRight: "2.5rem" } : {}}
       />
@@ -133,7 +133,6 @@ function ArtistProfileTab() {
             appleMusic: (p.apple_music_url ?? p.appleMusic ?? "") as string,
             spotify: (p.spotify_url ?? p.spotify ?? "") as string,
             cover: (p.cover ?? "") as string,
-            // profile_image first, then spotify_image_url, then fallback
             avatar: (p.profile_image ??
               p.spotify_image_url ??
               p.avatar_url ??
@@ -167,11 +166,11 @@ function ArtistProfileTab() {
             </div>
             <div>
               <p className="font-nulshock text-white text-sm uppercase tracking-wide">
-                Growth Plan — Artist Profiles
+                Artist Profiles
               </p>
               <p className="font-montserrat text-xs mt-0.5">
                 <span className="text-white/40">
-                  {profiles.length} of 3 profiles used
+                  {profiles.length} artist profiles created
                 </span>
                 {isAtLimit && (
                   <span className="text-[#C30100] ml-2">
@@ -218,10 +217,6 @@ function ArtistProfileTab() {
           <span className="text-white/40 text-2xl leading-none">+</span>
           <span className="font-montserrat text-white/50 text-sm">
             Add Another Artist
-          </span>
-          <span className="font-montserrat text-white/30 text-xs text-center">
-            ₦30,000 per artist · billed annually · activates immediately after
-            payment
           </span>
         </button>
       </div>
@@ -1000,10 +995,36 @@ const TABS: { id: Tab; label: string }[] = [
   { id: "subscription", label: "Subscription" },
 ];
 
-export default function SettingsPage() {
-  const [activeTab, setActiveTab] = useState<Tab>("general");
+function SettingsContent() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+
+  // Deep links like /dashboard/settings?tab=subscription — used by the
+  // expiry banner and every upgrade prompt — have to actually land on that
+  // tab, so the query param seeds the initial state.
+  const requestedTab = searchParams.get("tab");
+  const initialTab: Tab = TABS.some((t) => t.id === requestedTab)
+    ? (requestedTab as Tab)
+    : "general";
+
+  const [activeTab, setActiveTab] = useState<Tab>(initialTab);
   const [showNewProfileModal, setShowNewProfileModal] = useState(false);
   const isArtistProfile = activeTab === "artist-profile";
+
+  // Follow the param if it changes while the page is already open, e.g. the
+  // user clicks the banner from a different tab.
+  useEffect(() => {
+    if (requestedTab && TABS.some((t) => t.id === requestedTab) && requestedTab !== activeTab) {
+      setActiveTab(requestedTab as Tab);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [requestedTab]);
+
+  // Keep the URL honest so the tab survives a refresh and stays shareable.
+  const selectTab = (tab: Tab) => {
+    setActiveTab(tab);
+    router.replace(`/dashboard/settings?tab=${tab}`, { scroll: false });
+  };
 
   return (
     <DashboardLayout
@@ -1030,7 +1051,7 @@ export default function SettingsPage() {
           {TABS.map((tab) => (
             <button
               key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
+              onClick={() => selectTab(tab.id)}
               className={[
                 "font-nulshock uppercase text-xs tracking-widest px-4 py-2.5 rounded-xl whitespace-nowrap transition-all min-h-[40px]",
                 activeTab === tab.id
@@ -1236,6 +1257,28 @@ function InstagramIcon() {
     </svg>
   );
 }
+/**
+ * useSearchParams needs a Suspense boundary or Next opts the whole route out
+ * of static rendering at build time.
+ */
+export default function SettingsPage() {
+  return (
+    <Suspense
+      fallback={
+        <DashboardLayout pageTitle="Settings">
+          <div className="flex justify-center py-20">
+            <svg className="animate-spin" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#C30100" strokeWidth="2">
+              <path d="M21 12a9 9 0 11-6.219-8.56" />
+            </svg>
+          </div>
+        </DashboardLayout>
+      }
+    >
+      <SettingsContent />
+    </Suspense>
+  );
+}
+
 function SpotifyIcon() {
   return (
     <svg
