@@ -15,7 +15,7 @@ export default function DashboardPage() {
   const [activeReleaseMeta, setActiveReleaseMeta] = useState<{ cover?: string; title?: string; artist?: string }>({});
   const [ayoInput, setAyoInput] = useState("");
   const router = useRouter();
-  const { isLocked, isExpired, hasSubscription } = useBilling(0);
+  const { isLocked, isExpired, hasSubscription, needsFirstArtist } = useBilling(0);
 
   // "Renew" is wrong for someone who has never subscribed.
   const lapsed = isExpired || hasSubscription;
@@ -34,6 +34,13 @@ export default function DashboardPage() {
     <>
     <DashboardLayout showWelcome>
       <div className="flex flex-col gap-5">
+
+        {/* First run.
+            Deliberately shown above everything and never dimmed by the lock:
+            a brand-new account has nothing to look at yet, and creating an
+            artist profile is a better first step than being asked to pay.
+            The subscription prompt comes when they act on it. */}
+        {needsFirstArtist && <FirstArtistCard locked={isLocked} />}
 
         {/* Stats row + Artist Spotlight */}
         <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
@@ -149,7 +156,7 @@ export default function DashboardPage() {
                   <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/>
                 </svg>
                 <p className="font-body text-white/50 text-sm text-center">{lockVerb} to view earnings</p>
-                <Link href="/dashboard/settings" className="font-heading text-white uppercase text-[10px] tracking-widest rounded-full bg-[#C30100] hover:bg-[#a80000] px-4 py-2 transition-colors">
+                <Link href="/dashboard/settings?tab=subscription" className="font-heading text-white uppercase text-[10px] tracking-widest rounded-full bg-[#C30100] hover:bg-[#a80000] px-4 py-2 transition-colors">
                   Renew Now
                 </Link>
               </div>
@@ -189,7 +196,7 @@ export default function DashboardPage() {
                 <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/>
               </svg>
               <p className="font-body text-white/50 text-sm text-center">{lockVerb} to use Ayo AI</p>
-              <Link href="/dashboard/settings" className="font-heading text-white uppercase text-[10px] tracking-widest rounded-full bg-[#C30100] hover:bg-[#a80000] px-4 py-2 transition-colors">
+              <Link href="/dashboard/settings?tab=subscription" className="font-heading text-white uppercase text-[10px] tracking-widest rounded-full bg-[#C30100] hover:bg-[#a80000] px-4 py-2 transition-colors">
                 Renew Now
               </Link>
             </div>
@@ -278,6 +285,51 @@ export default function DashboardPage() {
       />
     )}
     </>
+  );
+}
+
+/**
+ * The first thing a new account sees.
+ *
+ * Leads with the artist profile rather than the paywall — someone who has just
+ * registered has no reason to pay yet, and naming the next concrete step
+ * converts better than "choose a plan". If they are not subscribed, the
+ * artist tab asks for a plan at the moment they try to create one.
+ */
+function FirstArtistCard({ locked }: { locked: boolean }) {
+  return (
+    <div className="rounded-2xl border border-[#C30100]/30 bg-gradient-to-br from-[#1A0808] to-[#180F0F] p-5 sm:p-6">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+        <div className="w-12 h-12 rounded-full bg-[#C30100]/15 border border-[#C30100]/25 flex items-center justify-center shrink-0">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#C30100" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" />
+            <circle cx="12" cy="7" r="4" />
+          </svg>
+        </div>
+
+        <div className="flex-1 min-w-0">
+          <p className="font-heading text-white uppercase text-sm tracking-wide">
+            Create your artist profile
+          </p>
+          <p className="font-body text-white/50 text-xs sm:text-sm mt-1 leading-relaxed">
+            This is the name your music is released under. Set it up first
+          </p>
+        </div>
+
+        <Link
+          href="/dashboard/settings?tab=artist-profile"
+          className="shrink-0 font-heading text-white uppercase text-[10px] tracking-widest rounded-full border border-[#C30100] bg-[#C30100]/10 hover:bg-[#C30100] px-6 py-3 transition-all text-center min-h-[44px] flex items-center justify-center"
+        >
+          Get Started
+        </Link>
+      </div>
+
+      {locked && (
+        <p className="font-body text-white/30 text-[11px] mt-3 sm:pl-16">
+          A plan is needed to drop your first release, and you&apos;ll be asked to pick one when you create a profile.
+        </p>
+      )}
+    </div>
   );
 }
 

@@ -108,5 +108,15 @@ export function useBilling(pollInterval = 0) {
  
   const isLocked = !state.isLoading && !state.isActive;
 
-  return { ...state, isLocked, can, refresh: load };
+  /**
+   * How many artist profiles exist and whether another is allowed. Taken from
+   * the server so the onboarding CTA and the artist tab agree with what the
+   * API will actually permit.
+   */
+  const artists = state.status?.artists ?? null;
+
+  /** A brand-new account: registered, but no artist profile created yet. */
+  const needsFirstArtist = !state.isLoading && artists !== null && artists.used === 0;
+
+  return { ...state, isLocked, artists, needsFirstArtist, can, refresh: load };
 }

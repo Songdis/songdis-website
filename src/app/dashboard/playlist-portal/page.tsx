@@ -487,7 +487,7 @@ export default function AmplifyPage() {
             <p className="font-body text-white/50 text-sm text-center max-w-sm">
               Pitch Portal is available for Growth plan subscribers. Upgrade your plan to get your music featured on editorial playlists.
             </p>
-            <a href="/dashboard/settings" className="font-heading text-white uppercase text-xs tracking-widest rounded-full bg-[#C30100] hover:bg-[#a80000] px-6 py-3 transition-all">
+            <a href="/dashboard/settings?tab=subscription" className="font-heading text-white uppercase text-xs tracking-widest rounded-full bg-[#C30100] hover:bg-[#a80000] px-6 py-3 transition-all">
               Upgrade Plan
             </a>
           </div>

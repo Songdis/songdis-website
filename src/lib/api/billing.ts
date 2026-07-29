@@ -74,7 +74,6 @@ export interface BillingStatus {
   auto_renew: boolean;
   cancel_at_period_end: boolean;
   trial_end: string | null;
-  trial_available: boolean;
   currency: string | null;
   amount: number | null;
   entitlements: Entitlements;
@@ -157,14 +156,6 @@ export async function redeemPromo(code: string) {
   return request<BillingStatus>(
     `${BASE}/promo/redeem`,
     { method: "POST", body: JSON.stringify({ code }) },
-    true
-  );
-}
-
-export async function startTrial(priceId: number) {
-  return request<BillingStatus>(
-    `${BASE}/trial`,
-    { method: "POST", body: JSON.stringify({ price_id: priceId }) },
     true
   );
 }

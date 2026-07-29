@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useMemo } from "react";
 import SelectUploadType from "./steps/SelectUploadType";
 import ReleaseDetails from "./steps/ReleaseDetails";
 import UploadTrack from "./steps/UploadTrack";
@@ -108,13 +108,53 @@ const STEP_ORDER: UploadStep[] = ["select-type", "release-details", "upload-trac
 
 function stepIndex(step: UploadStep): number { return STEP_ORDER.indexOf(step); }
 
+/** Readable text for the review list, and short enough not to swamp it. */
+function formatReviewValue(value: unknown): string {
+  if (value === null || value === undefined || value === "") return "—";
+  if (typeof value === "boolean") return value ? "Yes" : "No";
+
+  // Stored lists come back as JSON strings; printing them raw dumped an
+  // unreadable blob across the modal.
+  if (typeof value === "string" && value.trim().startsWith("[")) {
+    try {
+      const parsed = JSON.parse(value);
+      if (Array.isArray(parsed)) return formatReviewValue(parsed);
+    } catch { /* not JSON after all — fall through */ }
+  }
+
+  if (Array.isArray(value)) {
+    if (value.length === 0) return "None";
+    const names = value.map((v) =>
+      typeof v === "string" ? v : (v as { name?: string })?.name ?? String(v)
+    );
+    // Long platform lists are summarised rather than printed in full.
+    return names.length > 6
+      ? `${names.slice(0, 6).join(", ")} +${names.length - 6} more`
+      : names.join(", ");
+  }
+
+  const text = String(value);
+  return text.length > 200 ? `${text.slice(0, 200)}…` : text;
+}
+
 interface UploadModalProps {
   isOpen: boolean;
   onClose: () => void;
   draftId?: number;
+  /** Reopen an existing release to request changes to it. The form is the
+   *  same one that created the release; only the final step differs. */
+  editReleaseId?: number;
+  /** Called after an edit request is submitted, so the list can refresh. */
+  onRevisionSubmitted?: () => void;
 }
 
-export default function UploadModal({ isOpen, onClose, draftId: initialDraftId }: UploadModalProps) {
+export default function UploadModal({
+  isOpen,
+  onClose,
+  draftId: initialDraftId,
+  editReleaseId,
+  onRevisionSubmitted,
+}: UploadModalProps) {
   const [state, setState] = useState<UploadState>(INITIAL_STATE);
   const [quickDropOpen, setQuickDropOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -122,11 +162,135 @@ export default function UploadModal({ isOpen, onClose, draftId: initialDraftId }
   const [fieldErrors, setFieldErrors] = useState<StepFieldErrors>({});
   const { success, error: toastError, loading: toastLoading, dismiss } = useToast();
 
+  /* Edit mode. `original` is what the release looked like when opened, so the
+     review step can show the artist the same diff the admin will see. */
+  const isEditing = Boolean(editReleaseId);
+  const [original, setOriginal] = useState<Record<string, unknown> | null>(null);
+  const [lockedFields, setLockedFields] = useState<Record<string, string | null>>({});
+  const [originalTracks, setOriginalTracks] = useState<Array<{ id: number; track_title: string | null; s3_key: string | null }>>([]);
+  const [editReason, setEditReason] = useState("");
+  const [reviewOpen, setReviewOpen] = useState(false);
+
   useEffect(() => {
     if (isOpen) document.body.style.overflow = "hidden";
     else document.body.style.overflow = "";
     return () => { document.body.style.overflow = ""; };
   }, [isOpen]);
+
+  /* Load an existing release into the form so it can be edited.
+     Deliberately reuses the same UploadState the upload flow already fills,
+     so there is one form and one set of validation, not two. */
+  useEffect(() => {
+    if (!isOpen || !editReleaseId) return;
+
+    let cancelled = false;
+
+    (async () => {
+      setIsLoadingDraft(true);
+
+      const { getEditForm } = await import("@/lib/api/editRequests");
+      const res = await getEditForm(editReleaseId);
+
+      if (cancelled) return;
+
+      if (res.error || !res.data) {
+        toastError("Could not open this release", res.error ?? "Release not found");
+        setIsLoadingDraft(false);
+        return;
+      }
+
+      const v = res.data.values as Record<string, string | null>;
+      const asList = (raw: unknown): unknown[] => {
+        if (Array.isArray(raw)) return raw;
+        if (typeof raw === "string" && raw.trim()) {
+          try { const p = JSON.parse(raw); return Array.isArray(p) ? p : []; } catch { return []; }
+        }
+        return [];
+      };
+
+      setOriginal(res.data.values);
+      setLockedFields(res.data.locked_fields);
+      setOriginalTracks((res.data.tracks ?? []).map((t) => ({ id: t.id, track_title: t.track_title, s3_key: t.s3_key })));
+
+      setState((prev) => ({
+        ...prev,
+        // Straight to the details step: the release already exists, so there
+        // is nothing to choose about its type.
+        step: "release-details",
+        releaseType: String(res.data!.release.upload_type ?? "").toLowerCase().includes("album")
+          ? "album" : "single",
+        // Some older releases have no release_title stored; the track title
+        // is the sensible stand-in rather than showing an empty box.
+        releaseTitle: v.release_title || v.track_title || "",
+        releaseVersion: v.release_version ?? "",
+        primaryArtist: v.primary_artist ?? "",
+        label: v.label ?? "",
+        metaLanguage: v.metadata_language ?? "English",
+        genre: v.primary_genre ?? "",
+        subGenre: v.secondary_genre ?? "",
+        recordedYear: v.recorded_year ?? "2026",
+        cLine: v.c_line ?? "",
+        pLine: v.p_line ?? "",
+        releaseDate: v.release_date ? String(v.release_date).slice(0, 10) : "",
+        preOrderDate: v.pre_order_date ? String(v.pre_order_date).slice(0, 10) : "",
+        explicitContent: v.explicit_content ? "Yes" : "No",
+        coverArtAiUse: v.cover_art_ai_use ?? "None",
+        trackTitle: v.track_title ?? "",
+        mixedVersion: v.mix_version ?? "",
+        lyrics: v.lyrics ?? "",
+        artworkUrl: (v.album_art_url as string) ?? "",
+        artworkKey: v.album_art_key ?? "",
+        artwork: (v.album_art_url as string) ?? null,
+        audioUrl: (v.audio_file_path as string) ?? "",
+        audioKey: v.s3_key ?? "",
+        audioBucket: (v.s3_bucket as string) ?? "songdis-file",
+        // UPC and ISRC are shown read-only; they identify the release on the
+        // platforms and are rejected server-side if submitted.
+        upcCode: res.data!.locked_fields.upc_code ?? "",
+        isrc: res.data!.locked_fields.isrc_code ?? "",
+        // An album is stored as one row per track. Loading them all is what
+        // stops the form demanding a fresh upload for audio that already
+        // exists.
+        tracks: (res.data!.tracks ?? []).map((t) => ({
+          id: String(t.id),
+          trackTitle: t.track_title ?? "",
+          audioUrl: t.audio_file_path ?? "",
+          audioKey: t.s3_key ?? "",
+          audioBucket: t.s3_bucket ?? "songdis-file",
+          audioDuration: "",
+          isrc: t.isrc_code ?? "",
+          lyrics: t.lyrics ?? "",
+          genre: t.primary_genre ?? "",
+          subGenre: t.secondary_genre ?? "",
+          explicitContent: t.explicit_content ? "Yes" : "No",
+          contributors: { writers: [], producers: [], performers: [] },
+          additionalArtists: [],
+          tiktokTimestamp: 0,
+          mixedVersion: t.mix_version ?? "",
+        })),
+        noOfTracks: Math.max(1, res.data!.tracks?.length ?? 1),
+        selectedDSPs: asList(v.platforms) as string[],
+        territory: v.territory_rights === "custom" ? "custom" : "worldwide",
+        // Stored artists have no client-side `id`, and React needs one for
+        // the list key — without this every row keyed on undefined.
+        additionalArtists: asList(v.additional_artists).map((raw, i) => {
+          const a = (raw ?? {}) as Record<string, unknown>;
+          return {
+            id: String(a.id ?? `existing-${i}`),
+            name: String(a.name ?? ""),
+            artistId: String(a.artistId ?? a.artist_id ?? ""),
+            role: (a.role as "primary" | "featuring" | "remixer") ?? "featuring",
+          };
+        }),
+        isPreviouslyReleased: Boolean(v.is_previously_released),
+        originalReleaseDate: v.original_release_date ? String(v.original_release_date).slice(0, 10) : "",
+      }));
+
+      setIsLoadingDraft(false);
+    })();
+
+    return () => { cancelled = true; };
+  }, [isOpen, editReleaseId, toastError]);
 
   useEffect(() => {
     if (!isOpen || !initialDraftId) return;
@@ -329,6 +493,179 @@ export default function UploadModal({ isOpen, onClose, draftId: initialDraftId }
       .map((a) => ({ name: a.name, artist_id: a.artistId || "", role: a.role }));
   }, []);
 
+  /**
+   * The form's current values, in the column names the API expects.
+   *
+   * UPC and ISRC are deliberately absent: they are locked, and including them
+   * would have the server reject the whole request.
+   */
+  const proposedFromState = useCallback((): Record<string, unknown> => ({
+    release_title: state.releaseTitle,
+    release_version: state.releaseVersion,
+    primary_artist: state.primaryArtist,
+    label: state.label,
+    metadata_language: state.metaLanguage,
+    primary_genre: state.genre,
+    secondary_genre: state.subGenre,
+    recorded_year: state.recordedYear,
+    c_line: state.cLine,
+    p_line: state.pLine,
+    release_date: state.releaseDate,
+    pre_order_date: state.preOrderDate || null,
+    explicit_content: state.explicitContent === "Yes",
+    cover_art_ai_use: state.coverArtAiUse,
+    track_title: state.trackTitle,
+    mix_version: state.mixedVersion,
+    lyrics: state.lyrics,
+    platforms: state.selectedDSPs,
+    territory_rights: state.territory,
+    additional_artists: state.additionalArtists,
+    is_previously_released: state.isPreviouslyReleased,
+    original_release_date: state.isPreviouslyReleased ? state.originalReleaseDate : null,
+
+    // Files travel with their companion URLs so approval can move both.
+    album_art_key: state.artworkKey,
+    album_art_url: state.artworkUrl,
+    album_art_sizes: state.artworkSizes ? JSON.stringify(state.artworkSizes) : null,
+    s3_key: state.audioKey,
+    audio_file_path: state.audioUrl,
+    s3_bucket: state.audioBucket,
+  }), [state]);
+
+  /**
+   * What the artist has actually changed, computed the same way the server
+   * does, so the review step shows exactly what the admin will see.
+   */
+  const pendingChanges = useMemo(() => {
+    if (!original) return [];
+
+    const proposed = proposedFromState();
+    const labels: Record<string, string> = {
+      release_title: "Release title", release_version: "Release version",
+      primary_artist: "Primary artist", label: "Label",
+      metadata_language: "Metadata language", primary_genre: "Genre",
+      secondary_genre: "Sub-genre", recorded_year: "Recorded year",
+      c_line: "C-line", p_line: "P-line", release_date: "Release date",
+      pre_order_date: "Pre-order date", explicit_content: "Explicit content",
+      cover_art_ai_use: "Cover art AI use", track_title: "Track title",
+      mix_version: "Mix version", lyrics: "Lyrics", platforms: "Platforms",
+      territory_rights: "Territory rights", additional_artists: "Additional artists",
+      is_previously_released: "Previously released",
+      original_release_date: "Original release date",
+      album_art_key: "Artwork", s3_key: "Audio file",
+    };
+
+    // A stored list arrives as a JSON string, so it has to be parsed before
+    // it can be compared with the array the form holds. Without this,
+    // platforms showed as changed on every single request.
+    const asArray = (v: unknown): unknown[] | null => {
+      if (Array.isArray(v)) return v;
+      if (typeof v === "string" && v.trim().startsWith("[")) {
+        try { const p = JSON.parse(v); return Array.isArray(p) ? p : null; } catch { return null; }
+      }
+      return null;
+    };
+
+    const same = (a: unknown, b: unknown) => {
+      const aList = asArray(a);
+      const bList = asArray(b);
+
+      if (aList || bList) {
+        const norm = (v: unknown[] | null) => JSON.stringify(
+          (v ?? []).map((x) => (typeof x === "string" ? x : JSON.stringify(x))).sort()
+        );
+        return norm(aList) === norm(bList);
+      }
+      if (typeof a === "boolean" || typeof b === "boolean") return Boolean(a) === Boolean(b);
+      return String(a ?? "") === String(b ?? "");
+    };
+
+    return Object.entries(labels)
+      .filter(([field]) => {
+        const before = (original as Record<string, unknown>)[field];
+        const after = proposed[field];
+        // Dates arrive with a time component; compare the day only.
+        if (field.endsWith("_date")) {
+          return String(before ?? "").slice(0, 10) !== String(after ?? "").slice(0, 10);
+        }
+        return !same(before, after);
+      })
+      .map(([field, label]) => ({
+        field,
+        label,
+        from: (original as Record<string, unknown>)[field],
+        to: proposed[field],
+        isFile: field === "album_art_key" || field === "s3_key",
+      }));
+  }, [original, proposedFromState]);
+
+  /* Album tracks whose audio has been swapped since the form opened.
+     Tracked separately because an album is one row per track, and a change to
+     track 3 would otherwise be invisible in the review. */
+  const trackChanges = useMemo(() => {
+    if (!originalTracks.length) return [];
+
+    return state.tracks
+      .map((t) => {
+        const before = originalTracks.find((o) => String(o.id) === t.id);
+        if (!before) return { id: t.id, title: t.trackTitle, kind: "added" as const };
+        if ((before.s3_key ?? "") !== t.audioKey) {
+          return { id: t.id, title: t.trackTitle || before.track_title || "Untitled", kind: "audio" as const };
+        }
+        return null;
+      })
+      .filter((c): c is { id: string; title: string; kind: "added" | "audio" } => c !== null);
+  }, [state.tracks, originalTracks]);
+
+  /* Tracks still missing audio or a title, so an album cannot be sent
+     half-finished without the artist being told which track is at fault. */
+  const incompleteTracks = useMemo(
+    () =>
+      state.tracks
+        .map((t, i) => ({
+          n: i + 1,
+          title: t.trackTitle,
+          // Older uploads saved audio_file_path without an s3_key, so the key
+          // alone is not proof of absence — the URL counts too.
+          missing: !t.audioKey && !t.audioUrl ? "audio" : !t.trackTitle.trim() ? "a title" : null,
+        }))
+        .filter((t) => t.missing !== null),
+    [state.tracks]
+  );
+
+  /** Submit an edit request rather than a new release. */
+  const handleSubmitRevision = useCallback(async () => {
+    if (!editReleaseId) return;
+
+    setIsSubmitting(true);
+    const t = toastLoading("Sending your changes...");
+
+    try {
+      const { submitRevision } = await import("@/lib/api/editRequests");
+      const res = await submitRevision(editReleaseId, {
+        reason: editReason.trim(),
+        proposed: proposedFromState(),
+      });
+
+      dismiss(t);
+
+      if (res.error) {
+        toastError("Could not send your changes", res.error);
+        return;
+      }
+
+      success("Changes sent for review", "We'll email you once they've been looked at.");
+      setReviewOpen(false);
+      onRevisionSubmitted?.();
+      onClose();
+    } catch {
+      dismiss(t);
+      toastError("Something went wrong", "Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  }, [editReleaseId, editReason, proposedFromState, toastLoading, dismiss, toastError, success, onRevisionSubmitted, onClose]);
+
   const handleSubmit = useCallback(async () => {
     setIsSubmitting(true);
 
@@ -498,16 +835,126 @@ export default function UploadModal({ isOpen, onClose, draftId: initialDraftId }
             <SelectUploadType selected={state.releaseType} onSelect={(t) => update({ releaseType: t })} onContinue={() => { if (state.releaseType) goNext(); }} />
           )}
           {state.step === "release-details" && (
-            <ReleaseDetails state={state} update={update} onBack={goBack} onContinue={handleStep1Continue} onSaveDraft={handleSaveDraft} fieldErrors={fieldErrors} clearFieldError={clearFieldError} />
+            <ReleaseDetails state={state} update={update} onBack={goBack} onContinue={handleStep1Continue} onSaveDraft={handleSaveDraft} fieldErrors={fieldErrors} clearFieldError={clearFieldError} isEditing={isEditing} />
           )}
           {state.step === "upload-track" && (
             <UploadTrack state={state} update={update} updateTrack={updateTrack} removeTrack={removeTrack} reorderTrack={reorderTrack} onBack={goBack} onContinue={handleStep2Continue} onSaveDraft={handleSaveDraft} fieldErrors={fieldErrors} clearFieldError={clearFieldError} />
           )}
           {state.step === "distribution" && (
-            <ReleaseAvailability state={state} update={update} onBack={goBack} onSubmit={handleStep3Submit} onQuickDrop={() => setQuickDropOpen(true)} onSaveDraft={handleSaveDraft} isSubmitting={isSubmitting} fieldErrors={fieldErrors} clearFieldError={clearFieldError} />
+            <ReleaseAvailability state={state} update={update} onBack={goBack} onSubmit={isEditing ? () => setReviewOpen(true) : handleStep3Submit} onQuickDrop={() => setQuickDropOpen(true)} onSaveDraft={handleSaveDraft} isSubmitting={isSubmitting} fieldErrors={fieldErrors} clearFieldError={clearFieldError} submitLabel={isEditing ? "Review Changes" : undefined} />
           )}
         </div>
       </div>
+
+      {/* Review step. Shows the artist exactly the diff the admin will get,
+          so nobody submits a request without knowing what is in it. */}
+      {reviewOpen && (
+        <div className="fixed inset-0 z-[80] flex items-center justify-center p-4">
+          <div aria-hidden className="absolute inset-0 bg-black/75 backdrop-blur-sm" onClick={() => !isSubmitting && setReviewOpen(false)} />
+
+          <div className="relative w-full max-w-[560px] max-h-[85vh] overflow-y-auto rounded-2xl border border-white/[0.08] bg-[#1A0808] p-6">
+            <h2 className="font-heading text-white uppercase text-lg tracking-wide mb-1">
+              Review your changes
+            </h2>
+            <p className="font-body text-white/50 text-sm mb-5">
+              {pendingChanges.length + trackChanges.length === 0
+                ? "You have not changed anything yet."
+                : `${pendingChanges.length + trackChanges.length} change${pendingChanges.length + trackChanges.length === 1 ? "" : "s"} will be sent for review.`}
+            </p>
+
+            {/* Names the offending track rather than just refusing, so an
+                artist with a twelve-track album knows which one to fix. */}
+            {incompleteTracks.length > 0 && (
+              <div className="rounded-xl border border-amber-500/25 bg-amber-500/[0.07] px-4 py-3 mb-4">
+                <p className="font-body text-amber-200 text-xs font-semibold mb-1">
+                  {incompleteTracks.length} track{incompleteTracks.length === 1 ? "" : "s"} still need attention
+                </p>
+                <ul className="font-body text-amber-100/70 text-xs space-y-0.5">
+                  {incompleteTracks.slice(0, 5).map((t) => (
+                    <li key={t.n}>
+                      Track {t.n}
+                      {t.title ? ` — ${t.title}` : ""} is missing {t.missing}
+                    </li>
+                  ))}
+                  {incompleteTracks.length > 5 && (
+                    <li>and {incompleteTracks.length - 5} more…</li>
+                  )}
+                </ul>
+              </div>
+            )}
+
+            {trackChanges.length > 0 && (
+              <ul className="flex flex-col gap-2 mb-4">
+                {trackChanges.map((t) => (
+                  <li key={t.id} className="rounded-xl border border-white/[0.06] bg-[#140C0C] px-4 py-3 min-w-0">
+                    <p className="font-body text-white text-xs font-semibold mb-1 break-words">
+                      {t.title || "Untitled track"}
+                    </p>
+                    <p className="font-body text-white/50 text-xs">
+                      {t.kind === "added" ? "New track added" : "Audio replaced with a new file"}
+                    </p>
+                  </li>
+                ))}
+              </ul>
+            )}
+
+            {pendingChanges.length > 0 && (
+              <ul className="flex flex-col gap-2 mb-5">
+                {pendingChanges.map((c) => (
+                  <li key={c.field} className="rounded-xl border border-white/[0.06] bg-[#140C0C] px-4 py-3 min-w-0">
+                    <p className="font-body text-white text-xs font-semibold mb-1">{c.label}</p>
+                    {c.isFile ? (
+                      <p className="font-body text-white/50 text-xs">Replaced with a new file</p>
+                    ) : (
+                      // Stacked, wrapping and break-words: a platform list is
+                      // long enough to run off the side of the modal when the
+                      // before and after sit on one line.
+                      <div className="font-body text-xs leading-relaxed min-w-0 space-y-0.5">
+                        <p className="text-white/40 line-through break-words whitespace-pre-wrap">
+                          {formatReviewValue(c.from)}
+                        </p>
+                        <p className="text-white break-words whitespace-pre-wrap">
+                          <span className="text-white/30 mr-1.5">→</span>
+                          {formatReviewValue(c.to)}
+                        </p>
+                      </div>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            )}
+
+            <label className="font-body text-white/70 text-xs block mb-1.5">
+              Why are you making these changes?
+            </label>
+            <textarea
+              value={editReason}
+              onChange={(e) => setEditReason(e.target.value.slice(0, 1000))}
+              rows={3}
+              placeholder="This helps our team review it faster."
+              className="w-full bg-[#0E0808] border border-white/10 rounded-xl px-4 py-3 font-body text-white text-sm placeholder:text-white/25 outline-none focus:border-[#C30100] transition-colors resize-none"
+            />
+            <p className="font-body text-white/30 text-xs mt-1 mb-5">{editReason.length}/1000</p>
+
+            <div className="flex flex-col sm:flex-row gap-3">
+              <button
+                onClick={() => setReviewOpen(false)}
+                disabled={isSubmitting}
+                className="flex-1 font-heading text-white uppercase text-xs tracking-widest rounded-full border border-white/20 py-3.5 hover:border-white/40 transition-colors disabled:opacity-40"
+              >
+                Keep editing
+              </button>
+              <button
+                onClick={handleSubmitRevision}
+                disabled={isSubmitting || (pendingChanges.length + trackChanges.length) === 0 || incompleteTracks.length > 0 || !editReason.trim()}
+                className="flex-1 font-heading text-white uppercase text-xs tracking-widest rounded-full border border-[#C30100] bg-[#C30100]/10 hover:bg-[#C30100] py-3.5 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                {isSubmitting ? "Sending..." : "Send for review"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       {quickDropOpen && (
         <QuickDropModal
           onClose={() => setQuickDropOpen(false)}

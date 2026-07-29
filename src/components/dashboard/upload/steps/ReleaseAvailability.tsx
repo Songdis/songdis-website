@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import type { UploadState, StepFieldErrors } from "../UploadModal";
 import { StepHeader, StepProgress, StepActions } from "../UploadModal";
-import { useBilling } from "@/lib/hooks/useBilling";
+// import { useBilling } from "@/lib/hooks/useBilling";
 
 const DSP_LIST = [
   { id: "spotify", label: "Spotify", description: "Leading global streaming platform", color: "#1DB954" },
@@ -32,14 +32,15 @@ interface Props {
   isSubmitting?: boolean;
   fieldErrors?: StepFieldErrors;
   clearFieldError?: (key: string) => void;
+  /** Overrides the button text — edit mode reviews rather than submits. */
+  submitLabel?: string;
 }
 
-export default function ReleaseAvailability({ state, update, onBack, onSubmit, onQuickDrop, onSaveDraft, isSubmitting, fieldErrors = {}, clearFieldError }: Props) {
+export default function ReleaseAvailability({ state, update, onBack, onSubmit, onQuickDrop, onSaveDraft, isSubmitting, fieldErrors = {}, clearFieldError, submitLabel }: Props) {
   const [search, setSearch] = useState("");
-  const { can } = useBilling();
-  const isBasicPlan = !can("full_distribution");
+  // const { can } = useBilling();
+  // const isBasicPlan = !can("full_distribution");
 
-  // Auto-select all platforms when first reaching this step
   useEffect(() => {
     if (state.selectedDSPs.length === 0) {
       update({ selectedDSPs: DSP_LIST.map((d) => d.id) });
@@ -79,19 +80,19 @@ export default function ReleaseAvailability({ state, update, onBack, onSubmit, o
       />
       <StepProgress current={3} />
 
-      {/* Upgrade prompt for Basic plan users */}
+      {/* Upgrade prompt for Basic plan users
       {isBasicPlan && (
         <div className="border border-[#C30100]/30 bg-[#C30100]/5 rounded-xl p-4 mb-5 flex items-center justify-between gap-4">
           <div>
             <p className="font-body text-white text-sm font-medium">Growth Plan Required</p>
             <p className="font-body text-white/40 text-xs mt-1">Upgrade to Growth plan to distribute to all 13 platforms worldwide.</p>
           </div>
-          <Link href="/dashboard/settings"
+          <Link href="/dashboard/settings?tab=subscription"
             className="font-heading text-white uppercase text-[10px] tracking-widest bg-[#C30100] hover:bg-[#C30100]/80 rounded-full px-4 py-2 transition-colors shrink-0">
             Upgrade
           </Link>
         </div>
-      )}
+      )} */}
 
       <div className="flex flex-col gap-5">
         {/* Timeline */}
@@ -238,7 +239,9 @@ export default function ReleaseAvailability({ state, update, onBack, onSubmit, o
               Clear All
             </button>
             <button onClick={selectAll} className="flex-1 font-heading text-white uppercase text-xs tracking-widest rounded-full border border-[#C30100] py-3 hover:bg-[#C30100] transition-all">
-              Select All Partners
+              {/* "Select All Partners" wraps and breaks the pill on narrow screens. */}
+              <span className="sm:hidden">Select All</span>
+              <span className="hidden sm:inline">Select All Partners</span>
             </button>
           </div>
 
@@ -294,7 +297,7 @@ export default function ReleaseAvailability({ state, update, onBack, onSubmit, o
           onBack={onBack}
           onSaveDraft={onSaveDraft}
           onContinue={onSubmit}
-          continueLabel="Submit Release"
+          continueLabel={submitLabel ?? "Submit Release"}
           isSubmit
           isLoading={isSubmitting}
         />

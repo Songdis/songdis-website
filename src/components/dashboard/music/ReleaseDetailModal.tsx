@@ -253,6 +253,10 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string }
   distributed:        { label: "Distributed",color: "#22c55e", bg: "rgba(34,197,94,0.15)" },
   need_documentation: { label: "Needs Docs", color: "#C30100", bg: "rgba(195,1,0,0.15)" },
   draft:              { label: "Draft",      color: "#ffffff", bg: "rgba(255,255,255,0.10)" },
+  // Were missing, so a release in either state fell through to the default
+  // grey pill and read as though it had no status at all.
+  takedown:           { label: "Takedown",   color: "#f97316", bg: "rgba(249,115,22,0.15)" },
+  rejected:           { label: "Rejected",   color: "#ef4444", bg: "rgba(239,68,68,0.15)" },
 };
 
 /* ─── Platform display name — formats any platform key readably ─ */

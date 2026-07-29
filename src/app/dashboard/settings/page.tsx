@@ -102,6 +102,21 @@ function ArtistProfileTab() {
     null,
   );
   const [showLimitInfo, setShowLimitInfo] = useState(false);
+  const [showSubscribePrompt, setShowSubscribePrompt] = useState(false);
+  const { isLocked, artists } = useBilling(0);
+  const router = useRouter();
+
+  // Ask for a plan only when they actually try to create something. The server
+  // enforces the same rule, so this is a courtesy, not the guard.
+  const handleAddArtist = () => {
+    if (isLocked || artists?.can_create === false) {
+      setShowSubscribePrompt(true);
+      return;
+    }
+
+    setEditingProfile(null);
+    setShowEditModal(true);
+  };
 
   useEffect(() => {
     setIsLoading(true);
@@ -209,18 +224,45 @@ function ArtistProfileTab() {
         )}
 
         <button
-          onClick={() => {
-            setEditingProfile(null);
-            setShowEditModal(true);
-          }}
+          onClick={handleAddArtist}
           className="w-full rounded-xl border border-dashed border-[#C30100]/30 bg-transparent hover:bg-[#C30100]/5 transition-colors p-5 flex flex-col items-center gap-1.5"
         >
           <span className="text-white/40 text-2xl leading-none">+</span>
           <span className="font-montserrat text-white/50 text-sm">
-            Add Another Artist
+            {profiles.length === 0 ? "Create Your First Artist Profile" : "Add Another Artist"}
           </span>
         </button>
       </div>
+
+      {/* The paywall lands here rather than on arrival: they came to create a
+          profile, so ask for a plan at the moment it is actually needed. */}
+      <ConfirmDialog
+        open={showSubscribePrompt}
+        title={profiles.length === 0 ? "Choose a plan to continue" : "Upgrade to add another artist"}
+        confirmLabel="View Plans"
+        cancelLabel="Not now"
+        onConfirm={() => {
+          setShowSubscribePrompt(false);
+          router.replace("/dashboard/settings?tab=subscription");
+        }}
+        onCancel={() => setShowSubscribePrompt(false)}
+        message={
+          profiles.length === 0 ? (
+            <p>
+              Artist profiles are part of every plan. Pick one and you can create
+              your profile and start releasing straight away.
+            </p>
+          ) : (
+            <p>
+              Your current plan covers{" "}
+              <span className="text-white font-medium">
+                {artists?.limit ?? 1} artist{(artists?.limit ?? 1) === 1 ? "" : "s"}
+              </span>
+              . Move up a plan to add more.
+            </p>
+          )
+        }
+      />
 
       {showLimitInfo && (
         <LimitInfoModal
@@ -653,7 +695,6 @@ function SubscriptionTab() {
   } = useBilling();
 
   const [cancelling, setCancelling] = useState(false);
-  const [startingTrial, setStartingTrial] = useState(false);
   const [openingPortal, setOpeningPortal] = useState(false);
   const [resuming, setResuming] = useState(false);
   const [confirmCancelOpen, setConfirmCancelOpen] = useState(false);
@@ -817,30 +858,6 @@ function SubscriptionTab() {
         </div>
       )}
 
-      {/* Free trial offer */}
-      {!isLoading && status?.trial_available && (
-        <TrialOffer
-          busy={startingTrial}
-          onStart={async (priceId) => {
-            setStartingTrial(true);
-            try {
-              const { startTrial } = await import("@/lib/api/billing");
-              const res = await startTrial(priceId);
-
-              if (res.error) {
-                toastError("Could not start trial", res.error);
-              } else {
-                success("Trial started", res.message ?? "Your free trial is active.");
-                refreshBilling();
-              }
-            } catch {
-              toastError("Could not start trial", "Something went wrong.");
-            } finally {
-              setStartingTrial(false);
-            }
-          }}
-        />
-      )}
 
       <PlanGrid onChanged={refreshBilling} />
 
@@ -921,8 +938,6 @@ function SubscriptionTab() {
         onCancel={() => setConfirmCancelOpen(false)}
         message={
           <>
-            {/* State the date rather than "the end of your billing period" —
-                people cancel more confidently when they can see what they keep. */}
             <p>
               You keep everything until{" "}
               <span className="text-white font-medium">
@@ -944,61 +959,6 @@ function SubscriptionTab() {
           </>
         }
       />
-    </div>
-  );
-}
-
-
-function TrialOffer({
-  busy,
-  onStart,
-}: {
-  busy: boolean;
-  onStart: (priceId: number) => void;
-}) {
-  const [priceId, setPriceId] = useState<number | null>(null);
-  const [days, setDays] = useState<number>(14);
-  const [planLabel, setPlanLabel] = useState<string>("");
-
-  useEffect(() => {
-    (async () => {
-      const { getBillingPlans } = await import("@/lib/api/billing");
-      const res = await getBillingPlans("local_transfer");
-      const plans = res.data?.plans ?? [];
-
-      const cheapest = [...plans].sort((a, b) => a.tier - b.tier)[0];
-      const monthly = cheapest?.prices.find((p) => p.interval === "month");
-
-      if (monthly) {
-        setPriceId(monthly.id);
-        setPlanLabel(cheapest.name);
-
-        const withTrial = plans.flatMap((p) => p.prices).find((p) => p.trial_days);
-        setDays(withTrial?.trial_days ?? 14);
-      }
-    })();
-  }, []);
-
-  if (!priceId) return null;
-
-  return (
-    <div className="mb-6 rounded-xl border border-[#C30100]/25 bg-[#C30100]/[0.06] px-4 py-4 flex items-center justify-between gap-4 flex-wrap">
-      <div className="min-w-0">
-        <p className="font-nulshock text-white uppercase text-xs tracking-wide">
-          Start with {days} days free
-        </p>
-        <p className="font-montserrat text-white/40 text-[11px] mt-1">
-          Try {planLabel} free for {days} days. No card required.
-        </p>
-      </div>
-
-      <button
-        onClick={() => onStart(priceId)}
-        disabled={busy}
-        className="shrink-0 font-nulshock uppercase text-[10px] tracking-widest rounded-full border border-[#C30100] bg-[#C30100]/10 hover:bg-[#C30100] px-5 py-2.5 text-white transition-all disabled:opacity-40 min-h-[44px]"
-      >
-        {busy ? "Starting..." : "Start Free Trial"}
-      </button>
     </div>
   );
 }
@@ -1033,7 +993,6 @@ function SettingsContent() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [requestedTab]);
 
-  // Keep the URL honest so the tab survives a refresh and stays shareable.
   const selectTab = (tab: Tab) => {
     setActiveTab(tab);
     router.replace(`/dashboard/settings?tab=${tab}`, { scroll: false });
@@ -1053,9 +1012,6 @@ function SettingsContent() {
     >
       <div className="flex flex-col gap-5">
         <div>
-          {/* <h2 className="font-nulshock text-white uppercase text-2xl tracking-wide">
-            Settings
-          </h2> */}
           <p className="font-montserrat text-white/50 text-sm mt-1">
             Manage your account and preferences
           </p>

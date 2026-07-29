@@ -267,7 +267,7 @@ function VideosList({ videos, stats, loading, isGrowthPlan, onStartNew }: {
             Submit New Video
           </button>
         ) : (
-          <Link href="/dashboard/settings"
+          <Link href="/dashboard/settings?tab=subscription"
             className="font-heading text-white uppercase text-xs tracking-widest bg-[#C30100]/20 border border-[#C30100]/40 hover:bg-[#C30100]/40 rounded-full px-5 py-3 transition-colors flex items-center justify-center gap-2">
             Upgrade to Growth to submit videos
           </Link>
@@ -306,7 +306,7 @@ function VideosList({ videos, stats, loading, isGrowthPlan, onStartNew }: {
               Submit your first video
             </button>
           ) : (
-            <Link href="/dashboard/settings" className="font-heading text-white uppercase text-xs tracking-widest bg-[#C30100]/20 border border-[#C30100]/40 hover:bg-[#C30100]/40 rounded-full px-6 py-3 transition-colors inline-block">
+            <Link href="/dashboard/settings?tab=subscription" className="font-heading text-white uppercase text-xs tracking-widest bg-[#C30100]/20 border border-[#C30100]/40 hover:bg-[#C30100]/40 rounded-full px-6 py-3 transition-colors inline-block">
               Upgrade to Growth to submit videos
             </Link>
           )}

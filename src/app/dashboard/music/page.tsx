@@ -6,7 +6,6 @@ import DashboardLayout from "@/components/dashboard/DashboardLayout";
 import ReleaseCard, { DraftCard } from "@/components/dashboard/music/ReleaseCard";
 import UploadModal from "@/components/dashboard/upload/UploadModal";
 import {
-  RequestEditModal,
   TakedownModal,
   SuccessModal,
 } from "@/components/dashboard/music/MusicModals";
@@ -14,7 +13,6 @@ import {
   useMusic,
   useDrafts,
   useMusicRequests,
-  useRequestEdit,
   useRequestTakedown,
   useMusicStats,
   type NormalisedRelease,
@@ -91,7 +89,6 @@ export default function YourMusicPage() {
   const { releases, isLoading: releasesLoading, refresh: refreshReleases } = useMusic();
   const { drafts, isLoading: draftsLoading, remove: removeDraft } = useDrafts();
   const { requests, isLoading: requestsLoading } = useMusicRequests();
-  const { submit: submitEdit, isLoading: editLoading } = useRequestEdit();
   const { submit: submitTakedown, isLoading: takedownLoading } = useRequestTakedown();
   const stats = useMusicStats(releases);
 
@@ -308,10 +305,15 @@ export default function YourMusicPage() {
           onRequestTakedown={() => setModal({ type: "takedown", release: modal.release })}
         />
       )}
+      {/* Editing reopens the release in the full upload form, so anything
+          except UPC and ISRC can be changed — including audio and artwork. */}
       {modal?.type === "edit" && (
-        <RequestEditModal release={modal.release as never} onClose={closeModal}
-          onSubmit={(reason, changes) => submitEdit(Number(modal.release.id), { reason, requested_changes: changes }, () => setModal({ type: "edit-success" }))}
-          isLoading={editLoading} />
+        <UploadModal
+          isOpen
+          editReleaseId={Number(modal.release.id)}
+          onClose={closeModal}
+          onRevisionSubmitted={refreshReleases}
+        />
       )}
       {modal?.type === "takedown" && (
         <TakedownModal release={modal.release as never} onClose={closeModal}

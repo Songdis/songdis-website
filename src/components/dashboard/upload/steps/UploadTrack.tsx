@@ -666,16 +666,23 @@ export default function UploadTrack({ state, update, updateTrack, removeTrack, r
     });
   }, []);
 
-  /* -- Single mode: sync audioUrl with state -------------------- */
+  /* -- Single mode: sync audioUrl with state --------------------
+     When a release is reopened for editing there is no local File, only the
+     URL of the audio already on S3. Without this the player never appeared
+     and the form looked like it was demanding a fresh upload. */
   useEffect(() => {
-    if (!audioFile) return;
+    if (!audioFile) {
+      setAudioUrl(state.audioUrl || null);
+      return;
+    }
+
     const url = URL.createObjectURL(audioFile);
     setAudioUrl(url);
     setCurrentTime(0);
     setDuration(0);
     setPlaying(false);
     return () => URL.revokeObjectURL(url);
-  }, [audioFile]);
+  }, [audioFile, state.audioUrl]);
 
   useEffect(() => {
     const el = audioElRef.current;
@@ -862,7 +869,7 @@ export default function UploadTrack({ state, update, updateTrack, removeTrack, r
               disabled={uploading}
               className={[
                 "w-full border-2 border-dashed rounded-xl py-10 flex flex-col items-center gap-2 transition-colors",
-                fieldErrors.audio ? "border-[#C30100] bg-[#C30100]/5" : audioFile ? "border-[#C30100]/60 bg-[#C30100]/5" : "border-white/10 hover:border-white/25",
+                fieldErrors.audio ? "border-[#C30100] bg-[#C30100]/5" : (audioFile || state.audioKey || state.audioUrl) ? "border-[#C30100]/60 bg-[#C30100]/5" : "border-white/10 hover:border-white/25",
               ].join(" ")}
             >
               {uploading ? (
@@ -883,15 +890,50 @@ export default function UploadTrack({ state, update, updateTrack, removeTrack, r
               ) : (
                 <>
                   <AudioIcon />
-                  <p className="font-body text-white/50 text-sm">
-                    {audioFile ? audioFile.name : "Drop your audio file or click to browse"}
-                  </p>
-                  <p className="font-body text-white/25 text-xs">WAV, MP3, FLAC · Max 500MB · 24-bit recommended</p>
+                  {/* An existing release already has audio on S3 but no local
+                      File, so without this the box read "drop your audio file"
+                      and looked like it was demanding a re-upload. */}
+                  {audioFile ? (
+                    <>
+                      <p className="font-body text-white/50 text-sm">{audioFile.name}</p>
+                      <p className="font-body text-white/25 text-xs">WAV, MP3, FLAC · Max 500MB · 24-bit recommended</p>
+                    </>
+                  ) : (state.audioKey || state.audioUrl) ? (
+                    <>
+                      <p className="font-body text-white/70 text-sm">Your audio is already uploaded</p>
+                      <p className="font-body text-white/25 text-xs">Click only if you want to replace it</p>
+                    </>
+                  ) : (
+                    <>
+                      <p className="font-body text-white/50 text-sm">Drop your audio file or click to browse</p>
+                      <p className="font-body text-white/25 text-xs">WAV, MP3, FLAC · Max 500MB · 24-bit recommended</p>
+                    </>
+                  )}
                 </>
               )}
             </button>
             {fieldErrors.audio && <p className="font-body text-[#C30100] text-xs mt-1">{fieldErrors.audio}</p>}
             <input ref={audioInputRef} type="file" accept={audioAccept} className="hidden" onChange={handleAudio} />
+
+            {/* A playable file is the only proof people actually trust. The
+                text above says the audio is there; this lets them hear it.
+                Same player the album track list uses. */}
+            {audioUrl && (
+              <div className="mt-3 rounded-xl border border-white/[0.08] bg-[#140C0C] p-3">
+                <div className="flex items-center justify-between gap-3 mb-2">
+                  <p className="font-body text-white/70 text-xs font-medium truncate">
+                    {audioFile ? audioFile.name : state.trackTitle || "Current audio"}
+                  </p>
+                  <button
+                    onClick={() => !uploading && audioInputRef.current?.click()}
+                    className="shrink-0 font-body text-[#C30100] text-xs hover:text-white transition-colors"
+                  >
+                    Replace
+                  </button>
+                </div>
+                <MiniAudioPlayer audioUrl={audioUrl} trackId="single" />
+              </div>
+            )}
           </>
         ) : (
           /* Album/EP / Mixtape mode: track list with Add Track button */

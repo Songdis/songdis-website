@@ -25,7 +25,7 @@ function CallbackContent() {
           setStatus("success");
           setMessage("Your subscription is now active!");
           if (pollRef.current) clearInterval(pollRef.current);
-          setTimeout(() => router.push("/dashboard/settings"), 3000);
+          setTimeout(() => router.push("/dashboard/settings?tab=subscription"), 3000);
           return;
         }
       }
@@ -115,7 +115,7 @@ function CallbackContent() {
 
         <div className="flex flex-col gap-3">
           <Link
-            href="/dashboard/settings"
+            href="/dashboard/settings?tab=subscription"
             className="w-full font-heading text-white uppercase text-xs tracking-widest rounded-full border border-[#C30100] bg-[#C30100]/10 hover:bg-[#C30100] py-4 transition-all text-center"
           >
             {status === "success" ? "Go to Settings" : "Back to Settings"}

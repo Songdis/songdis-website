@@ -71,7 +71,6 @@ function DashSelect({ value, onChange, options }: { value: string; onChange: (v:
   );
 }
 
-/* ─── Main component ──────────────────────────────────────────── */
 interface Props {
   state: UploadState;
   update: (patch: Partial<UploadState>) => void;
@@ -80,9 +79,11 @@ interface Props {
   onSaveDraft?: () => void;
   fieldErrors?: StepFieldErrors;
   clearFieldError?: (key: string) => void;
+  /** Editing an existing release: identifiers are read-only. */
+  isEditing?: boolean;
 }
 
-export default function ReleaseDetails({ state, update, onBack, onContinue, onSaveDraft, fieldErrors = {}, clearFieldError }: Props) {
+export default function ReleaseDetails({ state, update, onBack, onContinue, onSaveDraft, fieldErrors = {}, clearFieldError, isEditing = false }: Props) {
   const [artworkGen, setArtworkGen] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const [profiles, setProfiles] = useState<ArtistProfile[]>([]);
@@ -91,7 +92,6 @@ export default function ReleaseDetails({ state, update, onBack, onContinue, onSa
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<UploadProgress | null>(null);
 
-  /* Check label edit permission on mount */
   useEffect(() => {
     getLabelPermission().then((res) => {
       if (res.error || !res.data) return;
@@ -99,7 +99,6 @@ export default function ReleaseDetails({ state, update, onBack, onContinue, onSa
     });
   }, []);
 
-  /* Fetch artist profiles on mount */
   useEffect(() => {
     getProfile().then((res) => {
       if (res.error || !res.data) return;
@@ -162,7 +161,6 @@ export default function ReleaseDetails({ state, update, onBack, onContinue, onSa
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Validate minimum dimensions
     const img = new window.Image();
     const objectUrl = URL.createObjectURL(file);
     await new Promise<void>((resolve) => {
@@ -206,7 +204,6 @@ export default function ReleaseDetails({ state, update, onBack, onContinue, onSa
         <StepHeader title={releaseTypeLabel} subtitle="Complete all steps to submit your release for distribution" />
         <StepProgress current={1} />
 
-        {/* Generate with Ayo — DES-011: opens wired modal */}
         <button
           onClick={() => setArtworkGen(true)}
           className="w-full flex items-center justify-center gap-2.5 rounded-xl border border-white/[0.08] bg-white/[0.03] hover:bg-white/[0.06] py-4 mb-5 transition-colors"
@@ -376,10 +373,25 @@ export default function ReleaseDetails({ state, update, onBack, onContinue, onSa
               options={["English", "French", "Spanish", "Yoruba", "Igbo", "Hausa"]} />
           </Field>
 
-          <Field label="UPC Code (Optional)" hint="Leave empty. We will give you one for free.">
-            <input value={state.upcCode} onChange={(e) => update({ upcCode: e.target.value })}
-              placeholder="Auto generated if left blank"
-              className="w-full bg-[#0E0808] border border-white/10 rounded-lg px-4 py-3 font-body text-white text-sm placeholder:text-white/25 outline-none focus:border-[#C30100] transition-colors" />
+          <Field
+            label={isEditing ? "UPC Code" : "UPC Code (Optional)"}
+            hint={isEditing
+              ? "This identifies your release on streaming platforms and cannot be changed."
+              : "Leave empty. We will give you one for free."}
+          >
+            <input
+              value={state.upcCode}
+              onChange={(e) => update({ upcCode: e.target.value })}
+              readOnly={isEditing}
+              disabled={isEditing}
+              placeholder={isEditing ? "Not assigned yet" : "Auto generated if left blank"}
+              className={[
+                "w-full border rounded-lg px-4 py-3 font-body text-sm outline-none transition-colors",
+                isEditing
+                  ? "bg-[#0A0606] border-white/[0.06] text-white/40 cursor-not-allowed"
+                  : "bg-[#0E0808] border-white/10 text-white placeholder:text-white/25 focus:border-[#C30100]",
+              ].join(" ")}
+            />
           </Field>
 
           <Field label="C Line (Copyright)" hint="Who owns the song/lyrics?">
@@ -436,7 +448,6 @@ export default function ReleaseDetails({ state, update, onBack, onContinue, onSa
   );
 }
 
-/* ─── Artist Name Input (type or select from profiles) ─────── */
 function ArtistNameInput({ profiles, value, onChange }: { profiles: ArtistProfile[]; value: string; onChange: (name: string, artistId?: string) => void }) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState(value);
@@ -490,7 +501,6 @@ function ArtistNameInput({ profiles, value, onChange }: { profiles: ArtistProfil
   );
 }
 
-/* ─── Icons ───────────────────────────────────────────────────── */
 function UploadIcon() { return <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#C30100" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>; }
 function AyoIcon() { return <svg width="14" height="14" viewBox="0 0 24 24" fill="#C30100"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>; }
 function ChevronIcon() { return <svg className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-white/30" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="6 9 12 15 18 9"/></svg>; }
