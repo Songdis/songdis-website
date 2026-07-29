@@ -316,10 +316,32 @@ function PlanCard({
   busy: boolean;
   onSubscribe: () => void;
 }) {
-  const discounted =
-    promo?.valid && !promo.grants_access && promo.discounted_amount !== undefined
-      ? promo.discounted_amount
-      : null;
+  // Worked out per card, from this card's own price.
+  //
+  // `promo.discounted_amount` is a single figure the server computed for the
+  // one price the code was previewed against, so reusing it here showed every
+  // plan at the same discounted price — Growth was displaying Basic's.
+  const discounted = useMemo(() => {
+    if (!promo?.valid || promo.grants_access) return null;
+
+    const list = price.amount;
+
+    if (promo.discount_type === "percent" && promo.discount_value !== undefined) {
+      return Math.max(0, Math.round((list - list * (promo.discount_value / 100)) * 100) / 100);
+    }
+
+    // A fixed discount is denominated in Naira, so it is only shown directly
+    // on Naira prices; for anything else the server's converted figure for the
+    // previewed price is the only trustworthy number, and it does not apply to
+    // other cards, so the price is left at list.
+    if (promo.discount_type === "fixed" && promo.discount_value !== undefined) {
+      if (price.currency !== "NGN") return null;
+      const after = Math.max(0, list - promo.discount_value);
+      return after < list ? after : null;
+    }
+
+    return null;
+  }, [promo, price.amount, price.currency]);
 
   const disabled = price.is_current || !price.available || !price.ready || busy;
 

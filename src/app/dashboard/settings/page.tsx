@@ -11,6 +11,7 @@ import ArtistProfileModal from "@/components/dashboard/settings/ArtistProfileMod
 import type { ArtistProfile } from "@/components/dashboard/settings/ArtistProfileModal";
 import { useBilling } from "@/lib/hooks/useBilling";
 import PlanGrid from "@/components/billing/PlanGrid";
+import ConfirmDialog from "@/components/ui/ConfirmDialog";
 
 type Tab =
   | "general"
@@ -386,14 +387,14 @@ function LimitInfoModal({
           </p>
         </div>
         <div className="rounded-xl bg-[#0E0808] border border-white/[0.06] p-4 mb-5">
-          <p className="font-montserrat text-white text-sm font-semibold">
+          {/* <p className="font-montserrat text-white text-sm font-semibold">
             Your Label Plan includes 3 artist profiles
-          </p>
-          <p className="font-montserrat text-white/40 text-xs mt-1">
+          </p> */}
+          {/* <p className="font-montserrat text-white/40 text-xs mt-1">
             Each additional seat costs{" "}
             <span className="text-[#C30100]">₦30,000</span> per artist, per year
             — charged immediately and billed with your renewal.
-          </p>
+          </p> */}
         </div>
         <p className="font-nulshock text-white/50 uppercase text-xs tracking-widest mb-4">
           How to Add a New Artist
@@ -655,16 +656,11 @@ function SubscriptionTab() {
   const [startingTrial, setStartingTrial] = useState(false);
   const [openingPortal, setOpeningPortal] = useState(false);
   const [resuming, setResuming] = useState(false);
+  const [confirmCancelOpen, setConfirmCancelOpen] = useState(false);
   const { success, error: toastError } = useToast();
 
   const handleCancel = async () => {
-    if (
-      !confirm(
-        "Cancel your subscription? You will keep access until the end of your current billing period."
-      )
-    )
-      return;
-
+    setConfirmCancelOpen(false);
     setCancelling(true);
     try {
       const { cancelBilling } = await import("@/lib/api/billing");
@@ -686,9 +682,7 @@ function SubscriptionTab() {
     }
   };
 
-  // Undoing a cancellation. Card subscriptions can only be reversed in the
-  // Bachs portal, so the server hands back a URL to continue at; local plans
-  // resume in place. Either way it's one button to the customer.
+
   const handleResume = async () => {
     setResuming(true);
     try {
@@ -714,8 +708,7 @@ function SubscriptionTab() {
     }
   };
 
-  // Bachs hosts card management, so there is nothing to build here for
-  // updating a card or changing a payment method.
+
   const handlePortal = async () => {
     setOpeningPortal(true);
     try {
@@ -792,8 +785,7 @@ function SubscriptionTab() {
                   : ""}
               </p>
 
-              {/* Transfer plans cannot auto-charge, so say so plainly rather
-                  than letting people assume they will renew themselves. */}
+
               {renewsManually && !status?.cancel_at_period_end && (
                 <p className="font-montserrat text-white/30 text-[11px] mt-1">
                   This plan does not renew automatically — pay again before it ends to stay active.
@@ -852,11 +844,7 @@ function SubscriptionTab() {
 
       <PlanGrid onChanged={refreshBilling} />
 
-      {/* Manage.
-          Hidden for `legacy` plans: those were bought on the previous billing
-          system and live in the old tables, so none of these actions apply.
-          Deliberately still shown once cancelled — that is exactly when the
-          customer needs Resume. */}
+
       {isActive && status?.source !== "legacy" && (
         <div className="mt-5 pt-5 border-t border-white/[0.06] flex flex-col sm:flex-row items-center justify-center gap-3">
           {status?.track === "usd_card" && (
@@ -884,7 +872,7 @@ function SubscriptionTab() {
             </button>
           ) : (
             <button
-              onClick={handleCancel}
+              onClick={() => setConfirmCancelOpen(true)}
               disabled={cancelling}
               className="font-nulshock uppercase text-[10px] tracking-widest rounded-full border border-white/20 px-5 py-2.5 text-white/50 hover:text-[#C30100] hover:border-[#C30100]/50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2 min-h-[44px]"
             >
@@ -921,17 +909,46 @@ function SubscriptionTab() {
           Need a custom solution? Contact our sales team for enterprise options.
         </p>
       </div>
+
+      <ConfirmDialog
+        open={confirmCancelOpen}
+        destructive
+        busy={cancelling}
+        title="Cancel your subscription?"
+        confirmLabel="Yes, cancel it"
+        cancelLabel="Keep my plan"
+        onConfirm={handleCancel}
+        onCancel={() => setConfirmCancelOpen(false)}
+        message={
+          <>
+            {/* State the date rather than "the end of your billing period" —
+                people cancel more confidently when they can see what they keep. */}
+            <p>
+              You keep everything until{" "}
+              <span className="text-white font-medium">
+                {status?.end_date
+                  ? new Date(status.end_date).toLocaleDateString("en-US", {
+                      month: "long",
+                      day: "numeric",
+                      year: "numeric",
+                    })
+                  : "the end of your current billing period"}
+              </span>
+              . Nothing is charged after that.
+            </p>
+            <p className="mt-2 text-white/40">
+              {autoRenew
+                ? "You can change your mind any time before then."
+                : "Your releases stay live until then, and you can resubscribe whenever you like."}
+            </p>
+          </>
+        }
+      />
     </div>
   );
 }
 
-/**
- * Offers the free trial on the cheapest monthly plan.
- *
- * Card plans get their trial from Bachs itself (the card is saved at checkout
- * and charged when the trial ends); this is the no-card path, so nobody needs
- * an international card just to try the product.
- */
+
 function TrialOffer({
   busy,
   onStart,
@@ -999,9 +1016,7 @@ function SettingsContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
 
-  // Deep links like /dashboard/settings?tab=subscription — used by the
-  // expiry banner and every upgrade prompt — have to actually land on that
-  // tab, so the query param seeds the initial state.
+
   const requestedTab = searchParams.get("tab");
   const initialTab: Tab = TABS.some((t) => t.id === requestedTab)
     ? (requestedTab as Tab)
@@ -1011,8 +1026,6 @@ function SettingsContent() {
   const [showNewProfileModal, setShowNewProfileModal] = useState(false);
   const isArtistProfile = activeTab === "artist-profile";
 
-  // Follow the param if it changes while the page is already open, e.g. the
-  // user clicks the banner from a different tab.
   useEffect(() => {
     if (requestedTab && TABS.some((t) => t.id === requestedTab) && requestedTab !== activeTab) {
       setActiveTab(requestedTab as Tab);
@@ -1257,10 +1270,7 @@ function InstagramIcon() {
     </svg>
   );
 }
-/**
- * useSearchParams needs a Suspense boundary or Next opts the whole route out
- * of static rendering at build time.
- */
+
 export default function SettingsPage() {
   return (
     <Suspense

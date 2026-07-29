@@ -73,17 +73,6 @@ function QuickDropVerifyContent() {
   }, [searchParams, verifyPayment]);
 
   const continueToUpload = () => {
-    // Restore upload context from localStorage if available
-    const raw = localStorage.getItem("resume_upload");
-    if (raw) {
-      try {
-        const data = JSON.parse(raw);
-        if (data.resumeUpload) {
-          router.push("/dashboard?resume=true");
-          return;
-        }
-      } catch { /* ignore */ }
-    }
     router.push("/dashboard");
   };
 

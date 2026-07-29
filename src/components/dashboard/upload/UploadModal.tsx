@@ -111,7 +111,6 @@ function stepIndex(step: UploadStep): number { return STEP_ORDER.indexOf(step); 
 interface UploadModalProps {
   isOpen: boolean;
   onClose: () => void;
-  /** Pass a draftId to open the modal pre-filled with a saved draft */
   draftId?: number;
 }
 
@@ -123,14 +122,12 @@ export default function UploadModal({ isOpen, onClose, draftId: initialDraftId }
   const [fieldErrors, setFieldErrors] = useState<StepFieldErrors>({});
   const { success, error: toastError, loading: toastLoading, dismiss } = useToast();
 
-  /* Lock body scroll */
   useEffect(() => {
     if (isOpen) document.body.style.overflow = "hidden";
     else document.body.style.overflow = "";
     return () => { document.body.style.overflow = ""; };
   }, [isOpen]);
 
-  /* Load draft when draftId is provided */
   useEffect(() => {
     if (!isOpen || !initialDraftId) return;
 
@@ -256,48 +253,21 @@ export default function UploadModal({ isOpen, onClose, draftId: initialDraftId }
     if (idx > 0) goTo(STEP_ORDER[idx - 1]);
   }, [state.step, goTo]);
 
-  /* Resume from Quick Drop payment redirect — only when URL has ?resume=true */
-  useEffect(() => {
-    if (!isOpen) return;
-    try {
-      const params = new URLSearchParams(window.location.search);
-      const hasResumeParam = params.get("resume") === "true";
-      const raw = localStorage.getItem("resume_upload");
-      if (!raw) return;
-      const data = JSON.parse(raw);
-      if (!data.resumeUpload) { localStorage.removeItem("resume_upload"); return; }
-      if (!hasResumeParam) { localStorage.removeItem("resume_upload"); return; }
-      const fd = data.formState ?? {};
-      const qdDate = data.quickDropDate ?? "";
-      setState((prev) => ({
-        ...prev,
-        step: "distribution",
-        releaseDate: qdDate || fd.releaseDate || prev.releaseDate,
-        releaseTitle: fd.releaseTitle ?? prev.releaseTitle,
-        primaryArtist: fd.primaryArtist ?? prev.primaryArtist,
-        quickDropDate: qdDate,
-        quickDropPaid: true,
-      }));
-      localStorage.removeItem("resume_upload");
-      success("Quick Drop activated!", "Complete your release submission.");
-    } catch { /* ignore */ }
-  }, [isOpen, success]);
+
+
 
   const clearFieldError = useCallback((key: string) => {
     setFieldErrors((prev) => { const next = { ...prev }; delete next[key]; return next; });
   }, []);
 
-  /* Step 1 validation: releaseTitle + artwork required */
   const handleStep1Continue = useCallback(() => {
     const errors: StepFieldErrors = {};
     if (!state.releaseTitle.trim()) errors.releaseTitle = "Release title is required";
     if (!state.artworkUrl) errors.artwork = "Artwork must be uploaded before continuing";
     if (Object.keys(errors).length > 0) { setFieldErrors(errors); return; }
     setFieldErrors({});
-    /* For singles, auto-fill trackTitle and artistDetails from step 1 */
     if (state.releaseType === "single") {
       update({ trackTitle: state.releaseTitle, artistDetails: state.primaryArtist });
-      /* Auto-add distributing artist as writer (Songwriter) + performer (Lead Vocals) */
       const writer: Contributor = { id: `writer_auto_${Date.now()}`, name: state.primaryArtist, role: "Songwriter", type: "writer" };
       const performer: Contributor = { id: `performer_auto_${Date.now()}`, name: state.primaryArtist, role: "Lead Vocals", type: "performer" };
       update({ contributors: { writers: [writer], producers: [], performers: [performer] } });
@@ -305,17 +275,14 @@ export default function UploadModal({ isOpen, onClose, draftId: initialDraftId }
     goNext();
   }, [state.releaseTitle, state.artworkUrl, state.releaseType, state.primaryArtist, update, goNext]);
 
-  /* Step 2 validation: audio, genre, subGenre, explicit, writers, performers required */
   const handleStep2Continue = useCallback(() => {
     const errors: StepFieldErrors = {};
     const isMultiTrack = state.releaseType === "album" || state.releaseType === "mixtape";
 
     if (isMultiTrack) {
-      // Album/EP / Mixtape: validate tracks
       if (state.tracks.length < 2) {
         errors.tracks = "Album/EP or Mixtape must have at least 2 tracks. Add more tracks before continuing.";
       } else {
-        // Check each track has required fields
         const incompleteTracks: { index: number; missing: string[] }[] = [];
         state.tracks.forEach((track, i) => {
           const missing: string[] = [];
@@ -331,7 +298,6 @@ export default function UploadModal({ isOpen, onClose, draftId: initialDraftId }
         }
       }
     } else {
-      // Single: existing validation
       if (!state.audioUrl) errors.audio = "Audio must be uploaded before continuing";
       if (!state.genre) errors.genre = "Genre is required";
       if (!state.subGenre) errors.subGenre = "Sub-genre is required";
@@ -438,36 +404,53 @@ export default function UploadModal({ isOpen, onClose, draftId: initialDraftId }
     handleSubmit();
   }, [state.releaseDate, state.selectedDSPs, state.agreedToTerms, handleSubmit]);
 
+  /** The draft payload, shared by the manual "Save draft" button and the
+   *  silent save Quick Drop performs before taking payment. */
+  const buildDraftPayload = useCallback(() => ({
+    draft_id: state.draftId,
+    upload_type: state.releaseType === "single" ? "Single" as const : "Album/EP" as const,
+    current_step: Math.max(1, stepIndex(state.step)),
+    form_data: {
+      releaseTitle: state.releaseTitle, trackTitle: state.trackTitle,
+      releaseVersion: state.releaseVersion, primaryArtist: state.primaryArtist,
+      label: state.label, metaLanguage: state.metaLanguage, upcCode: state.upcCode,
+      cLine: state.cLine, pLine: state.pLine, explicitContent: state.explicitContent,
+      coverArtAiUse: state.coverArtAiUse, genre: state.genre, subGenre: state.subGenre,
+      recordedYear: state.recordedYear, isrc: state.isrc, lyrics: state.lyrics,
+      contributors: state.contributors,
+      artistDetails: state.artistDetails, releaseDate: state.releaseDate,
+      preOrderDate: state.preOrderDate, territory: state.territory,
+      selectedDSPs: state.selectedDSPs, noOfTracks: state.noOfTracks,
+      albumArtPreview: state.artwork, audioFileUrl: state.audioUrl,
+      artworkUrl: state.artworkUrl, artworkKey: state.artworkKey,
+      artworkSizes: state.artworkSizes,
+      tiktokTimestamp: state.tiktokTimestamp, audioDuration: state.audioDuration,
+      isPreviouslyReleased: state.isPreviouslyReleased, originalReleaseDate: state.originalReleaseDate,
+    },
+  }), [state]);
+
+
+  const saveDraftQuietly = useCallback(async (): Promise<number | undefined> => {
+    const res = await saveDraft(buildDraftPayload());
+
+    if (res.error) return state.draftId;
+
+    const raw = res.data as unknown as Record<string, unknown> | null;
+    const newDraftId = (raw?.draft_id as number | undefined) ?? (raw?.id as number | undefined);
+
+    if (newDraftId && !state.draftId) update({ draftId: newDraftId });
+
+    return newDraftId ?? state.draftId;
+  }, [buildDraftPayload, state.draftId, update]);
+
   const handleSaveDraft = useCallback(async () => {
     const t = toastLoading("Saving draft...");
     try {
-      const res = await saveDraft({
-        draft_id: state.draftId,
-        upload_type: state.releaseType === "single" ? "Single" : "Album/EP",
-        current_step: Math.max(1, stepIndex(state.step)),
-        form_data: {
-          releaseTitle: state.releaseTitle, trackTitle: state.trackTitle,
-          releaseVersion: state.releaseVersion, primaryArtist: state.primaryArtist,
-          label: state.label, metaLanguage: state.metaLanguage, upcCode: state.upcCode,
-          cLine: state.cLine, pLine: state.pLine, explicitContent: state.explicitContent,
-          coverArtAiUse: state.coverArtAiUse, genre: state.genre, subGenre: state.subGenre,
-          recordedYear: state.recordedYear, isrc: state.isrc, lyrics: state.lyrics,
-          contributors: state.contributors,
-          artistDetails: state.artistDetails, releaseDate: state.releaseDate,
-          preOrderDate: state.preOrderDate, territory: state.territory,
-          selectedDSPs: state.selectedDSPs, noOfTracks: state.noOfTracks,
-          albumArtPreview: state.artwork, audioFileUrl: state.audioUrl,
-          artworkUrl: state.artworkUrl, artworkKey: state.artworkKey,
-          artworkSizes: state.artworkSizes,
-          tiktokTimestamp: state.tiktokTimestamp, audioDuration: state.audioDuration,
-          isPreviouslyReleased: state.isPreviouslyReleased, originalReleaseDate: state.originalReleaseDate,
-        },
-      });
+      const res = await saveDraft(buildDraftPayload());
       dismiss(t);
       if (res.error) {
         toastError("Draft not saved", res.error);
       } else {
-        // If we just created a new draft, store its ID so subsequent saves update it
         const newDraftId = (res.data as unknown as Record<string, unknown>)?.draft_id as number | undefined
           ?? (res.data as unknown as Record<string, unknown>)?.id as number | undefined;
         if (newDraftId && !state.draftId) update({ draftId: newDraftId });
@@ -477,7 +460,7 @@ export default function UploadModal({ isOpen, onClose, draftId: initialDraftId }
       dismiss(t);
       toastError("Draft not saved", "Something went wrong.");
     }
-  }, [state, toastLoading, dismiss, success, toastError, update]);
+  }, [buildDraftPayload, state.draftId, toastLoading, dismiss, success, toastError, update]);
 
   const handleClose = useCallback(() => { setState(INITIAL_STATE); onClose(); }, [onClose]);
 
@@ -528,6 +511,10 @@ export default function UploadModal({ isOpen, onClose, draftId: initialDraftId }
       {quickDropOpen && (
         <QuickDropModal
           onClose={() => setQuickDropOpen(false)}
+          saveDraft={saveDraftQuietly}
+          onActivated={(releaseDate) =>
+            update({ quickDropDate: releaseDate, releaseDate, quickDropPaid: true })
+          }
           releaseData={{
             releaseTitle: state.releaseTitle,
             primaryArtist: state.primaryArtist,
@@ -540,7 +527,6 @@ export default function UploadModal({ isOpen, onClose, draftId: initialDraftId }
   );
 }
 
-/* ─── Shared step components ──────────────────────────────────── */
 export function StepHeader({ title, subtitle }: { title: string; subtitle?: string }) {
   return (
     <div className="text-center mb-6">
