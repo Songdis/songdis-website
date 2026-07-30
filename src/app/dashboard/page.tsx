@@ -1,12 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import DashboardLayout from "@/components/dashboard/DashboardLayout";
 import { useDashboard } from "@/lib/hooks/useDashboard";
 import { useBilling } from "@/lib/hooks/useBilling";
+import { getSpotlight, type Spotlight } from "@/lib/api/spotlight";
 import { ReleaseDetailModal } from "@/components/dashboard/music/ReleaseDetailModal";
 
 export default function DashboardPage() {
@@ -17,7 +18,6 @@ export default function DashboardPage() {
   const router = useRouter();
   const { isLocked, isExpired, hasSubscription, needsFirstArtist } = useBilling(0);
 
-  // "Renew" is wrong for someone who has never subscribed.
   const lapsed = isExpired || hasSubscription;
   const lockLabel = lapsed ? "Renew your subscription" : "Subscribe to unlock";
   const lockVerb  = lapsed ? "Renew your subscription" : "Subscribe";
@@ -35,14 +35,8 @@ export default function DashboardPage() {
     <DashboardLayout showWelcome>
       <div className="flex flex-col gap-5">
 
-        {/* First run.
-            Deliberately shown above everything and never dimmed by the lock:
-            a brand-new account has nothing to look at yet, and creating an
-            artist profile is a better first step than being asked to pay.
-            The subscription prompt comes when they act on it. */}
         {needsFirstArtist && <FirstArtistCard locked={isLocked} />}
 
-        {/* Stats row + Artist Spotlight */}
         <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
           <div className="col-span-1 md:col-span-3 grid grid-rows-2 gap-4">
             <div className="rounded-2xl border border-white/[0.06] bg-[#180F0F] p-5 relative overflow-hidden">
@@ -80,21 +74,9 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          <div className="col-span-1 md:col-span-2 rounded-2xl border border-white/[0.06] bg-[#180F0F] overflow-hidden flex flex-col sm:flex-row">
-            <div className="relative w-full sm:w-[55%] shrink-0 min-h-[160px] sm:min-h-[220px]">
-              <Image src="/images/into-the-night.svg" alt="Artist spotlight" fill className="object-cover object-center" />
-            </div>
-            <div className="flex flex-col justify-center items-start px-5 py-5 sm:py-6 flex-1">
-              <p className="font-heading text-white uppercase text-sm tracking-wide leading-tight mb-4 sm:mb-5">Artist Spotlight of the Week</p>
-              <a href="https://blog.songdis.com/" target="_blank" rel="noopener noreferrer"
-                className="font-heading text-white uppercase text-[10px] sm:text-xs tracking-widest rounded-full bg-[#C30100] hover:bg-[#a80000] px-5 py-2.5 sm:py-3 transition-all">
-                Read Article
-              </a>
-            </div>
-          </div>
+          <SpotlightCard />
         </div>
 
-        {/* Recent Releases + Wallet */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="rounded-2xl border border-white/[0.06] bg-[#180F0F] p-5 flex flex-col">
             <div className="flex items-center justify-between mb-4">
@@ -104,7 +86,6 @@ export default function DashboardPage() {
               </Link>
             </div>
 
-            {/* DES-002: carousel — 2 visible on mobile, scrollable for more */}
             <div className="overflow-x-auto -mx-1 px-1 pb-1 scrollbar-none">
               <div className="flex gap-3" style={{ minWidth: "max-content" }}>
                 {recentReleases.length === 0 ? (
@@ -288,14 +269,60 @@ export default function DashboardPage() {
   );
 }
 
-/**
- * The first thing a new account sees.
- *
- * Leads with the artist profile rather than the paywall — someone who has just
- * registered has no reason to pay yet, and naming the next concrete step
- * converts better than "choose a plan". If they are not subscribed, the
- * artist tab asks for a plan at the moment they try to create one.
- */
+function SpotlightCard() {
+  const [spotlight, setSpotlight] = useState<Spotlight | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    getSpotlight().then((res) => {
+      if (!cancelled && res.data && !res.error) setSpotlight(res.data);
+    });
+
+    return () => { cancelled = true; };
+  }, []);
+
+  if (!spotlight) return null;
+
+  return (
+    <div className="col-span-1 md:col-span-2 rounded-2xl border border-white/[0.06] bg-[#180F0F] overflow-hidden flex">
+      <div className="relative w-[45%] sm:w-[55%] shrink-0 min-h-[180px] sm:min-h-[220px]">
+        <Image
+          src={spotlight.image_url}
+          alt={spotlight.headline}
+          fill
+          unoptimized
+          className="object-cover object-center"
+        />
+      </div>
+
+      <div className="flex flex-col justify-center items-start px-4 sm:px-5 py-5 sm:py-6 flex-1 min-w-0">
+        <p className="font-heading text-white uppercase text-xs sm:text-sm tracking-wide leading-tight mb-1">
+          {spotlight.headline}
+        </p>
+
+        {spotlight.subtitle && (
+          <p className="font-body text-white/45 text-[11px] sm:text-xs leading-snug mb-3 line-clamp-2">
+            {spotlight.subtitle}
+          </p>
+        )}
+
+        <a
+          href={spotlight.article_url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="mt-3 sm:mt-2 font-heading text-white uppercase text-[10px] sm:text-xs tracking-widest rounded-full bg-[#C30100] hover:bg-[#a80000] px-4 sm:px-5 py-2.5 sm:py-3 transition-all whitespace-nowrap"
+        >
+          {/* Just "Read" on a phone — the column is narrow and the full label
+              wrapped or overflowed the pill. */}
+          <span className="sm:hidden">Read</span>
+          <span className="hidden sm:inline">Read Article</span>
+        </a>
+      </div>
+    </div>
+  );
+}
+
 function FirstArtistCard({ locked }: { locked: boolean }) {
   return (
     <div className="rounded-2xl border border-[#C30100]/30 bg-gradient-to-br from-[#1A0808] to-[#180F0F] p-5 sm:p-6">
