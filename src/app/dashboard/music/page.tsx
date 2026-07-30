@@ -1,10 +1,10 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import Image from "next/image";
 import DashboardLayout from "@/components/dashboard/DashboardLayout";
 import ReleaseCard, { DraftCard } from "@/components/dashboard/music/ReleaseCard";
 import UploadModal from "@/components/dashboard/upload/UploadModal";
+import EditRequestsList from "@/components/dashboard/music/EditRequestsList";
 import {
   TakedownModal,
   SuccessModal,
@@ -12,7 +12,6 @@ import {
 import {
   useMusic,
   useDrafts,
-  useMusicRequests,
   useRequestTakedown,
   useMusicStats,
   type NormalisedRelease,
@@ -88,9 +87,11 @@ export default function YourMusicPage() {
 
   const { releases, isLoading: releasesLoading, refresh: refreshReleases } = useMusic();
   const { drafts, isLoading: draftsLoading, remove: removeDraft } = useDrafts();
-  const { requests, isLoading: requestsLoading } = useMusicRequests();
   const { submit: submitTakedown, isLoading: takedownLoading } = useRequestTakedown();
   const stats = useMusicStats(releases);
+
+
+  const [revisionStats, setRevisionStats] = useState({ total: 0, pending: 0, approved: 0 });
 
   const filteredReleases = useMemo(() => {
     let list = [...releases];
@@ -106,11 +107,6 @@ export default function YourMusicPage() {
 
   const closeModal = () => setModal(null);
 
-  const requestStats = {
-    totalRequests: requests.length,
-    pending: requests.filter((r) => r.status === "pending").length,
-    approved: requests.filter((r) => r.status === "approved").length,
-  };
 
   return (
     <DashboardLayout pageTitle="Your Music">
@@ -119,9 +115,9 @@ export default function YourMusicPage() {
         {/* Stats row */}
         {tab === "edit-history" ? (
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <StatCard label="Total Requests" value={requestsLoading ? 0 : requestStats.totalRequests} icon={<MusicNoteIcon />} highlight />
-            <StatCard label="Pending"        value={requestsLoading ? 0 : requestStats.pending}       icon={<PendingIcon />} />
-            <StatCard label="Approved"       value={requestsLoading ? 0 : requestStats.approved}      icon={<CheckCircleIcon />} />
+            <StatCard label="Total Requests" value={revisionStats.total}    icon={<MusicNoteIcon />} highlight />
+            <StatCard label="Awaiting review" value={revisionStats.pending} icon={<PendingIcon />} />
+            <StatCard label="Approved"       value={revisionStats.approved} icon={<CheckCircleIcon />} />
           </div>
         ) : (
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -212,9 +208,6 @@ export default function YourMusicPage() {
             ) : (
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
                 {drafts.map((draft) => {
-                  // DES-004: /drafts API returns artwork_url directly on the draft object
-                  // Fields: draft_id, upload_type, current_step, release_title,
-                  //         primary_artist, artwork_url, updated_at
                   const raw = draft as unknown as Record<string, unknown>;
                   const cover = (raw.artwork_url as string)
                     ?? (draft.form_data?.albumArtPreview as string)
@@ -252,45 +245,7 @@ export default function YourMusicPage() {
 
         {/* EDIT HISTORY TAB */}
         {tab === "edit-history" && (
-          <>
-            <div className="flex flex-wrap items-center gap-2 sm:gap-3 rounded-xl border border-dashed border-[#C30100]/30 bg-[#0E0808] px-3 sm:px-4 py-3">
-              <SearchIcon />
-              <input placeholder="Search requests..." className="flex-1 bg-transparent font-body text-white text-sm placeholder:text-white/30 outline-none" />
-            </div>
-            {requestsLoading ? (
-              <div className="flex items-center justify-center py-16">
-                <p className="font-body text-white/30 text-sm">Loading requests...</p>
-              </div>
-            ) : requests.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-16">
-                <p className="font-body text-white/30 text-sm">No edit or takedown requests yet.</p>
-              </div>
-            ) : (
-              <div className="flex flex-col gap-3">
-                {requests.map((item) => (
-                  <div key={item.id} className="flex items-start gap-4 rounded-xl border border-white/[0.06] bg-[#180F0F] p-4">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        <p className="font-body text-white text-sm font-medium truncate">
-                          {item.status === "pending" ? "Edit Request" : "Takedown Request"} — Release #{item.music_upload_id}
-                        </p>
-                        <span className={["font-body text-[10px] rounded-full px-2 py-0.5 border shrink-0",
-                          item.status === "approved" ? "text-green-400 bg-green-400/10 border-green-400/20"
-                          : item.status === "rejected" ? "text-red-400 bg-red-400/10 border-red-400/20"
-                          : "text-yellow-400 bg-yellow-400/10 border-yellow-400/20"].join(" ")}>
-                          {item.status}
-                        </span>
-                      </div>
-                      <p className="font-body text-white/40 text-xs">{item.reason}</p>
-                      <p className="font-body text-white/25 text-xs mt-1">
-                        {new Date(item.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </>
+          <EditRequestsList onChanged={refreshReleases} onStats={setRevisionStats} />
         )}
       </div>
 
@@ -305,8 +260,7 @@ export default function YourMusicPage() {
           onRequestTakedown={() => setModal({ type: "takedown", release: modal.release })}
         />
       )}
-      {/* Editing reopens the release in the full upload form, so anything
-          except UPC and ISRC can be changed — including audio and artwork. */}
+
       {modal?.type === "edit" && (
         <UploadModal
           isOpen
@@ -327,7 +281,6 @@ export default function YourMusicPage() {
         <SuccessModal isOpen onClose={closeModal} title="Takedown Request Submitted!" description="Your takedown request has been submitted and will be reviewed shortly." ctaLabel="Done" onCta={() => { closeModal(); refreshReleases(); }} />
       )}
 
-      {/* Continue Draft — opens UploadModal pre-filled with saved draft data */}
       <UploadModal
         isOpen={continueDraftId !== undefined}
         draftId={continueDraftId}
