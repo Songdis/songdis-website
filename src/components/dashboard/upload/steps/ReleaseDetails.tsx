@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import type { UploadState, AdditionalArtist, StepFieldErrors } from "../UploadModal";
 import { StepHeader, StepProgress, StepActions } from "../UploadModal";
 import { getProfile } from "@/lib/api/auth";
@@ -357,13 +358,21 @@ export default function ReleaseDetails({ state, update, onBack, onContinue, onSa
                 placeholder="Your label name for this release"
                 disabled={!canEditLabel}
                 className={`w-full bg-[#0E0808] border border-white/10 rounded-lg px-4 py-3 font-body text-sm outline-none focus:border-[#C30100] transition-colors ${
-                  canEditLabel ? "text-white placeholder:text-white/25" : "text-white/50 cursor-not-allowed"
+                  canEditLabel
+                    ? "text-white placeholder:text-white/25"
+                    : "text-white/50 cursor-not-allowed pr-32"
                 }`}
               />
               {!canEditLabel && (
-                <a href="/subscription" target="_blank" rel="noopener noreferrer" className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-amber-400 hover:text-amber-300 hover:underline">
+                // Was pointing at /subscription — a route that does not exist in
+                // this app — and opening in a new tab. `pr-32` above keeps the
+                // value from running underneath it.
+                <Link
+                  href="/dashboard/settings?tab=subscription"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-amber-400 hover:text-amber-300 hover:underline whitespace-nowrap"
+                >
                   Upgrade to Growth
-                </a>
+                </Link>
               )}
             </div>
           </Field>
