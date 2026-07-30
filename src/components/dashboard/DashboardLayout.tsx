@@ -141,7 +141,10 @@ export default function DashboardLayout({ children, customCta, showWelcome = fal
 
           <div className="flex items-center gap-2 sm:gap-4 shrink-0 relative">
             <button
-              onClick={() => setNotifOpen(!notifOpen)}
+              data-notification-toggle
+              onClick={() => setNotifOpen((open) => !open)}
+              aria-expanded={notifOpen}
+              aria-label={notifOpen ? "Close notifications" : "Open notifications"}
               className="relative text-white/60 hover:text-white transition-colors focus-visible:outline-none"
             >
               <BellIcon />

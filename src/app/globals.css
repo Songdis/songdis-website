@@ -72,3 +72,29 @@ body {
     opacity: 0.04;
   }
 }
+/*
+ * Date inputs on iOS.
+ *
+ * Safari gives <input type="date"> its own intrinsic height and centres the
+ * value inside it, which pushed the text out of the styled box on the release
+ * and pre-order fields. Stripping the native appearance and pinning the height
+ * makes them match every other field in the form, on every platform.
+ */
+input[type="date"] {
+  -webkit-appearance: none;
+  appearance: none;
+  min-height: 48px;
+  text-align: left;
+}
+
+input[type="date"]::-webkit-date-and-time-value {
+  text-align: left;
+  margin: 0;
+}
+
+/* The picker glyph is invisible on a dark background without this. */
+input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(1);
+  opacity: 0.45;
+  cursor: pointer;
+}

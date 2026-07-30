@@ -7,6 +7,8 @@ import { SuccessModal } from "@/components/auth/SuccessModal";
 import { useMusic } from "@/lib/hooks/useMusic";
 import { useBilling } from "@/lib/hooks/useBilling";
 import { useToast } from "@/components/ui/Toast";
+import ConfirmDialog from "@/components/ui/ConfirmDialog";
+import { useRouter } from "next/navigation";
 import {
   getCurators,
   getPitches,
@@ -423,6 +425,8 @@ export default function AmplifyPage() {
 
   const { can } = useBilling(0);
   const isGrowthPlan = can("playlist_pitching");
+  const [showUpgrade, setShowUpgrade] = useState(false);
+  const router = useRouter();
 
   const load = useCallback(async () => {
     setIsLoading(true);
@@ -456,12 +460,16 @@ export default function AmplifyPage() {
     }
   }, [releases, selectedUploadId]);
 
+  // Entitlement is checked at the point of action rather than on arrival.
+  // The server enforces it too, so this only saves a wasted round trip.
   const goToAvailable = () => {
+    if (!isGrowthPlan) { setShowUpgrade(true); return; }
     setHeroVisible(false);
     setTab("available");
   };
 
   const goToApproved = () => {
+    if (!isGrowthPlan) { setShowUpgrade(true); return; }
     setHeroVisible(false);
     setTab("approved");
   };
@@ -476,23 +484,10 @@ export default function AmplifyPage() {
     >
       <div className="flex flex-col gap-5">
 
-        {!isGrowthPlan ? (
-          <div className="flex flex-col items-center justify-center py-16 gap-4">
-            <div className="w-16 h-16 rounded-full bg-[#C30100]/10 flex items-center justify-center">
-              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#C30100" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/>
-              </svg>
-            </div>
-            <h2 className="font-heading text-white text-xl text-center">Growth Plan Required</h2>
-            <p className="font-body text-white/50 text-sm text-center max-w-sm">
-              Pitch Portal is available for Growth plan subscribers. Upgrade your plan to get your music featured on editorial playlists.
-            </p>
-            <a href="/dashboard/settings?tab=subscription" className="font-heading text-white uppercase text-xs tracking-widest rounded-full bg-[#C30100] hover:bg-[#a80000] px-6 py-3 transition-all">
-              Upgrade Plan
-            </a>
-          </div>
-        ) : (
-          <>
+        {/* The landing page is shown to everyone, including artists who would
+            need to upgrade. Locking the whole page meant a Basic artist could
+            not even see what the Pitch Portal is — the upgrade prompt now waits
+            until they act on it. */}
         {heroVisible && (
           <PitchPortalHero onSubmitClick={goToAvailable} onApprovedClick={goToApproved} />
         )}
@@ -568,8 +563,6 @@ export default function AmplifyPage() {
             )}
           </div>
         )}
-          </>
-        )}
       </div>
 
       {activeCurator && (
@@ -580,6 +573,25 @@ export default function AmplifyPage() {
           onSuccess={() => { setActiveCurator(null); setShowSuccess(true); load(); }}
         />
       )}
+
+      <ConfirmDialog
+        open={showUpgrade}
+        title="Pitching is on the Growth plan"
+        confirmLabel="See Growth"
+        cancelLabel="Not now"
+        onConfirm={() => {
+          setShowUpgrade(false);
+          router.push("/dashboard/settings?tab=subscription");
+        }}
+        onCancel={() => setShowUpgrade(false)}
+        message={
+          <p>
+            Growth lets you pitch releases to editorial curators and track every
+            placement. Your releases and everything else on your plan stay exactly
+            as they are.
+          </p>
+        }
+      />
 
       <SuccessModal
         isOpen={showSuccess}
