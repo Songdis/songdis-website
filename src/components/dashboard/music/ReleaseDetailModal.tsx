@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import Image from "next/image";
 import { useReleaseDetail, type NormalisedReleaseDetail } from "@/lib/hooks/useMusic";
 import { getPlatformLogoUrl } from "@/lib/hooks/useRoyalties";
+import { getReleaseLink, type ReleaseLink } from "@/lib/api/releaseLinks";
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
   live:               { label: "Live",       color: "#22c55e", bg: "rgba(34,197,94,0.15)" },
@@ -110,6 +111,87 @@ function TrackRow({ track }: { track: NormalisedReleaseDetail["tracks"][number] 
   );
 }
 
+/**
+ * The release's shareable smart link — one URL that sends a fan to whichever
+ * store they use.
+ *
+ * Created by Songdis when the release is assigned its UPC, so it is not
+ * something the artist can act on if it is missing. This renders nothing at
+ * all in that case rather than showing an empty box or a "coming soon" the
+ * artist can do nothing about.
+ */
+function ShareLinkSection({ releaseId }: { releaseId: number }) {
+  const [link, setLink] = useState<ReleaseLink | null>(null);
+  const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    getReleaseLink(releaseId).then((res) => {
+      if (!cancelled && res.data && !res.error) setLink(res.data);
+    });
+
+    return () => { cancelled = true; };
+  }, [releaseId]);
+
+  if (!link?.smart_link) return null;
+
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(link.smart_link);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // Clipboard is blocked on insecure origins and in some in-app browsers.
+      // The link is visible and selectable either way, so this is not worth
+      // interrupting the artist over.
+    }
+  };
+
+  const pending = link.resolution_status === "PENDING";
+
+  return (
+    <div className="mb-6">
+      <p className="font-body text-white text-sm font-medium mb-3">Share Link</p>
+
+      <div className="rounded-xl border border-white/[0.08] bg-[#0E0808] p-4">
+        <div className="flex items-center gap-2 flex-wrap">
+          <a
+            href={link.smart_link}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="font-body text-[#C30100] text-sm hover:underline truncate flex-1 min-w-0"
+          >
+            {link.smart_link.replace(/^https?:\/\//, "")}
+          </a>
+
+          <button
+            onClick={copy}
+            className="font-body text-xs text-white border border-white/15 rounded-full px-3 py-1.5 hover:bg-white/[0.06] transition-colors shrink-0"
+          >
+            {copied ? "Copied" : "Copy"}
+          </button>
+        </div>
+
+        {/* The link works immediately; the store buttons behind it are filled
+            in a moment later. Say so, rather than letting an artist think a
+            half-ready page is the finished thing. */}
+        {pending ? (
+          <p className="font-body text-white/35 text-xs mt-2.5">
+            Still finding this release on streaming platforms — the link works now,
+            and stores will appear on it shortly.
+          </p>
+        ) : link.resolved_platforms.length > 0 ? (
+          <p className="font-body text-white/35 text-xs mt-2.5">
+            Live on {link.resolved_platforms.length} platform
+            {link.resolved_platforms.length !== 1 ? "s" : ""}
+          </p>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
 export function ReleaseDetailModal({
   uploadId,
   cover,
@@ -181,6 +263,8 @@ export function ReleaseDetailModal({
                 {release.upc && <p className="font-body text-white/30 text-xs">UPC: {release.upc}</p>}
               </div>
             </div>
+
+            <ShareLinkSection releaseId={uploadId} />
 
             {/* Track list */}
             <div className="flex items-center justify-between mb-3">
