@@ -5,6 +5,9 @@
  * The (auth) folder is a Next.js route group — it doesn't affect the URL.
  * Routes will be: /sign-in, /sign-up, /forgot-password, /verify-email, /reset-password
  *
+ * The OAuth callback deliberately lives outside this group, at /auth/callback,
+ * because the backend redirects there by absolute path.
+ *
  * This layout renders children directly — the visual shell
  * is handled by <AuthLayout> inside each page, which gives
  * each screen control over heroImage and other per-page props.
