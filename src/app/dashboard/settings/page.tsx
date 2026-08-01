@@ -103,6 +103,9 @@ function ArtistProfileTab() {
   );
   const [showLimitInfo, setShowLimitInfo] = useState(false);
   const [showSubscribePrompt, setShowSubscribePrompt] = useState(false);
+  const [confirmingDelete, setConfirmingDelete] = useState<ArtistProfile | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   const { isLocked, artists } = useBilling(0);
   const router = useRouter();
 
@@ -167,9 +170,29 @@ function ArtistProfileTab() {
     setShowEditModal(true);
   };
 
-  const handleDelete = async (id: string) => {
-    await request(`/profile/${id}`, { method: "DELETE" }, true);
-    setProfiles((prev) => prev.filter((p) => p.id !== id));
+  // Deleting is permanent, and the server refuses when the artist has
+  // releases, so the row is only removed once the request actually succeeds.
+  // Previously it disappeared from the list either way, which made a refused
+  // delete look like it had worked until the page was reloaded.
+  const handleDelete = async (profile: ArtistProfile) => {
+    setDeleteError(null);
+    setDeletingId(profile.id);
+
+    const res = await request<{ message?: string }>(
+      `/profile/${profile.id}`,
+      { method: "DELETE" },
+      true,
+    );
+
+    setDeletingId(null);
+
+    if (res.error) {
+      setDeleteError(res.error);
+      return;
+    }
+
+    setProfiles((prev) => prev.filter((p) => p.id !== profile.id));
+    setConfirmingDelete(null);
   };
 
   return (
@@ -217,7 +240,10 @@ function ArtistProfileTab() {
                 key={profile.id}
                 profile={profile}
                 onEdit={() => handleEdit(profile)}
-                onDelete={() => handleDelete(profile.id)}
+                onDelete={() => {
+                  setDeleteError(null);
+                  setConfirmingDelete(profile);
+                }}
               />
             ))}
           </div>
@@ -268,6 +294,19 @@ function ArtistProfileTab() {
         <LimitInfoModal
           onClose={() => setShowLimitInfo(false)}
           onAddArtist={() => setShowLimitInfo(false)}
+        />
+      )}
+
+      {confirmingDelete && (
+        <DeleteProfileModal
+          profile={confirmingDelete}
+          isDeleting={deletingId === confirmingDelete.id}
+          error={deleteError}
+          onCancel={() => {
+            setConfirmingDelete(null);
+            setDeleteError(null);
+          }}
+          onConfirm={() => handleDelete(confirmingDelete)}
         />
       )}
 
@@ -371,6 +410,92 @@ function ProfileCard({
           <EditIcon />
           Edit Profile
         </button>
+
+        {/* Understated on purpose: deleting an artist is rare and permanent,
+            so it should not sit next to Edit as an equal choice. */}
+        {onDelete && (
+          <button
+            onClick={onDelete}
+            className="mt-2 w-full font-montserrat text-white/35 text-[11px] hover:text-[#C30100] transition-colors py-2 min-h-[36px]"
+          >
+            Delete profile
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Confirmation for deleting an artist profile.
+ *
+ * Types-to-confirm rather than a plain OK: the delete is permanent, and the
+ * stage name is the one thing that makes it unmistakable which artist is
+ * about to go.
+ */
+function DeleteProfileModal({
+  profile,
+  isDeleting,
+  error,
+  onCancel,
+  onConfirm,
+}: {
+  profile: ArtistProfile;
+  isDeleting: boolean;
+  error: string | null;
+  onCancel: () => void;
+  onConfirm: () => void;
+}) {
+  const [typed, setTyped] = useState("");
+  const matches = typed.trim().toLowerCase() === profile.stageName.trim().toLowerCase();
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
+      <div aria-hidden className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onCancel} />
+
+      <div className="relative z-10 w-full max-w-[420px] rounded-2xl bg-[#1A0808] border border-white/[0.07] p-6">
+        <p className="font-nulshock text-white uppercase text-sm tracking-wide mb-2">
+          Delete {profile.stageName}?
+        </p>
+
+        <p className="font-montserrat text-white/50 text-xs leading-relaxed mb-4">
+          This permanently removes the artist profile and its picture. It cannot
+          be undone. Any music already released under this name stays on the
+          streaming platforms.
+        </p>
+
+        <label className="block font-montserrat text-white/40 text-[11px] mb-1.5">
+          Type <span className="text-white/70">{profile.stageName}</span> to confirm
+        </label>
+        <input
+          value={typed}
+          onChange={(e) => setTyped(e.target.value)}
+          autoFocus
+          className="w-full rounded-lg bg-[#0E0808] border border-white/10 px-3 py-2.5 font-montserrat text-white text-sm outline-none focus:border-[#C30100]/50 transition-colors"
+        />
+
+        {error && (
+          <p className="font-montserrat text-[#ff6b6b] text-xs mt-3 leading-relaxed">
+            {error}
+          </p>
+        )}
+
+        <div className="flex gap-2 mt-5">
+          <button
+            onClick={onCancel}
+            disabled={isDeleting}
+            className="flex-1 font-montserrat text-white text-xs border border-white/20 rounded-full py-2.5 hover:border-white/40 transition-colors min-h-[44px] disabled:opacity-40"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={onConfirm}
+            disabled={!matches || isDeleting}
+            className="flex-1 font-montserrat text-white text-xs bg-[#C30100] rounded-full py-2.5 hover:bg-[#a80000] transition-colors min-h-[44px] disabled:opacity-30 disabled:cursor-not-allowed"
+          >
+            {isDeleting ? "Deleting..." : "Delete"}
+          </button>
+        </div>
       </div>
     </div>
   );

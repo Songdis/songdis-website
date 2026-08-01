@@ -22,3 +22,26 @@ export async function getReleaseLink(releaseId: number) {
     true
   );
 }
+
+/** Removes the link. It can be rebuilt with createReleaseLink(). */
+export async function deleteReleaseLink(releaseId: number) {
+  return request<{ message?: string }>(
+    `/v2/releases/${releaseId}/link`,
+    { method: "DELETE" },
+    true
+  );
+}
+
+/**
+ * Rebuilds the link after a delete.
+ *
+ * Queued server-side, so a 202 means "on its way", not "here it is" — the
+ * caller re-fetches a moment later.
+ */
+export async function createReleaseLink(releaseId: number) {
+  return request<ReleaseLink | { message?: string }>(
+    `/v2/releases/${releaseId}/link`,
+    { method: "POST" },
+    true
+  );
+}

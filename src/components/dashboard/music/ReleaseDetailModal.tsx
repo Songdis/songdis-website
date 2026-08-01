@@ -1,10 +1,15 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import Image from "next/image";
 import { useReleaseDetail, type NormalisedReleaseDetail } from "@/lib/hooks/useMusic";
 import { getPlatformLogoUrl } from "@/lib/hooks/useRoyalties";
-import { getReleaseLink, type ReleaseLink } from "@/lib/api/releaseLinks";
+import {
+  getReleaseLink,
+  deleteReleaseLink,
+  createReleaseLink,
+  type ReleaseLink,
+} from "@/lib/api/releaseLinks";
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
   live:               { label: "Live",       color: "#22c55e", bg: "rgba(34,197,94,0.15)" },
@@ -123,18 +128,101 @@ function TrackRow({ track }: { track: NormalisedReleaseDetail["tracks"][number] 
 function ShareLinkSection({ releaseId }: { releaseId: number }) {
   const [link, setLink] = useState<ReleaseLink | null>(null);
   const [copied, setCopied] = useState(false);
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // Tracks whether this release could have a link at all, so a deleted one can
+  // offer to come back instead of the section vanishing with no way to undo.
+  const [couldHaveLink, setCouldHaveLink] = useState(false);
+
+  const load = useCallback(async () => {
+    const res = await getReleaseLink(releaseId);
+
+    if (!res.error) {
+      setLink(res.data ?? null);
+      if (res.data) setCouldHaveLink(true);
+    }
+  }, [releaseId]);
 
   useEffect(() => {
     let cancelled = false;
 
     getReleaseLink(releaseId).then((res) => {
-      if (!cancelled && res.data && !res.error) setLink(res.data);
+      if (cancelled || res.error) return;
+      setLink(res.data ?? null);
+      if (res.data) setCouldHaveLink(true);
     });
 
     return () => { cancelled = true; };
   }, [releaseId]);
 
-  if (!link?.smart_link) return null;
+  const remove = async () => {
+    setBusy(true);
+    setError(null);
+
+    const res = await deleteReleaseLink(releaseId);
+
+    setBusy(false);
+
+    if (res.error) {
+      setError(res.error);
+      return;
+    }
+
+    setLink(null);
+    setConfirmingDelete(false);
+  };
+
+  const rebuild = async () => {
+    setBusy(true);
+    setError(null);
+
+    const res = await createReleaseLink(releaseId);
+
+    if (res.error) {
+      setBusy(false);
+      setError(res.error);
+      return;
+    }
+
+    // Creation runs on a queue, so the link is not there the instant this
+    // returns. Give it a moment, then re-read.
+    setTimeout(async () => {
+      await load();
+      setBusy(false);
+    }, 2500);
+  };
+
+  // Deleted, but this release qualifies for one — offer it back rather than
+  // leaving the artist with no route to a link they used to have.
+  if (!link?.smart_link) {
+    if (!couldHaveLink) return null;
+
+    return (
+      <div className="mb-6">
+        <p className="font-body text-white text-sm font-medium mb-3">Share Link</p>
+
+        <div className="rounded-xl border border-white/[0.08] bg-[#0E0808] p-4">
+          <p className="font-body text-white/40 text-xs mb-3">
+            This release has no share link right now.
+          </p>
+
+          {error && (
+            <p className="font-body text-[#ff6b6b] text-xs mb-3">{error}</p>
+          )}
+
+          <button
+            onClick={rebuild}
+            disabled={busy}
+            className="font-body text-xs text-white border border-white/15 rounded-full px-4 py-2 hover:bg-white/[0.06] transition-colors disabled:opacity-40"
+          >
+            {busy ? "Creating..." : "Create link"}
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   const copy = async () => {
     try {
@@ -187,6 +275,46 @@ function ShareLinkSection({ releaseId }: { releaseId: number }) {
             {link.resolved_platforms.length !== 1 ? "s" : ""}
           </p>
         ) : null}
+
+        {error && (
+          <p className="font-body text-[#ff6b6b] text-xs mt-2.5">{error}</p>
+        )}
+
+        {/* Deliberately quiet, and behind a confirm: anyone who has already
+            shared this URL will find it dead once it is deleted. */}
+        {confirmingDelete ? (
+          <div className="mt-3 pt-3 border-t border-white/[0.06]">
+            <p className="font-body text-white/50 text-xs mb-3 leading-relaxed">
+              Delete this link? Anywhere you have already shared it will stop
+              working. You can create a new one afterwards, but it may be a
+              different address.
+            </p>
+
+            <div className="flex gap-2">
+              <button
+                onClick={() => setConfirmingDelete(false)}
+                disabled={busy}
+                className="font-body text-xs text-white border border-white/15 rounded-full px-4 py-2 hover:bg-white/[0.06] transition-colors disabled:opacity-40"
+              >
+                Keep it
+              </button>
+              <button
+                onClick={remove}
+                disabled={busy}
+                className="font-body text-xs text-white bg-[#C30100] rounded-full px-4 py-2 hover:bg-[#a80000] transition-colors disabled:opacity-40"
+              >
+                {busy ? "Deleting..." : "Delete link"}
+              </button>
+            </div>
+          </div>
+        ) : (
+          <button
+            onClick={() => { setError(null); setConfirmingDelete(true); }}
+            className="font-body text-white/30 text-[11px] hover:text-[#C30100] transition-colors mt-3"
+          >
+            Delete link
+          </button>
+        )}
       </div>
     </div>
   );
