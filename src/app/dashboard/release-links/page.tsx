@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Image from "next/image";
 import DashboardLayout from "@/components/dashboard/DashboardLayout";
 import { request } from "@/lib/api/core";
+import { deleteReleaseLink } from "@/lib/api/releaseLinks";
 
 
 interface ReleaseLink {
@@ -15,6 +16,12 @@ interface ReleaseLink {
   platforms: number;
   createdAt: string;
   type?: string;
+
+  isSmartLink: boolean;
+  views: number;
+  conversionRate: number;
+  fansCaptured: number;
+  topPlatforms: Record<string, number>;
 }
 
 
@@ -71,20 +78,38 @@ function LinkCard({
           </div>
         </div>
 
-        {/* Stats */}
+      
         <div className="flex flex-wrap items-center gap-4 sm:gap-6 shrink-0">
-          <div className="text-right">
-            <p className="font-body text-white text-sm font-medium">
-              {link.clicks}
-            </p>
-            <p className="font-body text-white/30 text-[10px]">Clicks</p>
-          </div>
-          <div className="text-right">
-            <p className="font-body text-white text-sm font-medium">
-              {link.platforms}
-            </p>
-            <p className="font-body text-white/30 text-[10px]">Platforms</p>
-          </div>
+          {link.isSmartLink && (
+            <>
+              <div className="text-right">
+                <p className="font-body text-white text-sm font-medium">
+                  {formatCount(link.views)}
+                </p>
+                <p className="font-body text-white/30 text-[10px]">Views</p>
+              </div>
+              <div className="text-right">
+                <p className="font-body text-white text-sm font-medium">
+                  {formatCount(link.clicks)}
+                </p>
+                <p className="font-body text-white/30 text-[10px]">Clicks</p>
+              </div>
+              <div className="text-right">
+                <p className="font-body text-white text-sm font-medium">
+                  {link.conversionRate > 0
+                    ? `${link.conversionRate.toFixed(1)}%`
+                    : "—"}
+                </p>
+                <p className="font-body text-white/30 text-[10px]">Tap-through</p>
+              </div>
+              <div className="text-right">
+                <p className="font-body text-white text-sm font-medium">
+                  {link.platforms}
+                </p>
+                <p className="font-body text-white/30 text-[10px]">Platforms</p>
+              </div>
+            </>
+          )}
           <div className="text-right">
             <p className="font-body text-white text-sm font-medium">
               {link.createdAt}
@@ -93,6 +118,23 @@ function LinkCard({
           </div>
         </div>
       </div>
+
+
+      {link.isSmartLink && Object.keys(link.topPlatforms).length > 0 && (
+        <div className="flex flex-wrap gap-1.5 mb-4">
+          {Object.entries(link.topPlatforms)
+            .sort(([, a], [, b]) => b - a)
+            .slice(0, 5)
+            .map(([platform, count]) => (
+              <span
+                key={platform}
+                className="font-body text-white/50 text-[10px] rounded-full border border-white/10 bg-[#140C0C] px-2.5 py-1"
+              >
+                {platform.replace(/_/g, " ")} · {formatCount(count)}
+              </span>
+            ))}
+        </div>
+      )}
 
       {/* Action buttons */}
       <div className="grid grid-cols-3 gap-2 sm:gap-3">
@@ -145,7 +187,19 @@ function normaliseLink(raw: Record<string, unknown>, i: number): ReleaseLink {
         })
       : "",
     type: (raw.upload_type ?? "") as string,
+
+    isSmartLink: Boolean(raw.is_smart_link),
+    views: (raw.views ?? 0) as number,
+    conversionRate: Number(raw.conversion_rate ?? 0),
+    fansCaptured: (raw.fans_captured ?? 0) as number,
+    topPlatforms: (raw.top_platforms ?? {}) as Record<string, number>,
   };
+}
+
+function formatCount(n: number): string {
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}m`;
+  if (n >= 10_000) return `${(n / 1_000).toFixed(1)}k`;
+  return n.toLocaleString("en-US");
 }
 
 export default function ReleaseLinksPage() {
@@ -155,6 +209,9 @@ export default function ReleaseLinksPage() {
   const [page, setPage] = useState(1);
   const PAGE_SIZE = 10;
   const [copied, setCopied] = useState<string | null>(null);
+  const [confirmingDelete, setConfirmingDelete] = useState<ReleaseLink | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   /* Fetch release links from API */
   useEffect(() => {
@@ -162,7 +219,6 @@ export default function ReleaseLinksPage() {
     request<unknown>("/release-links", { method: "GET" }, true).then((res) => {
       if (!res.error && res.data) {
         const raw = res.data as Record<string, unknown>;
-        // Handle paginator or plain array
         const list: Record<string, unknown>[] = Array.isArray(res.data)
           ? res.data
           : Array.isArray(raw.data)
@@ -193,15 +249,34 @@ export default function ReleaseLinksPage() {
     setTimeout(() => setCopied(null), 2000);
   };
 
-  const handleDelete = (id: string) => {
+
+  const handleDelete = async (id: string) => {
+    setDeleteError(null);
+    setDeletingId(id);
+
+    const res = await deleteReleaseLink(Number(id));
+
+    setDeletingId(null);
+
+    if (res.error) {
+      setDeleteError(res.error);
+      return;
+    }
+
     setLinks((prev) => prev.filter((l) => l.id !== id));
+    setConfirmingDelete(null);
   };
 
   const totalClicks = links.reduce((sum, l) => sum + l.clicks, 0);
-  const bestPerformer = links.reduce(
-    (best, l) => (l.clicks > (best?.clicks ?? 0) ? l : best),
-    links[0],
-  );
+  const totalViews = links.reduce((sum, l) => sum + l.views, 0);
+
+
+  const bestPerformer = links
+    .filter((l) => l.clicks > 0)
+    .reduce<ReleaseLink | undefined>(
+      (best, l) => (l.clicks > (best?.clicks ?? 0) ? l : best),
+      undefined,
+    );
 
   return (
     <DashboardLayout
@@ -253,8 +328,18 @@ export default function ReleaseLinksPage() {
               </div>
             </div>
             <p className="font-heading text-white text-3xl font-bold">
-              {totalClicks}
+              {formatCount(totalClicks)}
             </p>
+            {/* Views give the clicks a denominator — 40 clicks means something
+                different out of 60 visits than out of 6,000. */}
+            {totalViews > 0 && (
+              <p className="font-body text-white/35 text-[11px]">
+                from {formatCount(totalViews)} visit
+                {totalViews === 1 ? "" : "s"}
+                {totalClicks > 0 &&
+                  ` · ${((totalClicks / totalViews) * 100).toFixed(0)}% tapped through`}
+              </p>
+            )}
           </div>
 
           <div className="rounded-xl border border-white/[0.06] bg-[#180F0F] p-4 flex flex-col gap-2">
@@ -272,6 +357,11 @@ export default function ReleaseLinksPage() {
             </div>
             <p className="font-heading text-white text-xl font-bold uppercase tracking-wide">
               {bestPerformer?.trackTitle ?? "—"}
+            </p>
+            <p className="font-body text-white/35 text-[11px]">
+              {bestPerformer
+                ? `${formatCount(bestPerformer.clicks)} click${bestPerformer.clicks === 1 ? "" : "s"}`
+                : "No clicks recorded yet"}
             </p>
           </div>
         </div>
@@ -338,7 +428,10 @@ export default function ReleaseLinksPage() {
                   link={link}
                   onCopy={() => handleCopy(link)}
                   onShare={() => {}}
-                  onDelete={() => handleDelete(link.id)}
+                  onDelete={() => {
+                    setDeleteError(null);
+                    setConfirmingDelete(link);
+                  }}
                 />
               ))}
               {totalPages > 1 && (
@@ -379,6 +472,64 @@ export default function ReleaseLinksPage() {
             <p className="font-body text-white text-sm">
               Link copied to clipboard
             </p>
+          </div>
+        )}
+
+        {confirmingDelete && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
+            <div
+              aria-hidden
+              className="absolute inset-0 bg-black/70 backdrop-blur-sm"
+              onClick={() => {
+                setConfirmingDelete(null);
+                setDeleteError(null);
+              }}
+            />
+
+            <div className="relative z-10 w-full max-w-[420px] rounded-2xl bg-[#1A0808] border border-white/[0.07] p-6">
+              <p className="font-body text-white text-sm font-medium mb-2">
+                Delete this link?
+              </p>
+
+              <p className="font-body text-white/45 text-xs leading-relaxed mb-1">
+                {confirmingDelete.trackTitle}
+              </p>
+              <p className="font-body text-[#C30100] text-xs break-all mb-4">
+                {confirmingDelete.url}
+              </p>
+
+              <p className="font-body text-white/45 text-xs leading-relaxed mb-4">
+                Anywhere you have already shared this will stop working. Your
+                release itself is not affected and stays on the streaming
+                platforms.
+              </p>
+
+              {deleteError && (
+                <p className="font-body text-[#ff6b6b] text-xs mb-4">
+                  {deleteError}
+                </p>
+              )}
+
+              <div className="flex gap-2">
+                <button
+                  onClick={() => {
+                    setConfirmingDelete(null);
+                    setDeleteError(null);
+                  }}
+                  disabled={deletingId !== null}
+                  className="flex-1 font-body text-white text-xs border border-white/20 rounded-full py-2.5 hover:border-white/40 transition-colors min-h-[44px] disabled:opacity-40"
+                >
+                  Keep it
+                </button>
+                <button
+                  onClick={() => handleDelete(confirmingDelete.id)}
+                  disabled={deletingId !== null}
+                  className="flex-1 font-body text-white text-xs bg-[#C30100] rounded-full py-2.5 hover:bg-[#a80000] transition-colors min-h-[44px] disabled:opacity-40"
+                >
+                  {deletingId ? "Deleting..." : "Delete link"}
+                </button>
+              </div>
+            </div>
           </div>
         )}
       </div>
