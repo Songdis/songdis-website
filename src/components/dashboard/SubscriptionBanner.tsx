@@ -9,6 +9,7 @@ interface SubscriptionBannerProps {
   isTrialing: boolean;
   endDate: string | null;
   daysUntilExpiry: number | null;
+  isContract?: boolean;
 }
 
 function formatDate(value: string | null): string {
@@ -27,7 +28,35 @@ export default function SubscriptionBanner({
   isTrialing,
   endDate,
   daysUntilExpiry,
+  isContract = false,
 }: SubscriptionBannerProps) {
+  if (isContract) {
+    if (!isLocked) {
+      return null;
+    }
+
+
+    return (
+      <div className="px-4 sm:px-6 lg:px-8 py-3 shrink-0 border-b bg-[#C30100]/15 border-[#C30100]/30">
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 bg-[#C30100]/20">
+            <WarningIcon />
+          </div>
+          <div className="min-w-0">
+            <p className="font-body text-white text-sm font-medium">
+              Your contract with Songdis has ended
+              {formatDate(endDate) ? ` on ${formatDate(endDate)}` : ""}
+            </p>
+            <p className="font-body text-white/50 text-xs mt-0.5">
+              Your music stays live on the streaming platforms. Get in touch to
+              renew your contract and restore your tools.
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   if (isLocked) {
     const dateStr = formatDate(endDate);
 

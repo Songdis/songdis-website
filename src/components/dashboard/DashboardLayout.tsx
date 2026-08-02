@@ -33,6 +33,7 @@ export default function DashboardLayout({ children, customCta, showWelcome = fal
     isTrialing,
     endDate,
     daysUntilExpiry,
+    isContract,
     isLoading: subLoading,
   } = useBilling(0);
   const pathname = usePathname();
@@ -104,6 +105,7 @@ export default function DashboardLayout({ children, customCta, showWelcome = fal
             isTrialing={isTrialing}
             endDate={endDate}
             daysUntilExpiry={daysUntilExpiry}
+            isContract={isContract}
           />
         )}
 

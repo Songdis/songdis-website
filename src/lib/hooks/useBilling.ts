@@ -35,6 +35,8 @@ interface BillingState {
   daysUntilExpiry: number | null;
   autoRenew: boolean;
   renewsManually: boolean;
+  isContract: boolean;
+  contractEndedAt: string | null;
   entitlements: Entitlements;
 }
 
@@ -50,6 +52,8 @@ const INITIAL: BillingState = {
   daysUntilExpiry: null,
   autoRenew: false,
   renewsManually: false,
+  isContract: false,
+  contractEndedAt: null,
   entitlements: NO_ENTITLEMENTS,
 };
 
@@ -81,6 +85,8 @@ export function useBilling(pollInterval = 0) {
         daysUntilExpiry: s.days_remaining,
         autoRenew: s.auto_renew,
         renewsManually: s.renews_manually ?? !s.auto_renew,
+        isContract: Boolean(s.is_contract),
+        contractEndedAt: s.contract_ended_at ?? null,
         entitlements: { ...NO_ENTITLEMENTS, ...(s.entitlements ?? {}) },
       });
     } catch {
@@ -108,15 +114,12 @@ export function useBilling(pollInterval = 0) {
  
   const isLocked = !state.isLoading && !state.isActive;
 
-  /**
-   * How many artist profiles exist and whether another is allowed. Taken from
-   * the server so the onboarding CTA and the artist tab agree with what the
-   * API will actually permit.
-   */
+  const isContract = Boolean(state.isContract);
+
+
   const artists = state.status?.artists ?? null;
 
-  /** A brand-new account: registered, but no artist profile created yet. */
   const needsFirstArtist = !state.isLoading && artists !== null && artists.used === 0;
 
-  return { ...state, isLocked, artists, needsFirstArtist, can, refresh: load };
+  return { ...state, isLocked, isContract, artists, needsFirstArtist, can, refresh: load };
 }

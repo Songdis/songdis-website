@@ -78,6 +78,9 @@ export interface BillingStatus {
   amount: number | null;
   entitlements: Entitlements;
   renews_manually?: boolean;
+  is_contract?: boolean;
+  contract_years?: number | null;
+  contract_ended_at?: string | null;
   artists?: { used: number; limit: number; can_create: boolean };
 }
 
