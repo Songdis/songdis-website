@@ -4,9 +4,7 @@ import React, { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 
-/* ─────────────────────────────────────────────────────────
-   SCROLL-REVEAL HOOK
-───────────────────────────────────────────────────────── */
+
 function useInView(threshold = 0.1) {
   const ref = useRef<HTMLDivElement>(null);
   const [inView, setInView] = useState(false);
@@ -28,9 +26,7 @@ function useInView(threshold = 0.1) {
   return { ref, inView };
 }
 
-/* ─────────────────────────────────────────────────────────
-   TYPES
-───────────────────────────────────────────────────────── */
+
 interface Testimonial {
   quote: string;
   name: string;
@@ -39,9 +35,7 @@ interface Testimonial {
   avatar?: string;
 }
 
-/* ─────────────────────────────────────────────────────────
-   DATA
-───────────────────────────────────────────────────────── */
+
 const LEFT_TESTIMONIALS: Testimonial[] = [
   {
     quote:
@@ -131,9 +125,7 @@ const RIGHT_TESTIMONIALS: Testimonial[] = [
   },
 ];
 
-/* ─────────────────────────────────────────────────────────
-   QUOTE ICON
-───────────────────────────────────────────────────────── */
+
 const QuoteIcon: React.FC<{ size?: "sm" | "md" }> = ({ size = "md" }) => (
   <div
     className={[
@@ -157,9 +149,7 @@ const QuoteIcon: React.FC<{ size?: "sm" | "md" }> = ({ size = "md" }) => (
   </div>
 );
 
-/* ─────────────────────────────────────────────────────────
-   TESTIMONIAL CARD
-───────────────────────────────────────────────────────── */
+
 const TestimonialCard: React.FC<{ testimonial: Testimonial }> = ({
   testimonial,
 }) => (
@@ -193,11 +183,7 @@ const TestimonialCard: React.FC<{ testimonial: Testimonial }> = ({
   </div>
 );
 
-/* ─────────────────────────────────────────────────────────
-   SCROLLING COLUMN
-   direction: "up" = scrolls upward (default), "down" = scrolls downward
-   Speed is intentionally different per column so they feel independent.
-───────────────────────────────────────────────────────── */
+
 const ScrollingColumn: React.FC<{
   testimonials: Testimonial[];
   direction?: "up" | "down";
@@ -256,9 +242,6 @@ const ScrollingColumn: React.FC<{
   );
 };
 
-/* ─────────────────────────────────────────────────────────
-   TESTIMONIALS SECTION
-───────────────────────────────────────────────────────── */
 const TestimonialsSection: React.FC = () => {
   const { ref: headRef, inView: headInView } = useInView(0.2);
   const { ref: colsRef, inView: colsInView } = useInView(0.05);
@@ -343,7 +326,7 @@ const TestimonialsSection: React.FC = () => {
             }}
           >
             <Link
-              href="/signup"
+              href="/sign-up"
               className="inline-flex items-center justify-center font-heading text-white uppercase tracking-widest text-xs rounded-full bg-[#140C0C] px-10 py-4 transition-all duration-300 hover:bg-white hover:text-[#140C0C] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white whitespace-nowrap"
               style={{
                 backdropFilter: "blur(4.45px)",

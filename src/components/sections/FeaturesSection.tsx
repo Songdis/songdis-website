@@ -4,9 +4,7 @@ import React, { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 
-/* ─────────────────────────────────────────────────────────
-   SCROLL-REVEAL HOOK
-───────────────────────────────────────────────────────── */
+
 function useInView(threshold = 0.12) {
   const ref = useRef<HTMLDivElement>(null);
   const [inView, setInView] = useState(false);
@@ -28,9 +26,7 @@ function useInView(threshold = 0.12) {
   return { ref, inView };
 }
 
-/* ─────────────────────────────────────────────────────────
-   GRADIENT BORDER BUTTON
-───────────────────────────────────────────────────────── */
+
 const GradientBorderButton: React.FC<{
   href: string;
   children: React.ReactNode;
@@ -55,7 +51,7 @@ const GradientBorderButton: React.FC<{
           "transition-all duration-300",
           "hover:bg-white hover:text-[#140C0C]",
           "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white",
-          "whitespace-nowrap", // ✅ keeps text in one line
+          "whitespace-nowrap", 
           className,
         ].join(" ")}
         style={{
@@ -69,9 +65,7 @@ const GradientBorderButton: React.FC<{
   );
 };
 
-/* ─────────────────────────────────────────────────────────
-   PLATFORM ICONS — floating bob animation
-───────────────────────────────────────────────────────── */
+
 const FLOAT_ICONS = [
   {
     src: "/images/apple-music.svg",
@@ -110,50 +104,6 @@ const FLOAT_ICONS = [
   },
 ];
 
-/* ─────────────────────────────────────────────────────────
-   COMPONENT
-───────────────────────────────────────────────────────── */
-// const PlatformIconsDisplay: React.FC = () => (
-//   <div
-//     className="relative w-full mx-auto lg:mx-0 flex items-center justify-center"
-//     style={{ maxWidth: "460px", height: "clamp(300px, 32vw, 400px)" }}
-//   >
-//     <style>{`
-//       @keyframes sd-cluster-float {
-//         0%, 100% { transform: translateY(0px);   }
-//         50%       { transform: translateY(-14px); }
-//       }
-//       .sd-cluster {
-//         animation: sd-cluster-float 4s ease-in-out infinite;
-//         will-change: transform;
-//       }
-//     `}</style>
-
-//     {/* Red radial glow — sits behind the cluster image */}
-//     <div
-//       aria-hidden="true"
-//       style={{
-//         position: "absolute",
-//         inset: 0,
-//         background:
-//           "radial-gradient(ellipse 74% 74% at 58% 50%, rgba(195,1,0,0.36) 0%, rgba(195,1,0,0.08) 52%, transparent 75%)",
-//         filter: "blur(24px)",
-//         pointerEvents: "none",
-//         zIndex: 0,
-//       }}
-//     />
-
-//     <div className="sd-cluster relative z-10 w-full h-full">
-//       <Image
-//         src="/images/platform-icons.png"
-//         alt="Music platforms — Spotify, Apple Music, Meta, YouTube Music and more"
-//         fill
-//         className="object-contain"
-//         priority
-//       />
-//     </div>
-//   </div>
-// );
 
 const PlatformIconsDisplay: React.FC = () => (
   <div
@@ -171,7 +121,6 @@ const PlatformIconsDisplay: React.FC = () => (
       }
     `}</style>
 
-    {/* Red radial glow — isolated inside this wrapper via overflow:hidden */}
     <div
       aria-hidden="true"
       style={{
@@ -185,7 +134,6 @@ const PlatformIconsDisplay: React.FC = () => (
       }}
     />
 
-    {/* Cluster image — unconstrained width so it fills the right half naturally */}
     <div
       className="sd-cluster relative z-10"
       style={{
@@ -205,9 +153,7 @@ const PlatformIconsDisplay: React.FC = () => (
   </div>
 );
 
-/* ─────────────────────────────────────────────────────────
-   SMART LINK CARD MOCK
-───────────────────────────────────────────────────────── */
+
 const SmartLinkCard: React.FC = () => (
   <div className="w-full max-w-[480px] rounded-2xl bg-[#1A0A0A] border border-white/10 p-6 sm:p-8">
     {/* Album row */}
@@ -279,9 +225,7 @@ const SmartLinkCard: React.FC = () => (
   </div>
 );
 
-/* ─────────────────────────────────────────────────────────
-   CARD WRAPPER — scroll reveal
-───────────────────────────────────────────────────────── */
+
 const FeatureCard: React.FC<{
   children: React.ReactNode;
   className?: string;
@@ -305,9 +249,7 @@ const FeatureCard: React.FC<{
   );
 };
 
-/* ─────────────────────────────────────────────────────────
-   FEATURES SECTION
-───────────────────────────────────────────────────────── */
+
 const FeaturesSection: React.FC = () => {
   const { ref: headRef, inView: headInView } = useInView(0.3);
 
@@ -343,33 +285,6 @@ const FeaturesSection: React.FC = () => {
           </h2>
         </div>
 
-        {/* ══════════════════════════════════
-            ROW 1 — GLOBAL DISTRIBUTION
-            Full width. Text left, icons right.
-        ══════════════════════════════════ */}
-        {/* <FeatureCard delay={0}>
-          <div className="flex flex-col lg:flex-row items-center gap-0 min-h-[360px]">
-            <div className="flex-1 p-8 sm:p-10 lg:p-14 flex flex-col items-start">
-              <h3 className="font-heading text-white text-center uppercase text-xl sm:text-3xl lg:text-4xl tracking-wide mb-5">
-                Global Distribution
-              </h3>
-              <p className="font-body text-white text-sm sm:text-base leading-relaxed mb-10">
-                Distribute your music worldwide with full ownership and control.
-                Release on your schedule and expand beyond borders.
-              </p>
-              <GradientBorderButton
-                href="/signup"
-                className="text-base lg:text-[21px] tracking-widest px-7 py-3.5"
-              >
-                Start Your Global Release
-              </GradientBorderButton>
-            </div>
-
-            <div className="flex-1 flex items-center justify-center p-6 lg:p-0 w-full min-h-[300px] lg:min-h-full">
-              <PlatformIconsDisplay />
-            </div>
-          </div>
-        </FeatureCard> */}
 
         <FeatureCard delay={0}>
           <div className="flex flex-col lg:flex-row items-center gap-10 lg:gap-0 min-h-[360px]">
@@ -385,7 +300,7 @@ const FeaturesSection: React.FC = () => {
               </p>
 
               <GradientBorderButton
-                href="/signup"
+                href="/sign-up"
                 className="self-center lg:self-start text-sm sm:text-base tracking-wide px-5 sm:px-7 py-3"
               >
                 Start Your Global Release
@@ -399,12 +314,6 @@ const FeaturesSection: React.FC = () => {
           </div>
         </FeatureCard>
 
-        {/* ══════════════════════════════════
-            ROW 2 — ANALYTICS + PRO TOOLS
-            Analytics: ~1/3 width
-            Pro Tools:  ~2/3 width
-            bg: #201515, no inner frame on images
-        ══════════════════════════════════ */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           {/* Analytics — 1 col */}
 
@@ -458,11 +367,6 @@ const FeaturesSection: React.FC = () => {
           </FeatureCard>
         </div>
 
-        {/* ══════════════════════════════════
-            ROW 3 — PUBLISHING + REVENUE
-            Publishing:  text top-left  | photo fills right half (side by side)
-            Revenue:     text top-right | photo fills left half  (side by side)
-        ══════════════════════════════════ */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {/* Publishing — text left column, image right column */}
           <FeatureCard delay={0}>
@@ -490,7 +394,6 @@ const FeaturesSection: React.FC = () => {
             </div>
           </FeatureCard>
 
-          {/* Revenue — text right column, image left column */}
           <FeatureCard delay={150}>
             <div className="flex flex-col h-full min-h-[360px]">
               {/* Text — top, centered */}
@@ -519,10 +422,7 @@ const FeaturesSection: React.FC = () => {
           </FeatureCard>
         </div>
 
-        {/* ══════════════════════════════════
-            ROW 4 — SPLIT ROYALTIES + COMMUNITY
-            Both: large photo top, text + subtext below.
-        ══════════════════════════════════ */}
+
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
           {/* Split Royalties */}
           <FeatureCard delay={0} className="lg:col-span-2">

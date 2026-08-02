@@ -7,7 +7,7 @@ import { useRouter } from "next/navigation";
 import DashboardLayout from "@/components/dashboard/DashboardLayout";
 import { useDashboard } from "@/lib/hooks/useDashboard";
 import { useBilling } from "@/lib/hooks/useBilling";
-import { getSpotlight, type Spotlight } from "@/lib/api/spotlight";
+import { getSpotlights, type Spotlight } from "@/lib/api/spotlight";
 import { ReleaseDetailModal } from "@/components/dashboard/music/ReleaseDetailModal";
 
 export default function DashboardPage() {
@@ -269,30 +269,59 @@ export default function DashboardPage() {
   );
 }
 
+/** How long each spotlight is shown before the next one. */
+const SPOTLIGHT_INTERVAL_MS = 7000;
+
 function SpotlightCard() {
-  const [spotlight, setSpotlight] = useState<Spotlight | null>(null);
+  const [spotlights, setSpotlights] = useState<Spotlight[]>([]);
+  const [index, setIndex] = useState(0);
+  // Rotation stops while the pointer is over the card, so a fan reading the
+  // headline does not have it change mid-sentence.
+  const [paused, setPaused] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
 
-    getSpotlight().then((res) => {
-      if (!cancelled && res.data && !res.error) setSpotlight(res.data);
+    getSpotlights().then((res) => {
+      if (cancelled || res.error || !Array.isArray(res.data)) return;
+      setSpotlights(res.data);
     });
 
     return () => { cancelled = true; };
   }, []);
 
-  if (!spotlight) return null;
+  useEffect(() => {
+    if (paused || spotlights.length < 2) return;
+
+    const timer = setInterval(
+      () => setIndex((i) => (i + 1) % spotlights.length),
+      SPOTLIGHT_INTERVAL_MS
+    );
+
+    return () => clearInterval(timer);
+  }, [paused, spotlights.length]);
+
+  if (spotlights.length === 0) return null;
+
+  // Guards against the index outliving a shorter list after a refetch.
+  const spotlight = spotlights[index % spotlights.length];
 
   return (
-    <div className="col-span-1 md:col-span-2 rounded-2xl border border-white/[0.06] bg-[#180F0F] overflow-hidden flex">
+    <div
+      className="col-span-1 md:col-span-2 rounded-2xl border border-white/[0.06] bg-[#180F0F] overflow-hidden flex relative"
+      onMouseEnter={() => setPaused(true)}
+      onMouseLeave={() => setPaused(false)}
+      // Touch has no hover, so pausing on tap is the equivalent affordance.
+      onTouchStart={() => setPaused(true)}
+    >
       <div className="relative w-[45%] sm:w-[55%] shrink-0 min-h-[180px] sm:min-h-[220px]">
         <Image
+          key={spotlight.id}
           src={spotlight.image_url}
           alt={spotlight.headline}
           fill
           unoptimized
-          className="object-cover object-center"
+          className="object-cover object-center animate-[spotlightFade_500ms_ease-out]"
         />
       </div>
 
@@ -319,6 +348,34 @@ function SpotlightCard() {
           <span className="hidden sm:inline">Read Article</span>
         </a>
       </div>
+
+      {/* Dots — also let someone jump straight to one. Hidden for a single
+          spotlight, where they would just be noise. */}
+      {spotlights.length > 1 && (
+        <div className="absolute bottom-3 right-4 flex items-center gap-1.5">
+          {spotlights.map((s, i) => (
+            <button
+              key={s.id}
+              onClick={() => setIndex(i)}
+              aria-label={`Show spotlight ${i + 1} of ${spotlights.length}`}
+              aria-current={i === index % spotlights.length}
+              className={[
+                "rounded-full transition-all duration-300",
+                i === index % spotlights.length
+                  ? "w-5 h-1.5 bg-[#C30100]"
+                  : "w-1.5 h-1.5 bg-white/25 hover:bg-white/50",
+              ].join(" ")}
+            />
+          ))}
+        </div>
+      )}
+
+      <style jsx>{`
+        @keyframes spotlightFade {
+          from { opacity: 0; }
+          to   { opacity: 1; }
+        }
+      `}</style>
     </div>
   );
 }

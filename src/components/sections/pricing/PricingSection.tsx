@@ -3,9 +3,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 
-/* ─────────────────────────────────────────────────────────
-   SCROLL-REVEAL HOOK
-───────────────────────────────────────────────────────── */
+
 function useInView(threshold = 0.1) {
   const ref = useRef<HTMLDivElement>(null);
   const [inView, setInView] = useState(false);
@@ -24,9 +22,6 @@ function useInView(threshold = 0.1) {
   return { ref, inView };
 }
 
-/* ─────────────────────────────────────────────────────────
-   CHECK ICON
-───────────────────────────────────────────────────────── */
 const CheckIcon: React.FC = () => (
   <div className="w-6 h-6 rounded-full bg-[#C30100] flex items-center justify-center shrink-0 mt-0.5">
     <svg width="12" height="10" viewBox="0 0 12 10" fill="none" aria-hidden="true">
@@ -41,9 +36,6 @@ const CheckIcon: React.FC = () => (
   </div>
 );
 
-/* ─────────────────────────────────────────────────────────
-   DATA
-───────────────────────────────────────────────────────── */
 interface Plan {
   name: string;
   bestFor: string;
@@ -58,37 +50,40 @@ interface Plan {
 
 const PLANS: Plan[] = [
   {
-    name: "Starter",
-    bestFor: "New & independent artists starting out",
-    priceYearly: "44,000.00",
-    priceMonthly: "3,667.00",
+    name: "Basic",
+    bestFor: "Perfect for independent artists getting started.",
+    priceYearly: "49,999",
+    priceMonthly: "4,999",
     features: [
       "1 Artist Account",
-      "Unlimited Releases",
-      "Analytics",
+      "Unlimited Music Releases",
+      "Ayo AI (Your Music Intelligence Assistant)",
+      "Keep 100% Independence",
+      "Instant Royalty Withdrawals in Your Preferred Currency",
       "Lyrics Distribution",
-      "Keep 95% of Your Royalties",
-      "Fast Payments & Easy Withdrawals",
-      "Stream Links for Each Release",
+      "Smart Release Links",
+      "Artist Community",
+      "24-48hrs customer support",
     ],
-    cta: "Get Help & Support",
-    ctaHref: "/support",
+    cta: "Get Basic",
+    ctaHref: "/sign-up?plan=basic",
   },
   {
-    name: "Growth Plan",
-    bestFor: "Serious independent artists & growing teams",
-    priceYearly: "140,000.00",
-    priceMonthly: "11,667.00",
+    name: "Growth",
+    bestFor: "For artists and teams ready to scale.",
+    priceYearly: "149,999",
+    priceMonthly: "12,999",
     features: [
       "All Basic Plan Features",
-      "3 Artist Accounts",
-      "100% of Your Royalties",
-      "Customize Label Name",
-      "Editorial Playlist Pitch Portal",
-      "24/7 Support",
+      "Up to 3 Artist & More",
+      "Release Music Under Your Own Label Name",
+      "Global Music Video Distribution (Spotify, Apple Music, VEVO & More)",
+      "Editorial Playlist Pitching (Pitch Portal)",
+      "Priority Artist Support (24-48 Hours)",
+      "Early Access to New Features",
     ],
-    cta: "Upgrade to Growth",
-    ctaHref: "/signup?plan=growth",
+    cta: "Get Growth",
+    ctaHref: "/sign-up?plan=growth",
     popular: true,
   },
   {
@@ -108,7 +103,7 @@ const PLANS: Plan[] = [
       "Invite team members",
     ],
     cta: "Start a Label",
-    ctaHref: "/signup?plan=label",
+    ctaHref: "/sign-up?plan=label",
     addOns: [
       { label: "Add extra artist: ₦30,000 Per artist / year" },
     ],
@@ -125,7 +120,7 @@ const PricingCard: React.FC<{
 }> = ({ plan, billing, delay = 0 }) => {
   const { ref, inView } = useInView(0.05);
   const price = billing === "yearly" ? plan.priceYearly : plan.priceMonthly;
-  const period = billing === "yearly" ? "/yearly" : "/monthly";
+  const period = billing === "yearly" ? "/year" : "/month";
 
   return (
     <div

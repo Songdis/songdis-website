@@ -5,9 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import NeonWordmark from "../ui/NeonWordmark";
 
-/* ─────────────────────────────────────────────────────────
-   DATA
-───────────────────────────────────────────────────────── */
+
 const USEFUL_LINKS = [
   { label: "About", href: "/about" },
   { label: "Community", href: "/community" },
@@ -36,23 +34,18 @@ const SOCIALS = [
   },
 ];
 
-/* ─────────────────────────────────────────────────────────
-   FOOTER
-───────────────────────────────────────────────────────── */
+
 const Footer: React.FC = () => {
   const [email, setEmail] = useState("");
 
   const handleSignUp = (e: React.FormEvent) => {
     e.preventDefault();
-    // TODO: wire up newsletter submission
+
     setEmail("");
   };
 
   return (
     <footer className="relative w-full bg-[#140C0C] overflow-hidden">
-      {/* ════════════════════════════════════
-          CTA CARD
-      ════════════════════════════════════ */}
       <div className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-10 pt-20 sm:pt-24 lg:pt-32">
         {/* Gradient border wrapper */}
         <div
@@ -73,7 +66,6 @@ const Footer: React.FC = () => {
                 promote, and grow. Take control of your music journey today.
               </p>
 
-              {/* GET STARTED — gradient border button */}
               <div
                 className="inline-block rounded-full p-[1.34px] self-start"
                 style={{
@@ -82,7 +74,7 @@ const Footer: React.FC = () => {
                 }}
               >
                 <Link
-                  href="/signup"
+                  href="/sign-up"
                   className="inline-flex items-center justify-center font-heading text-white uppercase tracking-widest text-xs lg:text-[18px] rounded-full bg-[#140C0C] px-8 py-4 transition-all duration-300 hover:bg-white hover:text-[#140C0C] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white whitespace-nowrap"
                   style={{
                     backdropFilter: "blur(4.45px)",
@@ -109,9 +101,6 @@ const Footer: React.FC = () => {
         </div>
       </div>
 
-      {/* ════════════════════════════════════
-          NEWSLETTER + LINKS + SOCIALS
-      ════════════════════════════════════ */}
       <div className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-10 pt-16 sm:pt-20 lg:pt-24 pb-16 sm:pb-20">
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-12 lg:gap-12">
           {/* Col 1 — Newsletter (wider) */}
@@ -199,9 +188,6 @@ const Footer: React.FC = () => {
         </div>
       </div>
 
-      {/* ════════════════════════════════════
-          SONGDIS WORDMARK — neon sign animation
-      ════════════════════════════════════ */}
       <NeonWordmark />
     </footer>
   );

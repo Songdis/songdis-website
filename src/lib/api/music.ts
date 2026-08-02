@@ -175,6 +175,49 @@ function getAuthToken(): string | null {
   return localStorage.getItem("songdis_token");
 }
 
+/**
+ * Send undersized artwork to be cropped and scaled to 3000x3000.
+ *
+ * Used when an upload is rejected for being too small: the file never reached
+ * S3, so the server has to do the whole job from the file itself.
+ */
+export function fitArtworkToSpec(
+  file: File
+): Promise<{ file_url: string; s3_key: string; was_cropped: boolean; upscale_factor: number }> {
+  return new Promise((resolve, reject) => {
+    const form = new FormData();
+    form.append("artwork", file);
+
+    const xhr = new XMLHttpRequest();
+
+    xhr.addEventListener("load", () => {
+      let json: Record<string, unknown> = {};
+      try { json = JSON.parse(xhr.responseText); } catch { /* handled below */ }
+
+      if (xhr.status >= 200 && xhr.status < 300) {
+        const d = (json.data ?? json) as Record<string, unknown>;
+        resolve({
+          file_url: (d.file_url ?? d.url ?? "") as string,
+          s3_key: (d.s3_key ?? d.file_path ?? "") as string,
+          was_cropped: Boolean(d.was_cropped),
+          upscale_factor: Number(d.upscale_factor ?? 1),
+        });
+      } else {
+        reject(new Error((json.message as string) || `Could not resize artwork (${xhr.status})`));
+      }
+    });
+
+    xhr.addEventListener("error", () => reject(new Error("Network error while resizing artwork")));
+    xhr.addEventListener("timeout", () => reject(new Error("Resizing timed out")));
+    xhr.timeout = 5 * 60 * 1000;
+
+    xhr.open("POST", `${BASE_URL}/upload/artwork-fit`);
+    const token = getAuthToken();
+    if (token) xhr.setRequestHeader("Authorization", `Bearer ${token}`);
+    xhr.send(form);
+  });
+}
+
 export function uploadArtwork(
   file: File,
   onProgress?: (p: UploadProgress) => void

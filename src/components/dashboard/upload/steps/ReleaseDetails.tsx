@@ -6,7 +6,7 @@ import Link from "next/link";
 import type { UploadState, AdditionalArtist, StepFieldErrors } from "../UploadModal";
 import { StepHeader, StepProgress, StepActions } from "../UploadModal";
 import { getProfile } from "@/lib/api/auth";
-import { getLabelPermission, uploadArtwork } from "@/lib/api/music";
+import { getLabelPermission, uploadArtwork, fitArtworkToSpec } from "@/lib/api/music";
 import type { UploadProgress } from "@/lib/api/music";
 import ArtistProfileModal from "@/components/dashboard/settings/ArtistProfileModal";
 import type { ArtistProfile } from "@/components/dashboard/settings/ArtistProfileModal";
@@ -91,6 +91,19 @@ export default function ReleaseDetails({ state, update, onBack, onContinue, onSa
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [canEditLabel, setCanEditLabel] = useState(false);
   const [uploading, setUploading] = useState(false);
+
+  /**
+   * Artwork that was too small, held so it can be offered a resize instead of
+   * being thrown away with an alert the user can only dismiss.
+   */
+  const [artworkIssue, setArtworkIssue] = useState<{
+    file: File;
+    width: number;
+    height: number;
+    canFix: boolean;
+  } | null>(null);
+  const [fixing, setFixing] = useState(false);
+  const [fixError, setFixError] = useState<string | null>(null);
   const [uploadProgress, setUploadProgress] = useState<UploadProgress | null>(null);
 
   useEffect(() => {
@@ -158,21 +171,78 @@ export default function ReleaseDetails({ state, update, onBack, onContinue, onSa
     state.releaseType === "single" ? "Upload Single" :
     state.releaseType === "album" ? "Upload Album" : "Upload Mixtape";
 
+  /**
+   * Read an image's dimensions.
+   *
+   * Resolves null rather than hanging when the browser cannot decode the file
+   * — HEIC from an iPhone, an odd colour profile, or a large PNG on a
+   * low-memory phone. The previous version only handled onload, so any of
+   * those left the form waiting forever with no message, which is what users
+   * were reporting as "it rejected my artwork".
+   */
+  const readDimensions = (file: File): Promise<{ w: number; h: number } | null> =>
+    new Promise((resolve) => {
+      const img = new window.Image();
+      const objectUrl = URL.createObjectURL(file);
+
+      const done = (value: { w: number; h: number } | null) => {
+        URL.revokeObjectURL(objectUrl);
+        resolve(value);
+      };
+
+      img.onload = () => done({ w: img.naturalWidth, h: img.naturalHeight });
+      img.onerror = () => done(null);
+      // Belt and braces: a decode that neither loads nor errors still ends.
+      setTimeout(() => done(null), 15000);
+
+      img.src = objectUrl;
+    });
+
+  /** Send the rejected file to be cropped and scaled, then use the result. */
+  const handleFixArtwork = async () => {
+    if (!artworkIssue) return;
+
+    setFixing(true);
+    setFixError(null);
+
+    try {
+      const result = await fitArtworkToSpec(artworkIssue.file);
+
+      update({
+        artwork: result.file_url,
+        artworkUrl: result.file_url,
+        artworkKey: result.s3_key,
+        artworkFile: null,
+        artworkSizes: null,
+      });
+
+      setArtworkIssue(null);
+    } catch (err) {
+      setFixError(err instanceof Error ? err.message : "Could not resize this artwork.");
+    } finally {
+      setFixing(false);
+    }
+  };
+
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    const img = new window.Image();
-    const objectUrl = URL.createObjectURL(file);
-    await new Promise<void>((resolve) => {
-      img.onload = () => {
-        URL.revokeObjectURL(objectUrl);
-        resolve();
-      };
-      img.src = objectUrl;
-    });
-    if (img.width < 3000 || img.height < 3000) {
-      alert(`Artwork must be at least 3000×3000 pixels. Your image is ${img.width}×${img.height}.`);
+    setArtworkIssue(null);
+
+    const dims = await readDimensions(file);
+
+    // Could not be read here — let the server judge it rather than blocking
+    // an image that may well be fine.
+    if (dims && (dims.w < 3000 || dims.h < 3000)) {
+      setArtworkIssue({
+        file,
+        width: dims.w,
+        height: dims.h,
+        // Below half the target, enlarging looks soft enough that stores
+        // reject it, so do not offer a fix we cannot deliver well.
+        canFix: Math.min(dims.w, dims.h) >= 1500,
+      });
       if (fileRef.current) fileRef.current.value = "";
       return;
     }
@@ -250,6 +320,45 @@ export default function ReleaseDetails({ state, update, onBack, onContinue, onSa
         )}
         <input ref={fileRef} type="file" accept=".png,.jpg,.jpeg,.webp,image/png,image/jpeg,image/webp" className="hidden" onChange={handleFileChange} />
         {fieldErrors.artwork && <p className="font-body text-[#C30100] text-xs text-center mb-2">{fieldErrors.artwork}</p>}
+
+        {/* Too small — offer to fix it rather than just refusing. Most people
+            hitting this have no way to resize an image themselves. */}
+        {artworkIssue && (
+          <div className="mb-5 rounded-xl border border-[#C30100]/30 bg-[#C30100]/[0.07] p-4">
+            <p className="font-body text-white text-sm font-medium mb-1">
+              This artwork is {artworkIssue.width}&times;{artworkIssue.height}
+            </p>
+            <p className="font-body text-white/55 text-xs leading-relaxed mb-3">
+              Streaming platforms need at least 3000&times;3000.
+              {artworkIssue.canFix
+                ? " We can crop and scale it up for you — it will be trimmed to a square, so check nothing important is near the edges."
+                : " This one is too small to enlarge cleanly — stores would likely reject it as blurry. Please upload a larger original."}
+            </p>
+
+            {fixError && (
+              <p className="font-body text-[#ff6b6b] text-xs mb-3">{fixError}</p>
+            )}
+
+            <div className="flex flex-wrap gap-2">
+              {artworkIssue.canFix && (
+                <button
+                  onClick={handleFixArtwork}
+                  disabled={fixing}
+                  className="font-body text-xs text-white bg-[#C30100] rounded-full px-4 py-2.5 hover:bg-[#a80000] transition-colors disabled:opacity-40 min-h-[40px]"
+                >
+                  {fixing ? "Resizing..." : "Resize it for me"}
+                </button>
+              )}
+              <button
+                onClick={() => { setArtworkIssue(null); setFixError(null); fileRef.current?.click(); }}
+                disabled={fixing}
+                className="font-body text-xs text-white border border-white/20 rounded-full px-4 py-2.5 hover:border-white/40 transition-colors disabled:opacity-40 min-h-[40px]"
+              >
+                Choose another image
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Form grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-5">
