@@ -27,6 +27,21 @@ export interface AdditionalArtist {
   role: "primary" | "featuring" | "remixer";
 }
 
+
+function normaliseCoverArtAiUse(value: unknown): string {
+  const raw = String(value ?? "None");
+
+  const legacy: Record<string, string> = {
+    "Partial AI": "Some",
+    "Fully AI Generated": "All",
+    "No AI used": "None",
+  };
+
+  const mapped = legacy[raw] ?? raw;
+
+  return ["None", "Some", "All"].includes(mapped) ? mapped : "None";
+}
+
 export interface UploadState {
   releaseType: ReleaseType | null;
   step: UploadStep;
@@ -108,13 +123,10 @@ const STEP_ORDER: UploadStep[] = ["select-type", "release-details", "upload-trac
 
 function stepIndex(step: UploadStep): number { return STEP_ORDER.indexOf(step); }
 
-/** Readable text for the review list, and short enough not to swamp it. */
 function formatReviewValue(value: unknown): string {
   if (value === null || value === undefined || value === "") return "—";
   if (typeof value === "boolean") return value ? "Yes" : "No";
 
-  // Stored lists come back as JSON strings; printing them raw dumped an
-  // unreadable blob across the modal.
   if (typeof value === "string" && value.trim().startsWith("[")) {
     try {
       const parsed = JSON.parse(value);
@@ -127,7 +139,6 @@ function formatReviewValue(value: unknown): string {
     const names = value.map((v) =>
       typeof v === "string" ? v : (v as { name?: string })?.name ?? String(v)
     );
-    // Long platform lists are summarised rather than printed in full.
     return names.length > 6
       ? `${names.slice(0, 6).join(", ")} +${names.length - 6} more`
       : names.join(", ");
@@ -141,10 +152,7 @@ interface UploadModalProps {
   isOpen: boolean;
   onClose: () => void;
   draftId?: number;
-  /** Reopen an existing release to request changes to it. The form is the
-   *  same one that created the release; only the final step differs. */
   editReleaseId?: number;
-  /** Called after an edit request is submitted, so the list can refresh. */
   onRevisionSubmitted?: () => void;
 }
 
@@ -161,9 +169,6 @@ export default function UploadModal({
   const [isLoadingDraft, setIsLoadingDraft] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<StepFieldErrors>({});
   const { success, error: toastError, loading: toastLoading, dismiss } = useToast();
-
-  /* Edit mode. `original` is what the release looked like when opened, so the
-     review step can show the artist the same diff the admin will see. */
   const isEditing = Boolean(editReleaseId);
   const [original, setOriginal] = useState<Record<string, unknown> | null>(null);
   const [lockedFields, setLockedFields] = useState<Record<string, string | null>>({});
@@ -177,9 +182,6 @@ export default function UploadModal({
     return () => { document.body.style.overflow = ""; };
   }, [isOpen]);
 
-  /* Load an existing release into the form so it can be edited.
-     Deliberately reuses the same UploadState the upload flow already fills,
-     so there is one form and one set of validation, not two. */
   useEffect(() => {
     if (!isOpen || !editReleaseId) return;
 
@@ -214,13 +216,9 @@ export default function UploadModal({
 
       setState((prev) => ({
         ...prev,
-        // Straight to the details step: the release already exists, so there
-        // is nothing to choose about its type.
         step: "release-details",
         releaseType: String(res.data!.release.upload_type ?? "").toLowerCase().includes("album")
           ? "album" : "single",
-        // Some older releases have no release_title stored; the track title
-        // is the sensible stand-in rather than showing an empty box.
         releaseTitle: v.release_title || v.track_title || "",
         releaseVersion: v.release_version ?? "",
         primaryArtist: v.primary_artist ?? "",
@@ -234,7 +232,7 @@ export default function UploadModal({
         releaseDate: v.release_date ? String(v.release_date).slice(0, 10) : "",
         preOrderDate: v.pre_order_date ? String(v.pre_order_date).slice(0, 10) : "",
         explicitContent: v.explicit_content ? "Yes" : "No",
-        coverArtAiUse: v.cover_art_ai_use ?? "None",
+        coverArtAiUse: normaliseCoverArtAiUse(v.cover_art_ai_use),
         trackTitle: v.track_title ?? "",
         mixedVersion: v.mix_version ?? "",
         lyrics: v.lyrics ?? "",
@@ -244,13 +242,8 @@ export default function UploadModal({
         audioUrl: (v.audio_file_path as string) ?? "",
         audioKey: v.s3_key ?? "",
         audioBucket: (v.s3_bucket as string) ?? "songdis-file",
-        // UPC and ISRC are shown read-only; they identify the release on the
-        // platforms and are rejected server-side if submitted.
         upcCode: res.data!.locked_fields.upc_code ?? "",
         isrc: res.data!.locked_fields.isrc_code ?? "",
-        // An album is stored as one row per track. Loading them all is what
-        // stops the form demanding a fresh upload for audio that already
-        // exists.
         tracks: (res.data!.tracks ?? []).map((t) => ({
           id: String(t.id),
           trackTitle: t.track_title ?? "",
@@ -271,8 +264,6 @@ export default function UploadModal({
         noOfTracks: Math.max(1, res.data!.tracks?.length ?? 1),
         selectedDSPs: asList(v.platforms) as string[],
         territory: v.territory_rights === "custom" ? "custom" : "worldwide",
-        // Stored artists have no client-side `id`, and React needs one for
-        // the list key — without this every row keyed on undefined.
         additionalArtists: asList(v.additional_artists).map((raw, i) => {
           const a = (raw ?? {}) as Record<string, unknown>;
           return {
@@ -337,7 +328,7 @@ export default function UploadModal({
           pLine: (fd.pLine as string) ?? "2026",
           noOfTracks: (fd.noOfTracks as number) ?? 1,
           explicitContent: (fd.explicitContent as string) ?? "Yes",
-          coverArtAiUse: (fd.coverArtAiUse as string) ?? "None",
+          coverArtAiUse: normaliseCoverArtAiUse(fd.coverArtAiUse),
           // Track details
           trackTitle: (fd.trackTitle as string) ?? "",
           genre: (fd.genre as string) ?? "",
@@ -493,12 +484,7 @@ export default function UploadModal({
       .map((a) => ({ name: a.name, artist_id: a.artistId || "", role: a.role }));
   }, []);
 
-  /**
-   * The form's current values, in the column names the API expects.
-   *
-   * UPC and ISRC are deliberately absent: they are locked, and including them
-   * would have the server reject the whole request.
-   */
+
   const proposedFromState = useCallback((): Record<string, unknown> => ({
     release_title: state.releaseTitle,
     release_version: state.releaseVersion,
@@ -513,7 +499,7 @@ export default function UploadModal({
     release_date: state.releaseDate,
     pre_order_date: state.preOrderDate || null,
     explicit_content: state.explicitContent === "Yes",
-    cover_art_ai_use: state.coverArtAiUse,
+    cover_art_ai_use: normaliseCoverArtAiUse(state.coverArtAiUse),
     track_title: state.trackTitle,
     mix_version: state.mixedVersion,
     lyrics: state.lyrics,
@@ -522,8 +508,6 @@ export default function UploadModal({
     additional_artists: state.additionalArtists,
     is_previously_released: state.isPreviouslyReleased,
     original_release_date: state.isPreviouslyReleased ? state.originalReleaseDate : null,
-
-    // Files travel with their companion URLs so approval can move both.
     album_art_key: state.artworkKey,
     album_art_url: state.artworkUrl,
     album_art_sizes: state.artworkSizes ? JSON.stringify(state.artworkSizes) : null,
@@ -532,10 +516,7 @@ export default function UploadModal({
     s3_bucket: state.audioBucket,
   }), [state]);
 
-  /**
-   * What the artist has actually changed, computed the same way the server
-   * does, so the review step shows exactly what the admin will see.
-   */
+
   const pendingChanges = useMemo(() => {
     if (!original) return [];
 
@@ -555,9 +536,6 @@ export default function UploadModal({
       album_art_key: "Artwork", s3_key: "Audio file",
     };
 
-    // A stored list arrives as a JSON string, so it has to be parsed before
-    // it can be compared with the array the form holds. Without this,
-    // platforms showed as changed on every single request.
     const asArray = (v: unknown): unknown[] | null => {
       if (Array.isArray(v)) return v;
       if (typeof v === "string" && v.trim().startsWith("[")) {
@@ -584,7 +562,6 @@ export default function UploadModal({
       .filter(([field]) => {
         const before = (original as Record<string, unknown>)[field];
         const after = proposed[field];
-        // Dates arrive with a time component; compare the day only.
         if (field.endsWith("_date")) {
           return String(before ?? "").slice(0, 10) !== String(after ?? "").slice(0, 10);
         }
@@ -599,9 +576,6 @@ export default function UploadModal({
       }));
   }, [original, proposedFromState]);
 
-  /* Album tracks whose audio has been swapped since the form opened.
-     Tracked separately because an album is one row per track, and a change to
-     track 3 would otherwise be invisible in the review. */
   const trackChanges = useMemo(() => {
     if (!originalTracks.length) return [];
 
@@ -625,15 +599,12 @@ export default function UploadModal({
         .map((t, i) => ({
           n: i + 1,
           title: t.trackTitle,
-          // Older uploads saved audio_file_path without an s3_key, so the key
-          // alone is not proof of absence — the URL counts too.
           missing: !t.audioKey && !t.audioUrl ? "audio" : !t.trackTitle.trim() ? "a title" : null,
         }))
         .filter((t) => t.missing !== null),
     [state.tracks]
   );
 
-  /** Submit an edit request rather than a new release. */
   const handleSubmitRevision = useCallback(async () => {
     if (!editReleaseId) return;
 
@@ -679,7 +650,7 @@ export default function UploadModal({
         composer: state.contributors.writers.map((w) => w.name).join(", ") || state.primaryArtist,
         album_art_url: state.artworkUrl, album_art_key: state.artworkKey,
         album_art_sizes: state.artworkSizes ? JSON.stringify(state.artworkSizes) : null,
-        cover_art_ai_use: state.coverArtAiUse || "None",
+        cover_art_ai_use: normaliseCoverArtAiUse(state.coverArtAiUse),
         label: state.label || "Independent",
         c_line: `© ${state.cLine} ${state.primaryArtist}`,
         p_line: `℗ ${state.pLine} ${state.primaryArtist}`,
@@ -730,7 +701,6 @@ export default function UploadModal({
     }
   }, [state, toastLoading, toastError, success, dismiss, goTo, formatContributorsForBackend]);
 
-  /* Step 3 validation: releaseDate + providers required */
   const handleStep3Submit = useCallback(() => {
     const errors: StepFieldErrors = {};
     if (!state.releaseDate) errors.releaseDate = "Release date is required";
@@ -741,8 +711,6 @@ export default function UploadModal({
     handleSubmit();
   }, [state.releaseDate, state.selectedDSPs, state.agreedToTerms, handleSubmit]);
 
-  /** The draft payload, shared by the manual "Save draft" button and the
-   *  silent save Quick Drop performs before taking payment. */
   const buildDraftPayload = useCallback(() => ({
     draft_id: state.draftId,
     upload_type: state.releaseType === "single" ? "Single" as const : "Album/EP" as const,
@@ -846,8 +814,6 @@ export default function UploadModal({
         </div>
       </div>
 
-      {/* Review step. Shows the artist exactly the diff the admin will get,
-          so nobody submits a request without knowing what is in it. */}
       {reviewOpen && (
         <div className="fixed inset-0 z-[80] flex items-center justify-center p-4">
           <div aria-hidden className="absolute inset-0 bg-black/75 backdrop-blur-sm" onClick={() => !isSubmitting && setReviewOpen(false)} />
@@ -862,8 +828,6 @@ export default function UploadModal({
                 : `${pendingChanges.length + trackChanges.length} change${pendingChanges.length + trackChanges.length === 1 ? "" : "s"} will be sent for review.`}
             </p>
 
-            {/* Names the offending track rather than just refusing, so an
-                artist with a twelve-track album knows which one to fix. */}
             {incompleteTracks.length > 0 && (
               <div className="rounded-xl border border-amber-500/25 bg-amber-500/[0.07] px-4 py-3 mb-4">
                 <p className="font-body text-amber-200 text-xs font-semibold mb-1">
@@ -906,9 +870,6 @@ export default function UploadModal({
                     {c.isFile ? (
                       <p className="font-body text-white/50 text-xs">Replaced with a new file</p>
                     ) : (
-                      // Stacked, wrapping and break-words: a platform list is
-                      // long enough to run off the side of the modal when the
-                      // before and after sit on one line.
                       <div className="font-body text-xs leading-relaxed min-w-0 space-y-0.5">
                         <p className="text-white/40 line-through break-words whitespace-pre-wrap">
                           {formatReviewValue(c.from)}

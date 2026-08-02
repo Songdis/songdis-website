@@ -49,7 +49,6 @@ function ArtworkGenerator({
   );
 }
 
-/* ─── Field wrapper ───────────────────────────────────────────── */
 function Field({ label, children, hint }: { label: string; children: React.ReactNode; hint?: string }) {
   return (
     <div className="flex flex-col gap-1.5">
@@ -60,12 +59,19 @@ function Field({ label, children, hint }: { label: string; children: React.React
   );
 }
 
-function DashSelect({ value, onChange, options }: { value: string; onChange: (v: string) => void; options: string[] }) {
+
+type SelectOption = string | { value: string; label: string };
+
+function DashSelect({ value, onChange, options }: { value: string; onChange: (v: string) => void; options: SelectOption[] }) {
+  const normalised = options.map((o) =>
+    typeof o === "string" ? { value: o, label: o } : o
+  );
+
   return (
     <div className="relative">
       <select value={value} onChange={(e) => onChange(e.target.value)}
         className="w-full appearance-none bg-[#0E0808] border border-white/10 rounded-lg px-4 py-3 font-body text-white text-sm outline-none focus:border-[#C30100] transition-colors pr-8">
-        {options.map((o) => <option key={o} value={o}>{o}</option>)}
+        {normalised.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
       </select>
       <ChevronIcon />
     </div>
@@ -80,7 +86,6 @@ interface Props {
   onSaveDraft?: () => void;
   fieldErrors?: StepFieldErrors;
   clearFieldError?: (key: string) => void;
-  /** Editing an existing release: identifiers are read-only. */
   isEditing?: boolean;
 }
 
@@ -92,10 +97,7 @@ export default function ReleaseDetails({ state, update, onBack, onContinue, onSa
   const [canEditLabel, setCanEditLabel] = useState(false);
   const [uploading, setUploading] = useState(false);
 
-  /**
-   * Artwork that was too small, held so it can be offered a resize instead of
-   * being thrown away with an alert the user can only dismiss.
-   */
+
   const [artworkIssue, setArtworkIssue] = useState<{
     file: File;
     width: number;
@@ -144,7 +146,6 @@ export default function ReleaseDetails({ state, update, onBack, onContinue, onSa
       }));
       setProfiles(mapped);
 
-      /* Auto-fill primary artist if not already set */
       if (!state.primaryArtist && mapped.length > 0) {
         const name = mapped[0].stageName || mapped[0].fullName;
         if (name) update({ primaryArtist: name });
@@ -171,15 +172,7 @@ export default function ReleaseDetails({ state, update, onBack, onContinue, onSa
     state.releaseType === "single" ? "Upload Single" :
     state.releaseType === "album" ? "Upload Album" : "Upload Mixtape";
 
-  /**
-   * Read an image's dimensions.
-   *
-   * Resolves null rather than hanging when the browser cannot decode the file
-   * — HEIC from an iPhone, an odd colour profile, or a large PNG on a
-   * low-memory phone. The previous version only handled onload, so any of
-   * those left the form waiting forever with no message, which is what users
-   * were reporting as "it rejected my artwork".
-   */
+
   const readDimensions = (file: File): Promise<{ w: number; h: number } | null> =>
     new Promise((resolve) => {
       const img = new window.Image();
@@ -192,13 +185,11 @@ export default function ReleaseDetails({ state, update, onBack, onContinue, onSa
 
       img.onload = () => done({ w: img.naturalWidth, h: img.naturalHeight });
       img.onerror = () => done(null);
-      // Belt and braces: a decode that neither loads nor errors still ends.
       setTimeout(() => done(null), 15000);
 
       img.src = objectUrl;
     });
 
-  /** Send the rejected file to be cropped and scaled, then use the result. */
   const handleFixArtwork = async () => {
     if (!artworkIssue) return;
 
@@ -232,15 +223,11 @@ export default function ReleaseDetails({ state, update, onBack, onContinue, onSa
 
     const dims = await readDimensions(file);
 
-    // Could not be read here — let the server judge it rather than blocking
-    // an image that may well be fine.
     if (dims && (dims.w < 3000 || dims.h < 3000)) {
       setArtworkIssue({
         file,
         width: dims.w,
         height: dims.h,
-        // Below half the target, enlarging looks soft enough that stores
-        // reject it, so do not offer a fix we cannot deliver well.
         canFix: Math.min(dims.w, dims.h) >= 1500,
       });
       if (fileRef.current) fileRef.current.value = "";
@@ -321,8 +308,6 @@ export default function ReleaseDetails({ state, update, onBack, onContinue, onSa
         <input ref={fileRef} type="file" accept=".png,.jpg,.jpeg,.webp,image/png,image/jpeg,image/webp" className="hidden" onChange={handleFileChange} />
         {fieldErrors.artwork && <p className="font-body text-[#C30100] text-xs text-center mb-2">{fieldErrors.artwork}</p>}
 
-        {/* Too small — offer to fix it rather than just refusing. Most people
-            hitting this have no way to resize an image themselves. */}
         {artworkIssue && (
           <div className="mb-5 rounded-xl border border-[#C30100]/30 bg-[#C30100]/[0.07] p-4">
             <p className="font-body text-white text-sm font-medium mb-1">
@@ -473,9 +458,6 @@ export default function ReleaseDetails({ state, update, onBack, onContinue, onSa
                 }`}
               />
               {!canEditLabel && (
-                // Was pointing at /subscription — a route that does not exist in
-                // this app — and opening in a new tab. `pr-32` above keeps the
-                // value from running underneath it.
                 <Link
                   href="/dashboard/settings?tab=subscription"
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-amber-400 hover:text-amber-300 hover:underline whitespace-nowrap"
@@ -540,7 +522,15 @@ export default function ReleaseDetails({ state, update, onBack, onContinue, onSa
           </Field>
 
           <Field label="Cover Art AI Use" hint="If you used AI to make your cover art, notify it.">
-            <DashSelect value={state.coverArtAiUse} onChange={(v) => update({ coverArtAiUse: v })} options={["None", "Partial AI", "Fully AI Generated"]} />
+            <DashSelect
+              value={state.coverArtAiUse}
+              onChange={(v) => update({ coverArtAiUse: v })}
+              options={[
+                { value: "None", label: "No AI used" },
+                { value: "Some", label: "Partial AI" },
+                { value: "All",  label: "Fully AI Generated" },
+              ]}
+            />
           </Field>
         </div>
 
