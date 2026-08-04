@@ -387,7 +387,18 @@ export async function getDraft(id: number) {
   return request<Draft>(`/drafts/${id}`, { method: "GET" }, true);
 }
 
+/**
+ * Delete a draft.
+ *
+ * Guards against a non-numeric id: an undefined value stringifies into the
+ * URL as "undefined", which reached Postgres as a bigint and raised a type
+ * error rather than a clean 404.
+ */
 export async function deleteDraft(id: number) {
+  if (!Number.isFinite(id)) {
+    return { data: null, message: null, error: "Could not identify that draft.", errors: null, status: 400 };
+  }
+
   return request<{ message: string }>(
     `/drafts/${id}`,
     { method: "DELETE" },

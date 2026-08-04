@@ -240,7 +240,10 @@ export default function YourMusicPage() {
                       onDelete={() => {
                         setDraftDeleteError(null);
                         setDraftToDelete({
-                          id: draft.id,
+                          // The id lives on raw.draft_id, as onContinue above
+                          // already assumes — draft.id is undefined here, and
+                          // sending it produced a literal "undefined" in the URL.
+                          id: Number(raw.draft_id ?? draft.id),
                           title: (raw.release_title as string)
                             ?? (draft.form_data?.releaseTitle as string)
                             ?? "this draft",
