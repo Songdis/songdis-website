@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect, useMemo } from "react";
+import { useState, useCallback, useEffect, useMemo, useRef } from "react";
 import SelectUploadType from "./steps/SelectUploadType";
 import ReleaseDetails from "./steps/ReleaseDetails";
 import UploadTrack from "./steps/UploadTrack";
@@ -309,6 +309,8 @@ export default function UploadModal({
         };
         const targetStep = stepMap[currentStep] ?? "release-details";
 
+        draftIdRef.current = initialDraftId;
+
         setState({
           ...INITIAL_STATE,
           draftId: initialDraftId,
@@ -371,7 +373,18 @@ export default function UploadModal({
     return () => document.removeEventListener("keydown", handler);
   }, [isOpen]);
 
+  /**
+   * The id of the draft being edited, mirrored outside React state.
+   *
+   * `update()` only schedules a re-render, so a save fired before that lands
+   * would read `state.draftId` as undefined and create a second draft. That
+   * is how one release ended up with several duplicate drafts. This is set
+   * synchronously, so every save after the first carries the id.
+   */
+  const draftIdRef = useRef<number | undefined>(undefined);
+
   const update = useCallback((patch: Partial<UploadState>) => {
+    if (patch.draftId !== undefined) draftIdRef.current = patch.draftId;
     setState((s) => ({ ...s, ...patch }));
   }, []);
 
@@ -712,7 +725,7 @@ export default function UploadModal({
   }, [state.releaseDate, state.selectedDSPs, state.agreedToTerms, handleSubmit]);
 
   const buildDraftPayload = useCallback(() => ({
-    draft_id: state.draftId,
+    draft_id: draftIdRef.current ?? state.draftId,
     upload_type: state.releaseType === "single" ? "Single" as const : "Album/EP" as const,
     current_step: Math.max(1, stepIndex(state.step)),
     form_data: {
@@ -743,7 +756,10 @@ export default function UploadModal({
     const raw = res.data as unknown as Record<string, unknown> | null;
     const newDraftId = (raw?.draft_id as number | undefined) ?? (raw?.id as number | undefined);
 
-    if (newDraftId && !state.draftId) update({ draftId: newDraftId });
+    if (newDraftId) {
+      draftIdRef.current = newDraftId;
+      if (!state.draftId) update({ draftId: newDraftId });
+    }
 
     return newDraftId ?? state.draftId;
   }, [buildDraftPayload, state.draftId, update]);
@@ -758,7 +774,11 @@ export default function UploadModal({
       } else {
         const newDraftId = (res.data as unknown as Record<string, unknown>)?.draft_id as number | undefined
           ?? (res.data as unknown as Record<string, unknown>)?.id as number | undefined;
-        if (newDraftId && !state.draftId) update({ draftId: newDraftId });
+
+        if (newDraftId) {
+          draftIdRef.current = newDraftId;
+          if (!state.draftId) update({ draftId: newDraftId });
+        }
         success("Draft saved!", "You can continue editing from the Drafts tab.");
       }
     } catch {
@@ -767,7 +787,11 @@ export default function UploadModal({
     }
   }, [buildDraftPayload, state.draftId, toastLoading, dismiss, success, toastError, update]);
 
-  const handleClose = useCallback(() => { setState(INITIAL_STATE); onClose(); }, [onClose]);
+  const handleClose = useCallback(() => {
+    draftIdRef.current = undefined;
+    setState(INITIAL_STATE);
+    onClose();
+  }, [onClose]);
 
   if (!isOpen) return null;
 

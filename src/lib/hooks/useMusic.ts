@@ -243,9 +243,19 @@ export function useDrafts() {
     setIsLoading(false);
   }, []);
 
-  const remove = useCallback(async (id: number) => {
-    await deleteDraft(id);
+  /**
+   * Delete a draft, and only drop it from the list once the server agrees.
+   *
+   * It used to filter the list regardless of the response, so a failed delete
+   * looked like it had worked until the page was reloaded.
+   */
+  const remove = useCallback(async (id: number): Promise<string | null> => {
+    const res = await deleteDraft(id);
+
+    if (res.error) return res.error;
+
     setDrafts((prev) => prev.filter((d) => d.id !== id));
+    return null;
   }, []);
 
   useEffect(() => { load(); }, [load]);

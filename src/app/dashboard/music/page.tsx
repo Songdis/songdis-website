@@ -80,6 +80,9 @@ export default function YourMusicPage() {
   const [tab, setTab] = useState<Tab>("releases");
   const [modal, setModal] = useState<ModalState>(null);
   const [continueDraftId, setContinueDraftId] = useState<number | undefined>(undefined);
+  const [draftToDelete, setDraftToDelete] = useState<{ id: number; title: string } | null>(null);
+  const [deletingDraft, setDeletingDraft] = useState(false);
+  const [draftDeleteError, setDraftDeleteError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [filterType, setFilterType] = useState("all");
   const [filterSort, setFilterSort] = useState("latest");
@@ -234,7 +237,15 @@ export default function YourMusicPage() {
                         platforms: [],
                       }}
                       onContinue={() => setContinueDraftId(Number(raw.draft_id ?? draft.id))}
-                      onDelete={() => removeDraft(draft.id)}
+                      onDelete={() => {
+                        setDraftDeleteError(null);
+                        setDraftToDelete({
+                          id: draft.id,
+                          title: (raw.release_title as string)
+                            ?? (draft.form_data?.releaseTitle as string)
+                            ?? "this draft",
+                        });
+                      }}
                     />
                   );
                 })}
@@ -279,6 +290,59 @@ export default function YourMusicPage() {
       )}
       {modal?.type === "takedown-success" && (
         <SuccessModal isOpen onClose={closeModal} title="Takedown Request Submitted!" description="Your takedown request has been submitted and will be reviewed shortly." ctaLabel="Done" onCta={() => { closeModal(); refreshReleases(); }} />
+      )}
+
+      {draftToDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
+          <div
+            aria-hidden
+            className="absolute inset-0 bg-black/70 backdrop-blur-sm"
+            onClick={() => { setDraftToDelete(null); setDraftDeleteError(null); }}
+          />
+
+          <div className="relative z-10 w-full max-w-[420px] rounded-2xl bg-[#1A0808] border border-white/[0.07] p-6">
+            <p className="font-heading text-white uppercase text-sm tracking-wide mb-2">
+              Delete this draft?
+            </p>
+
+            <p className="font-body text-white/50 text-xs leading-relaxed mb-4">
+              <span className="text-white/80">{draftToDelete.title}</span> and
+              everything entered so far will be removed. This cannot be undone.
+            </p>
+
+            {draftDeleteError && (
+              <p className="font-body text-[#ff6b6b] text-xs mb-4">{draftDeleteError}</p>
+            )}
+
+            <div className="flex gap-2">
+              <button
+                onClick={() => { setDraftToDelete(null); setDraftDeleteError(null); }}
+                disabled={deletingDraft}
+                className="flex-1 font-body text-white text-xs border border-white/20 rounded-full py-2.5 hover:border-white/40 transition-colors min-h-[44px] disabled:opacity-40"
+              >
+                Keep it
+              </button>
+              <button
+                onClick={async () => {
+                  setDeletingDraft(true);
+                  const error = await removeDraft(draftToDelete.id);
+                  setDeletingDraft(false);
+
+                  if (error) {
+                    setDraftDeleteError(error);
+                    return;
+                  }
+
+                  setDraftToDelete(null);
+                }}
+                disabled={deletingDraft}
+                className="flex-1 font-body text-white text-xs bg-[#C30100] rounded-full py-2.5 hover:bg-[#a80000] transition-colors min-h-[44px] disabled:opacity-40"
+              >
+                {deletingDraft ? "Deleting..." : "Delete draft"}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       <UploadModal
