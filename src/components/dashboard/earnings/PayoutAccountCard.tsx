@@ -43,7 +43,23 @@ export default function PayoutAccountCard() {
 
     getPayoutStatus().then((res) => {
       if (cancelled) return;
-      if (!res.error && res.data) setStatus(res.data);
+
+      if (res.error) {
+        /*
+         * The card hides itself on failure, which is right for an artist —
+         * but it makes a broken deploy look identical to nothing to show.
+         * Say so in the console so it can be told apart.
+         */
+        console.warn(
+          "[payout] Could not load verification status:",
+          res.error,
+          "— if this is a 500, the identity_verifications and payout_accounts " +
+          "migrations may not have run on this environment."
+        );
+      } else if (res.data) {
+        setStatus(res.data);
+      }
+
       setLoading(false);
     });
 

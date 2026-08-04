@@ -24,7 +24,7 @@ export interface PayoutStatus {
 }
 
 export async function getPayoutStatus() {
-  return request<PayoutStatus>("/payout/status", { method: "GET" }, true);
+  return request<PayoutStatus>("/withdrawal/payout/status", { method: "GET" }, true);
 }
 
 
@@ -33,7 +33,7 @@ export async function verifyIdentity(payload: {
   document_back?: string;
 }) {
   return request<{ verified_name: string; document_type: string }>(
-    "/payout/verify-identity",
+    "/withdrawal/payout/verify-identity",
     { method: "POST", body: JSON.stringify(payload) },
     true
   );
@@ -49,7 +49,7 @@ export async function savePayoutAccount(payload: {
   document_front?: string;
 }) {
   return request<PayoutAccount>(
-    "/payout/account",
+    "/withdrawal/payout/account",
     { method: "POST", body: JSON.stringify(payload) },
     true
   );
