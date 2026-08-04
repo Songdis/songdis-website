@@ -42,6 +42,26 @@ function normaliseCoverArtAiUse(value: unknown): string {
   return ["None", "Some", "All"].includes(mapped) ? mapped : "None";
 }
 
+
+function normaliseTimestamp(value: unknown): number {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return Math.max(0, Math.floor(value));
+  }
+
+  if (value && typeof value === "object") {
+    const v = value as { minutes?: unknown; seconds?: unknown };
+    const minutes = Number(v.minutes ?? 0);
+    const seconds = Number(v.seconds ?? 0);
+
+    if (Number.isFinite(minutes) && Number.isFinite(seconds)) {
+      return Math.max(0, Math.floor(minutes * 60 + seconds));
+    }
+  }
+
+  const asNumber = Number(value);
+  return Number.isFinite(asNumber) ? Math.max(0, Math.floor(asNumber)) : 0;
+}
+
 export interface UploadState {
   releaseType: ReleaseType | null;
   step: UploadStep;
@@ -168,6 +188,7 @@ export default function UploadModal({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoadingDraft, setIsLoadingDraft] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<StepFieldErrors>({});
+  const [submitErrors, setSubmitErrors] = useState<string[]>([]);
   const { success, error: toastError, loading: toastLoading, dismiss } = useToast();
   const isEditing = Boolean(editReleaseId);
   const [original, setOriginal] = useState<Record<string, unknown> | null>(null);
@@ -339,7 +360,7 @@ export default function UploadModal({
           isrc: (fd.isrc as string) ?? "",
           lyrics: (fd.lyrics as string) ?? "",
           audioUrl: (fd.audioFileUrl as string) ?? "",
-          tiktokTimestamp: (fd.tiktokTimestamp as number) ?? 0,
+          tiktokTimestamp: normaliseTimestamp(fd.tiktokTimestamp),
           audioDuration: (fd.audioDuration as string) ?? "",
           contributors: (fd.contributors as UploadState["contributors"]) ?? { writers: [], producers: [], performers: [] },
           artistDetails: (fd.artistDetails as string) ?? "",
@@ -373,14 +394,6 @@ export default function UploadModal({
     return () => document.removeEventListener("keydown", handler);
   }, [isOpen]);
 
-  /**
-   * The id of the draft being edited, mirrored outside React state.
-   *
-   * `update()` only schedules a re-render, so a save fired before that lands
-   * would read `state.draftId` as undefined and create a second draft. That
-   * is how one release ended up with several duplicate drafts. This is set
-   * synchronously, so every save after the first carries the id.
-   */
   const draftIdRef = useRef<number | undefined>(undefined);
 
   const update = useCallback((patch: Partial<UploadState>) => {
@@ -420,9 +433,6 @@ export default function UploadModal({
     const idx = stepIndex(state.step);
     if (idx > 0) goTo(STEP_ORDER[idx - 1]);
   }, [state.step, goTo]);
-
-
-
 
   const clearFieldError = useCallback((key: string) => {
     setFieldErrors((prev) => { const next = { ...prev }; delete next[key]; return next; });
@@ -604,8 +614,6 @@ export default function UploadModal({
       .filter((c): c is { id: string; title: string; kind: "added" | "audio" } => c !== null);
   }, [state.tracks, originalTracks]);
 
-  /* Tracks still missing audio or a title, so an album cannot be sent
-     half-finished without the artist being told which track is at fault. */
   const incompleteTracks = useMemo(
     () =>
       state.tracks
@@ -681,7 +689,7 @@ export default function UploadModal({
         ? { ...base, upload_type: "Single", track_title: state.trackTitle || state.releaseTitle,
             audio_file_path: state.audioUrl, s3_key: state.audioKey, s3_bucket: state.audioBucket,
             isrc: state.isrc || null, lyrics: state.lyrics, lyrics_language: state.metaLanguage,
-            duration: state.audioDuration, social_media_timestamp: state.tiktokTimestamp,
+            duration: state.audioDuration, social_media_timestamp: normaliseTimestamp(state.tiktokTimestamp),
             single_track_contributors: JSON.stringify(formattedContributors),
             single_track_additional_artists: state.additionalArtists.length > 0 ? JSON.stringify(formatAdditionalArtistsForBackend(state.additionalArtists)) : null }
         : { ...base, upload_type: "Album/EP", release_version: state.releaseVersion || "",
@@ -695,7 +703,7 @@ export default function UploadModal({
               genre: tr.genre || state.genre, subgenre: tr.subGenre || state.subGenre,
               recorded_year: state.recordedYear, isrc: tr.isrc || null, stereo_ai_use: "None",
               lyrics: tr.lyrics || "", lyrics_language: state.metaLanguage,
-              duration: tr.audioDuration || "", social_media_timestamp: tr.tiktokTimestamp || 0,
+              duration: tr.audioDuration || "", social_media_timestamp: normaliseTimestamp(tr.tiktokTimestamp),
               contributors: JSON.stringify(formatContributorsForBackend(tr.contributors)),
               additional_artists: tr.additionalArtists && tr.additionalArtists.length > 0
                 ? JSON.stringify(formatAdditionalArtistsForBackend(tr.additionalArtists))
@@ -704,7 +712,30 @@ export default function UploadModal({
 
       const res = await uploadMusic(payload);
       dismiss(t);
-      if (res.error) { toastError("Submission failed", res.error); setIsSubmitting(false); return; }
+
+      if (res.error) {
+        const fieldErrors = res.errors ?? null;
+
+        if (fieldErrors && Object.keys(fieldErrors).length > 0) {
+          const lines = Object.values(fieldErrors)
+            .flat()
+            .filter(Boolean) as string[];
+
+          setSubmitErrors(lines);
+          toastError(
+            lines.length === 1 ? "One thing to fix" : `${lines.length} things to fix`,
+            lines[0]
+          );
+        } else {
+          setSubmitErrors([res.error]);
+          toastError("Submission failed", res.error);
+        }
+
+        setIsSubmitting(false);
+        return;
+      }
+
+      setSubmitErrors([]);
       success("Release submitted!", "Your release is now under review.");
       goTo("submitted");
     } catch {
@@ -832,6 +863,31 @@ export default function UploadModal({
           {state.step === "upload-track" && (
             <UploadTrack state={state} update={update} updateTrack={updateTrack} removeTrack={removeTrack} reorderTrack={reorderTrack} onBack={goBack} onContinue={handleStep2Continue} onSaveDraft={handleSaveDraft} fieldErrors={fieldErrors} clearFieldError={clearFieldError} />
           )}
+
+          {state.step === "distribution" && submitErrors.length > 0 && (
+            <div className="mx-7 mb-4 rounded-xl border border-[#C30100]/30 bg-[#C30100]/[0.07] p-4">
+              <p className="font-body text-white text-sm font-medium mb-2">
+                {submitErrors.length === 1
+                  ? "One thing needs fixing before this can be submitted"
+                  : `${submitErrors.length} things need fixing before this can be submitted`}
+              </p>
+
+              <ul className="flex flex-col gap-1.5">
+                {submitErrors.map((line) => (
+                  <li key={line} className="flex items-start gap-2">
+                    <span aria-hidden className="text-[#C30100] text-xs mt-0.5">•</span>
+                    <span className="font-body text-white/70 text-xs leading-relaxed">{line}</span>
+                  </li>
+                ))}
+              </ul>
+
+              <p className="font-body text-white/35 text-[11px] mt-3 leading-relaxed">
+                Your uploaded files are still here — go back and correct these,
+                then submit again.
+              </p>
+            </div>
+          )}
+
           {state.step === "distribution" && (
             <ReleaseAvailability state={state} update={update} onBack={goBack} onSubmit={isEditing ? () => setReviewOpen(true) : handleStep3Submit} onQuickDrop={() => setQuickDropOpen(true)} onSaveDraft={handleSaveDraft} isSubmitting={isSubmitting} fieldErrors={fieldErrors} clearFieldError={clearFieldError} submitLabel={isEditing ? "Review Changes" : undefined} />
           )}
