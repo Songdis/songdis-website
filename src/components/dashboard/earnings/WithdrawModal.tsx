@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { useWithdrawal, useBanks } from "@/lib/hooks/useEarnings";
+import { getPayoutStatus, type PayoutStatus } from "@/lib/api/payout";
+import BankSelect from "./BankSelect";
 
 type Step = "amount" | "otp" | "done";
 
@@ -27,6 +29,26 @@ export default function WithdrawModal({ availableBalance, onClose, onSuccess }: 
   } = useWithdrawal();
 
   const { banks, isLoading: banksLoading } = useBanks(currency);
+
+  /*
+   * Whether identity verification stands between them and a payout.
+   *
+   * Checked here as well as on the server so an artist is told before filling
+   * the form in, rather than after entering an amount and a bank account.
+   */
+  const [payout, setPayout] = useState<PayoutStatus | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    getPayoutStatus().then((res) => {
+      if (!cancelled && !res.error && res.data) setPayout(res.data);
+    });
+
+    return () => { cancelled = true; };
+  }, []);
+
+  const blockedByIdentity = payout !== null && payout.enforced && !payout.can_withdraw;
 
   /* Auto-verify account when bank + 10-digit number selected */
   useEffect(() => {
@@ -80,8 +102,33 @@ export default function WithdrawModal({ availableBalance, onClose, onSuccess }: 
             Available: <span className="text-white font-semibold">${availableBalance.toLocaleString("en-US", { minimumFractionDigits: 2 })}</span>
           </p>
 
+          {/* Verification stands in the way — say so before they fill in a
+              form the server is going to refuse. */}
+          {blockedByIdentity && (
+            <div className="rounded-xl border border-[#C30100]/30 bg-[#C30100]/[0.07] p-5 text-center">
+              <p className="font-body text-white text-sm font-medium mb-2">
+                {payout?.identity_verified
+                  ? "Add your payout account first"
+                  : "Verify your identity first"}
+              </p>
+              <p className="font-body text-white/55 text-xs leading-relaxed mb-4">
+                {payout?.pending_review
+                  ? "Your account is being reviewed by our team. We will email you as soon as it is approved."
+                  : payout?.identity_verified
+                    ? "Add the bank account you want to be paid into, on the Earnings page."
+                    : "For your security, royalties are only paid to a verified account. It takes about two minutes, on the Earnings page."}
+              </p>
+              <button
+                onClick={onClose}
+                className="font-body text-xs text-white bg-[#C30100] rounded-full px-5 py-2.5 hover:bg-[#a80000] transition-colors min-h-[44px]"
+              >
+                Take me there
+              </button>
+            </div>
+          )}
+
           {/* ── Step 1: Amount + Bank details ── */}
-          {step === "amount" && (
+          {!blockedByIdentity && step === "amount" && (
             <div className="flex flex-col gap-4">
 
               {/* Amount */}
@@ -105,19 +152,14 @@ export default function WithdrawModal({ availableBalance, onClose, onSuccess }: 
                 </select>
               </Field>
 
-              {/* Bank */}
-              <Field label="Bank">
-                {banksLoading ? (
-                  <p className="font-body text-white/30 text-xs py-3">Loading banks...</p>
-                ) : (
-                  <select value={bankCode} onChange={(e) => setBankCode(e.target.value)} className={selectCls}>
-                    <option value="">Select bank</option>
-                    {banks.map((b) => (
-                      <option key={b.code} value={b.code}>{b.name}</option>
-                    ))}
-                  </select>
-                )}
-              </Field>
+              {/* Bank — searchable, because the Nigerian list runs past a
+                  hundred entries once microfinance banks are included. */}
+              <BankSelect
+                banks={banks}
+                value={bankCode}
+                onChange={setBankCode}
+                isLoading={banksLoading}
+              />
 
               {/* Account number */}
               <Field label="Account Number">
@@ -150,22 +192,67 @@ export default function WithdrawModal({ availableBalance, onClose, onSuccess }: 
               {/* Preview breakdown */}
               {preview && (
                 <div className="rounded-xl border border-white/[0.06] bg-[#0E0808] p-4 flex flex-col gap-2">
-                  {[
-                    { label: "Amount (USD)",      value: `$${preview.amount_usd}` },
-                    { label: "Exchange Rate",      value: `1 USD = ${preview.exchange_rate?.toLocaleString()} ${currency}` },
-                    { label: "Converted Amount",   value: `${preview.converted_amount?.toLocaleString()} ${currency}` },
-                    { label: "Conversion Fee",     value: `${preview.conversion_fee?.toLocaleString()} ${currency}` },
-                    { label: "Transfer Fee",       value: `${preview.transfer_fee?.toLocaleString()} ${currency}` },
-                  ].map(({ label, value }) => (
-                    <div key={label} className="flex items-center justify-between">
-                      <p className="font-body text-white/50 text-xs">{label}</p>
-                      <p className="font-body text-white text-xs font-medium">{value}</p>
-                    </div>
-                  ))}
+                  {(() => {
+                    const money = (n?: number) =>
+                      typeof n === "number" ? n.toLocaleString(undefined, { maximumFractionDigits: 2 }) : "—";
+
+                    const rows: { label: string; value: string; muted?: boolean }[] = [
+                      { label: "Amount", value: `$${money(preview.amount_usd)}` },
+                      {
+                        label: `Conversion fee (${preview.conversion_fee_percentage ?? 1}%)`,
+                        value: `-$${money(preview.conversion_fee_usd)}`,
+                      },
+                      {
+                        label: "Exchange rate",
+                        value: `1 USD = ${money(preview.exchange_rate)} ${currency}`,
+                      },
+                      {
+                        label: "Converted amount",
+                        value: `${money(preview.estimated_amount)} ${currency}`,
+                      },
+                    ];
+
+
+                    if ((preview.transfer_fee_vat ?? 0) > 0) {
+                      rows.push(
+                        {
+                          label: "Transfer fee",
+                          value: `-${money(preview.transfer_fee_base)} ${currency}`,
+                        },
+                        {
+                          label: `VAT on transfer fee (${preview.transfer_fee_vat_rate}%)`,
+                          value: `-${money(preview.transfer_fee_vat)} ${currency}`,
+                          muted: true,
+                        },
+                        {
+                          label: "Transfer fee total",
+                          value: `-${money(preview.transfer_fee_local)} ${currency}`,
+                        },
+                      );
+                    } else {
+                      rows.push({
+                        label: "Transfer fee",
+                        value: `-${money(preview.transfer_fee_local)} ${currency}`,
+                      });
+                    }
+
+                    return rows.map(({ label, value, muted }) => (
+                      <div key={label} className="flex items-center justify-between">
+                        <p className={muted ? "font-body text-white/35 text-[11px] pl-3" : "font-body text-white/50 text-xs"}>
+                          {label}
+                        </p>
+                        <p className={muted ? "font-body text-white/60 text-[11px]" : "font-body text-white text-xs font-medium"}>
+                          {value}
+                        </p>
+                      </div>
+                    ));
+                  })()}
                   <div className="border-t border-white/[0.06] pt-2 flex items-center justify-between">
                     <p className="font-body text-white/70 text-xs font-semibold">You Receive</p>
                     <p className="font-heading text-[#C30100] text-sm font-bold">
-                      {preview.will_receive?.toLocaleString()} {currency}
+                      {typeof preview.estimated_amount_after_transfer_fee === "number"
+                        ? preview.estimated_amount_after_transfer_fee.toLocaleString(undefined, { maximumFractionDigits: 2 })
+                        : "—"} {currency}
                     </p>
                   </div>
                 </div>

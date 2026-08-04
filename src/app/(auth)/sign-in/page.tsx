@@ -67,7 +67,6 @@ export default function SignInPage() {
           error={fieldErrors.email}
           autoComplete="email"
         />
-
         <div className="flex flex-col gap-1.5">
           <PasswordInput
             label="Password"
@@ -83,7 +82,7 @@ export default function SignInPage() {
           <div className="flex justify-end">
             <Link
               href="/forgot-password"
-              className="font-body text-[#C30100] text-xs hover:text-red-400 transition-colors"
+              className="font-body text-[#C30100] text-xs hover:text-red-400 transition-colors inline-flex items-center min-h-[44px] px-2 -mr-2"
             >
               Forgot password?
             </Link>
@@ -100,7 +99,7 @@ export default function SignInPage() {
           First time using Songdis?{" "}
           <Link
             href="/sign-up"
-            className="text-[#C30100] hover:text-red-400 transition-colors"
+            className="text-[#C30100] hover:text-red-400 transition-colors inline-flex items-center min-h-[44px] px-2"
           >
             Sign up
           </Link>

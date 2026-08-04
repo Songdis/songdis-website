@@ -16,14 +16,23 @@ export interface PreviewPayload {
   target_currency: string;
 }
 
+
 export interface PreviewData {
   amount_usd: number;
   target_currency: string;
   exchange_rate: number;
-  converted_amount: number;
-  conversion_fee: number;
-  transfer_fee: number;
-  will_receive: number;
+  conversion_fee_usd: number;
+  conversion_fee_percentage: number;
+  amount_after_fee_usd: number;
+  estimated_amount: number;
+  transfer_fee_local: number;
+  transfer_fee_base: number;
+  transfer_fee_vat: number;
+  transfer_fee_vat_rate: number;
+  transfer_fee_currency: string;
+  estimated_amount_after_transfer_fee: number;
+
+  available_balance: number;
   [key: string]: unknown;
 }
 

@@ -3,10 +3,7 @@ import { Montserrat } from "next/font/google";
 import "./globals.css";
 import { ToastProvider } from "@/components/ui/Toast";
 
-/**
- * Montserrat — loaded via next/font for zero-CLS, automatic subsetting,
- * self-hosted from Google Fonts infrastructure.
- */
+
 const montserrat = Montserrat({
   subsets: ["latin"],
   variable: "--font-montserrat",
@@ -15,7 +12,7 @@ const montserrat = Montserrat({
 });
 
 export const metadata: Metadata = {
-  title: "Songdis: The Operating System for Artists & Labels",
+  title: "The Operating System for Artists & Labels",
   description:
     "Upload your music on Spotify, Apple Music & more. Keep 100% ownership, access pro tools, and earn in any currency.",
   keywords: [
@@ -28,7 +25,7 @@ export const metadata: Metadata = {
     "songdis",
   ],
   openGraph: {
-    title: "Songdis: The Operating System for Artists & Labels",
+    title: "The Operating System for Artists & Labels",
     description:
       "Upload your music on Spotify, Apple Music & more. Keep 100% ownership.",
     type: "website",
@@ -36,7 +33,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Songdis: The Operating System for Artists & Labels",
+    title: "The Operating System for Artists & Labels",
     description:
       "Upload your music on Spotify, Apple Music & more. Keep 100% ownership.",
   },

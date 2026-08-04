@@ -5,6 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import DashboardLayout from "@/components/dashboard/DashboardLayout";
 import WithdrawModal from "@/components/dashboard/earnings/WithdrawModal";
+import PayoutAccountCard from "@/components/dashboard/earnings/PayoutAccountCard";
 import { useEarningsBalance, useWithdrawalHistory } from "@/lib/hooks/useEarnings";
 import { useSplitEarnings } from "@/lib/hooks/useSplit";
 import { MOCK_EARNINGS } from "@/app/mock/earnings";
@@ -54,6 +55,10 @@ export default function EarningsPage() {
            <StatCard label="Total Earnings"  value={balanceLoading ? "..." : fmt(totalEarnings)}  icon="/images/releases.svg" />
           <StatCard label="From Splits"    value={balanceLoading ? "..." : fmt(fromSplits)}    icon="/images/splits.svg" />
         </div>
+
+        {/* Identity and payout account. Renders nothing until there is
+            something to act on, so it stays out of the way once set up. */}
+        <PayoutAccountCard />
 
         {/* Ayo insight */}
         <div className="rounded-2xl border border-white/[0.06] bg-[#180F0F] p-5">

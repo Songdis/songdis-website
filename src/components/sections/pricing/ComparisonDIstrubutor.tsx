@@ -2,9 +2,7 @@
 
 import React, { useEffect, useRef, useState } from "react";
 
-/* ─────────────────────────────────────────────────────────
-   SCROLL-REVEAL HOOK
-───────────────────────────────────────────────────────── */
+
 function useInView(threshold = 0.1) {
   const ref = useRef<HTMLDivElement>(null);
   const [inView, setInView] = useState(false);
@@ -23,9 +21,7 @@ function useInView(threshold = 0.1) {
   return { ref, inView };
 }
 
-/* ─────────────────────────────────────────────────────────
-   DATA
-───────────────────────────────────────────────────────── */
+
 const COLUMNS = ["Feature", "Songdis", "Distrokid", "Tunecore", "CD Baby"];
 
 const ROWS = [
@@ -73,9 +69,7 @@ const ROWS = [
   },
 ];
 
-/* ─────────────────────────────────────────────────────────
-   CELL VALUE — color coding
-───────────────────────────────────────────────────────── */
+
 const CellValue: React.FC<{ value: string; isSongdis?: boolean }> = ({
   value,
   isSongdis,
@@ -105,9 +99,7 @@ const CellValue: React.FC<{ value: string; isSongdis?: boolean }> = ({
   );
 };
 
-/* ─────────────────────────────────────────────────────────
-   COMPARE DISTRIBUTORS SECTION
-───────────────────────────────────────────────────────── */
+
 const CompareDistributors: React.FC = () => {
   const { ref: headRef, inView: headInView } = useInView(0.2);
   const { ref: tableRef, inView: tableInView } = useInView(0.05);
@@ -144,7 +136,6 @@ const CompareDistributors: React.FC = () => {
           </p>
         </div>
 
-        {/* ── TABLE — horizontally scrollable on mobile ── */}
         <div
           ref={tableRef}
           className={[

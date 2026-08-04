@@ -13,7 +13,6 @@ import {
 import { useSignUp, useGoogleSignIn } from "@/lib/hooks/useAuth";
 import { GoogleIcon } from "@/components/auth/GoogleIcon";
 
-/* ─── Field-level validation ──────────────────────────────────── */
 interface FieldErrors {
   fullName?: string;
   email?: string;
@@ -52,7 +51,6 @@ function validate(fields: {
   return errors;
 }
 
-/* ─── Page ────────────────────────────────────────────────────── */
 export default function SignUpPage() {
   const router = useRouter();
   const { mutate, isLoading, error } = useSignUp();
@@ -69,7 +67,6 @@ export default function SignUpPage() {
 
   const set = (key: keyof typeof fields) => (e: React.ChangeEvent<HTMLInputElement>) => {
     setFields((f) => ({ ...f, [key]: e.target.value }));
-    // Clear field error on change
     setFieldErrors((fe) => ({ ...fe, [key]: undefined }));
   };
 
@@ -91,7 +88,6 @@ export default function SignUpPage() {
         referralCode: fields.referralCode || undefined,
       },
       () => {
-        // On success — redirect to OTP verification with email in query
         router.push(
           `/verify-email?email=${encodeURIComponent(fields.email)}&flow=signup`
         );
@@ -170,7 +166,7 @@ export default function SignUpPage() {
           Already have an account?{" "}
           <Link
             href="/sign-in"
-            className="text-[#C30100] hover:text-red-400 transition-colors"
+            className="text-[#C30100] hover:text-red-400 transition-colors inline-flex items-center min-h-[44px] px-2"
           >
             Sign in
           </Link>
