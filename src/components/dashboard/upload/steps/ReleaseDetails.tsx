@@ -190,6 +190,62 @@ export default function ReleaseDetails({ state, update, onBack, onContinue, onSa
       img.src = objectUrl;
     });
 
+  /**
+   * Shrink an oversized cover before uploading it.
+   *
+   * Design tools export lossless PNGs that routinely pass 50MB, and on a
+   * mobile connection that is several minutes of upload for an image the
+   * stores only need at 3000x3000. Re-encoding it here turns a 60MB file into
+   * a couple of megabytes without changing what anyone sees.
+   *
+   * Returns the original untouched if anything goes wrong, or if the file is
+   * already a sensible size — a failed optimisation must never cost someone
+   * their upload.
+   */
+  const shrinkIfHuge = async (file: File, dims: { w: number; h: number }): Promise<File> => {
+    const TOO_BIG = 12 * 1024 * 1024;
+
+    if (file.size <= TOO_BIG) return file;
+
+    // Never go below the 3000px the stores require. Anything larger than
+    // 4000 is downscaled; between 3000 and 4000 we keep the pixels and just
+    // re-encode, which is where most of the saving comes from anyway.
+    const longest = Math.max(dims.w, dims.h);
+    const scale = longest > 4000 ? 3000 / Math.min(dims.w, dims.h) : 1;
+
+    const targetW = Math.round(dims.w * scale);
+    const targetH = Math.round(dims.h * scale);
+
+    if (Math.min(targetW, targetH) < 3000) return file;
+
+    try {
+      const bitmap = await createImageBitmap(file);
+      const canvas = document.createElement("canvas");
+      canvas.width = targetW;
+      canvas.height = targetH;
+
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return file;
+
+      ctx.drawImage(bitmap, 0, 0, targetW, targetH);
+      bitmap.close?.();
+
+      const blob = await new Promise<Blob | null>((resolve) =>
+        canvas.toBlob(resolve, "image/jpeg", 0.92)
+      );
+
+      if (!blob || blob.size >= file.size) return file;
+
+      return new File(
+        [blob],
+        file.name.replace(/\.[^.]+$/, "") + ".jpg",
+        { type: "image/jpeg" }
+      );
+    } catch {
+      return file;
+    }
+  };
+
   const handleFixArtwork = async () => {
     if (!artworkIssue) return;
 
@@ -240,7 +296,11 @@ export default function ReleaseDetails({ state, update, onBack, onContinue, onSa
     setUploadProgress(null);
 
     try {
-      const result = await uploadArtwork(file, (p) => setUploadProgress(p));
+      // A huge cover is re-encoded before it goes anywhere. dims is non-null
+      // here: an unreadable image skips the size check and this along with it.
+      const toUpload = dims ? await shrinkIfHuge(file, dims) : file;
+
+      const result = await uploadArtwork(toUpload, (p) => setUploadProgress(p));
       update({
         artworkUrl: result.file_url,
         artworkKey: result.s3_key,
@@ -302,7 +362,7 @@ export default function ReleaseDetails({ state, update, onBack, onContinue, onSa
             className="w-full border-2 border-dashed border-[#C30100]/40 rounded-xl py-10 flex flex-col items-center gap-2 hover:border-[#C30100]/70 transition-colors mb-5">
             <UploadIcon />
             <p className="font-body text-white/50 text-sm">{uploading ? "Uploading..." : "Click to upload artwork"}</p>
-            <p className="font-body text-white/25 text-xs">or drag and drop · Min 3000×3000px · Max 10MB</p>
+            <p className="font-body text-white/25 text-xs">or drag and drop · Min 3000×3000px · JPG, PNG or WebP</p>
           </button>
         )}
         <input ref={fileRef} type="file" accept=".png,.jpg,.jpeg,.webp,image/png,image/jpeg,image/webp" className="hidden" onChange={handleFileChange} />
