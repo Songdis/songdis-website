@@ -62,6 +62,50 @@ function normaliseTimestamp(value: unknown): number {
   return Number.isFinite(asNumber) ? Math.max(0, Math.floor(asNumber)) : 0;
 }
 
+/** A problem the server refused, and where the artist can fix it. */
+interface SubmitProblem {
+  field: string;
+  message: string;
+  step: "Release details" | "Tracks" | "Distribution" | null;
+}
+
+/**
+ * Which step a rejected field belongs to.
+ *
+ * Telling someone to "go back and correct these" is no use if they then have
+ * to hunt for the field across three steps.
+ */
+function stepForField(field: string): SubmitProblem["step"] {
+  const base = field.replace(/^tracks\.\d+\./, "");
+
+  if (base.startsWith("tracks")) return "Tracks";
+
+  const details = [
+    "release_title", "track_title", "primary_artist", "composer", "label",
+    "album_art_url", "album_art_key", "album_art_sizes", "cover_art_ai_use",
+    "c_line", "p_line", "explicit_content", "primary_genre", "secondary_genre",
+    "genre", "subgenre", "recorded_year", "metadata_language", "upc_code",
+  ];
+
+  const tracks = [
+    "audio_file_path", "s3_key", "s3_bucket", "isrc", "lyrics",
+    "lyrics_language", "duration", "social_media_timestamp",
+    "stereo_ai_use", "contributors", "additional_artists",
+    "single_track_contributors", "single_track_additional_artists",
+  ];
+
+  const distribution = [
+    "release_date", "pre_order_date", "is_previously_released",
+    "original_release_date", "platforms", "territory_rights",
+  ];
+
+  if (details.includes(base)) return "Release details";
+  if (tracks.includes(base)) return "Tracks";
+  if (distribution.includes(base)) return "Distribution";
+
+  return null;
+}
+
 export interface UploadState {
   releaseType: ReleaseType | null;
   step: UploadStep;
@@ -188,7 +232,16 @@ export default function UploadModal({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoadingDraft, setIsLoadingDraft] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<StepFieldErrors>({});
-  const [submitErrors, setSubmitErrors] = useState<string[]>([]);
+  const [submitErrors, setSubmitErrors] = useState<SubmitProblem[]>([]);
+
+  // Errors render above the step content, but Submit is at the bottom of a
+  // scrolling modal — without this the page would appear to do nothing.
+  const submitErrorRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (submitErrors.length === 0) return;
+    submitErrorRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [submitErrors]);
   const { success, error: toastError, loading: toastLoading, dismiss } = useToast();
   const isEditing = Boolean(editReleaseId);
   const [original, setOriginal] = useState<Record<string, unknown> | null>(null);
@@ -717,17 +770,22 @@ export default function UploadModal({
         const fieldErrors = res.errors ?? null;
 
         if (fieldErrors && Object.keys(fieldErrors).length > 0) {
-          const lines = Object.values(fieldErrors)
-            .flat()
-            .filter(Boolean) as string[];
+          const lines: SubmitProblem[] = Object.entries(fieldErrors).flatMap(
+            ([field, messages]) =>
+              (messages ?? []).filter(Boolean).map((message) => ({
+                field,
+                message,
+                step: stepForField(field),
+              }))
+          );
 
           setSubmitErrors(lines);
           toastError(
             lines.length === 1 ? "One thing to fix" : `${lines.length} things to fix`,
-            lines[0]
+            lines[0]?.message ?? res.error
           );
         } else {
-          setSubmitErrors([res.error]);
+          setSubmitErrors([{ field: "", message: res.error, step: null }]);
           toastError("Submission failed", res.error);
         }
 
@@ -865,25 +923,35 @@ export default function UploadModal({
           )}
 
           {state.step === "distribution" && submitErrors.length > 0 && (
-            <div className="mx-7 mb-4 rounded-xl border border-[#C30100]/30 bg-[#C30100]/[0.07] p-4">
+            <div
+              ref={submitErrorRef}
+              role="alert"
+              aria-live="assertive"
+              className="mx-7 mb-4 rounded-xl border border-[#C30100]/30 bg-[#C30100]/[0.07] p-4 scroll-mt-4"
+            >
               <p className="font-body text-white text-sm font-medium mb-2">
                 {submitErrors.length === 1
                   ? "One thing needs fixing before this can be submitted"
                   : `${submitErrors.length} things need fixing before this can be submitted`}
               </p>
 
-              <ul className="flex flex-col gap-1.5">
-                {submitErrors.map((line) => (
-                  <li key={line} className="flex items-start gap-2">
+              <ul className="flex flex-col gap-2">
+                {submitErrors.map((problem, i) => (
+                  <li key={`${problem.field}-${i}`} className="flex items-start gap-2">
                     <span aria-hidden className="text-[#C30100] text-xs mt-0.5">•</span>
-                    <span className="font-body text-white/70 text-xs leading-relaxed">{line}</span>
+                    <span className="font-body text-white/70 text-xs leading-relaxed">
+                      {problem.message}
+                      {problem.step && (
+                        <span className="text-white/35"> — {problem.step}</span>
+                      )}
+                    </span>
                   </li>
                 ))}
               </ul>
 
               <p className="font-body text-white/35 text-[11px] mt-3 leading-relaxed">
-                Your uploaded files are still here — go back and correct these,
-                then submit again.
+                Your uploaded files are still here. Go back to the step named
+                beside each item, correct it, then submit again.
               </p>
             </div>
           )}
