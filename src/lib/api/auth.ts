@@ -61,6 +61,8 @@ export interface ArtistProfile {
   facebook_url?: string;
   spotify_url?: string;
   apple_music_url?: string;
+  tiktok_url?: string;
+  youtube_url?: string;
   profile_image?: string;
   spotify_image_url?: string;
 }
@@ -163,12 +165,22 @@ export interface CreateProfilePayload {
   facebook_url: string;
   spotify_url: string;
   apple_music_url: string;
+  tiktok_url: string;
+  youtube_url: string;
 }
 
 
 export async function createProfile(payload: CreateProfilePayload) {
   return request<ArtistProfile>("/create-profile", {
     method: "POST",
+    body: JSON.stringify(payload),
+  }, true);
+}
+
+
+export async function updateProfile(id: number, payload: CreateProfilePayload) {
+  return request<ArtistProfile>(`/profile/${id}`, {
+    method: "PUT",
     body: JSON.stringify(payload),
   }, true);
 }

@@ -109,8 +109,7 @@ function ArtistProfileTab() {
   const { isLocked, artists } = useBilling(0);
   const router = useRouter();
 
-  // Ask for a plan only when they actually try to create something. The server
-  // enforces the same rule, so this is a courtesy, not the guard.
+
   const handleAddArtist = () => {
     if (isLocked || artists?.can_create === false) {
       setShowSubscribePrompt(true);
@@ -149,6 +148,7 @@ function ArtistProfileTab() {
             twitter: (p.twitter_url ?? p.twitter ?? "") as string,
             facebook: (p.facebook_url ?? p.facebook ?? "") as string,
             tiktok: (p.tiktok_url ?? p.tiktok ?? "") as string,
+            youtube: (p.youtube_url ?? p.youtube ?? "") as string,
             appleMusic: (p.apple_music_url ?? p.appleMusic ?? "") as string,
             spotify: (p.spotify_url ?? p.spotify ?? "") as string,
             cover: (p.cover ?? "") as string,
@@ -170,10 +170,7 @@ function ArtistProfileTab() {
     setShowEditModal(true);
   };
 
-  // Deleting is permanent, and the server refuses when the artist has
-  // releases, so the row is only removed once the request actually succeeds.
-  // Previously it disappeared from the list either way, which made a refused
-  // delete look like it had worked until the page was reloaded.
+
   const handleDelete = async (profile: ArtistProfile) => {
     setDeleteError(null);
     setDeletingId(profile.id);
@@ -260,8 +257,7 @@ function ArtistProfileTab() {
         </button>
       </div>
 
-      {/* The paywall lands here rather than on arrival: they came to create a
-          profile, so ask for a plan at the moment it is actually needed. */}
+ 
       <ConfirmDialog
         open={showSubscribePrompt}
         title={profiles.length === 0 ? "Choose a plan to continue" : "Upgrade to add another artist"}
@@ -348,7 +344,6 @@ function ProfileCard({
       {/* Red header */}
       <div className="h-20 bg-[#C30100]" />
 
-      {/* Avatar — negative margin pulls it up over the header cleanly */}
       <div className="flex flex-col items-center px-4 pb-4 -mt-8 relative z-10">
         <div className="relative w-16 h-16 rounded-full overflow-hidden border-4 border-[#0E0808] shrink-0 mb-3">
           <Image
@@ -411,8 +406,7 @@ function ProfileCard({
           Edit Profile
         </button>
 
-        {/* Understated on purpose: deleting an artist is rare and permanent,
-            so it should not sit next to Edit as an equal choice. */}
+       
         {onDelete && (
           <button
             onClick={onDelete}
@@ -426,13 +420,7 @@ function ProfileCard({
   );
 }
 
-/**
- * Confirmation for deleting an artist profile.
- *
- * Types-to-confirm rather than a plain OK: the delete is permanent, and the
- * stage name is the one thing that makes it unmistakable which artist is
- * about to go.
- */
+
 function DeleteProfileModal({
   profile,
   isDeleting,
@@ -554,14 +542,6 @@ function LimitInfoModal({
           </p>
         </div>
         <div className="rounded-xl bg-[#0E0808] border border-white/[0.06] p-4 mb-5">
-          {/* <p className="font-montserrat text-white text-sm font-semibold">
-            Your Label Plan includes 3 artist profiles
-          </p> */}
-          {/* <p className="font-montserrat text-white/40 text-xs mt-1">
-            Each additional seat costs{" "}
-            <span className="text-[#C30100]">₦30,000</span> per artist, per year
-            — charged immediately and billed with your renewal.
-          </p> */}
         </div>
         <p className="font-nulshock text-white/50 uppercase text-xs tracking-widest mb-4">
           How to Add a New Artist

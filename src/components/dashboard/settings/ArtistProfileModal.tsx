@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
-import { createProfile, searchSpotifyArtists, verifySpotifyUrl } from "@/lib/api/auth";
+import { createProfile, updateProfile, searchSpotifyArtists, verifySpotifyUrl } from "@/lib/api/auth";
 import type { SpotifyArtist } from "@/lib/api/auth";
 import { useToast } from "@/components/ui/Toast";
 
@@ -20,6 +20,7 @@ export interface ArtistProfile {
   twitter: string;
   facebook: string;
   tiktok: string;
+  youtube: string;
   appleMusic: string;
   spotify: string;
   cover: string;
@@ -96,10 +97,14 @@ export default function ArtistProfileModal({
   const [instagram, setInstagram] = useState(profile?.instagram ?? "");
   const [facebook, setFacebook] = useState(profile?.facebook ?? "");
   const [appleMusic, setAppleMusic] = useState(profile?.appleMusic ?? "");
+  const [tiktok, setTiktok] = useState(profile?.tiktok ?? "");
+  const [youtube, setYoutube] = useState(profile?.youtube ?? "");
   const [noTwitter, setNoTwitter] = useState(false);
   const [noInstagram, setNoInstagram] = useState(false);
   const [noFacebook, setNoFacebook] = useState(false);
   const [noAppleMusic, setNoAppleMusic] = useState(false);
+  const [noTiktok, setNoTiktok] = useState(false);
+  const [noYoutube, setNoYoutube] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [apiError, setApiError] = useState("");
@@ -227,7 +232,7 @@ export default function ArtistProfileModal({
     setIsSaving(true);
     setFieldErrors({});
     setApiError("");
-    const res = await createProfile({
+    const payload = {
       full_name: fullName,
       stage_name: stageName,
       dob,
@@ -239,7 +244,26 @@ export default function ArtistProfileModal({
       facebook_url: facebook,
       spotify_url: spotifyUrlInput,
       apple_music_url: appleMusic,
-    });
+      tiktok_url: tiktok,
+      youtube_url: youtube,
+    };
+
+    /*
+     * Editing UPDATES; it does not create.
+     *
+     * This used to call createProfile() unconditionally, so pressing "Save Changes" on an
+     * existing artist POSTed a brand-new profile. Before artist limits existed that meant
+     * silent duplicates; afterwards it meant the edit was refused outright with an upgrade
+     * prompt — told to an artist who was only fixing a typo. `PUT /profile/{id}` had been
+     * there the whole time with no client calling it.
+     */
+    // Number(): this file declares its OWN local ArtistProfile whose `id` is a string,
+    // while the API client's is a number. Same mismatch that broke draft deletion before.
+    const editingId = profile ? Number(profile.id) : NaN;
+
+    const res = isEdit && Number.isFinite(editingId)
+      ? await updateProfile(editingId, payload)
+      : await createProfile(payload);
     setIsSaving(false);
 
     if (res.error) {
@@ -272,7 +296,8 @@ export default function ArtistProfileModal({
       instagram,
       twitter,
       facebook,
-      tiktok: profile?.tiktok ?? "",
+      tiktok,
+      youtube,
       appleMusic,
       spotify: spotifyUrlInput,
       cover: profile?.cover ?? "",
@@ -725,6 +750,50 @@ export default function ArtistProfileModal({
                     />
                     <span className="font-montserrat text-white/40 text-xs">
                       I don&apos;t have Apple Music
+                    </span>
+                  </label>
+                </div>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <Field label="TikTok">
+                    <Input
+                      value={tiktok}
+                      onChange={(v) => { setTiktok(v); clearFieldError("tiktok_url"); }}
+                      placeholder="TikTok profile URL"
+                    />
+                  </Field>
+                  {fieldErrors.tiktok_url && <FieldError message={fieldErrors.tiktok_url} />}
+                  <label className="flex items-center gap-2 mt-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={noTiktok}
+                      onChange={() => setNoTiktok(!noTiktok)}
+                      className="accent-[#C30100]"
+                    />
+                    <span className="font-montserrat text-white/40 text-xs">
+                      I don&apos;t have TikTok
+                    </span>
+                  </label>
+                </div>
+                <div>
+                  <Field label="YouTube">
+                    <Input
+                      value={youtube}
+                      onChange={(v) => { setYoutube(v); clearFieldError("youtube_url"); }}
+                      placeholder="YouTube channel URL"
+                    />
+                  </Field>
+                  {fieldErrors.youtube_url && <FieldError message={fieldErrors.youtube_url} />}
+                  <label className="flex items-center gap-2 mt-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={noYoutube}
+                      onChange={() => setNoYoutube(!noYoutube)}
+                      className="accent-[#C30100]"
+                    />
+                    <span className="font-montserrat text-white/40 text-xs">
+                      I don&apos;t have YouTube
                     </span>
                   </label>
                 </div>

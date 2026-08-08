@@ -43,6 +43,13 @@ const AI_TOOLS = [
 ];
 
 const ARTIST_TOOLS = [
+  /*
+   * The artist's public page. It sits here rather than in Settings because it is
+   * PER ARTIST PROFILE — a label with twelve artists has twelve press kits and one
+   * Settings page — so it needs the header artist switcher, which account-level screens
+   * deliberately hide. Release Links is its closest sibling: also a public, shareable page.
+   */
+  { label: "Press Kit", href: "/dashboard/press-kit", badge: "NEW", svgIcon: <PressKitIcon /> },
   { label: "Splitr", href: "/dashboard/splitr", icon: "/images/splitr.svg" },
   { label: "Amplify", href: "/dashboard/amplify", icon: "/images/megaphone.svg" },
   { label: "Release Links", href: "/dashboard/release-links", icon: "/images/link.svg" },
@@ -323,6 +330,15 @@ function ReleaseIcon() {
       <path d="M9 18V5l12-2v13"/>
       <circle cx="6" cy="18" r="3"/>
       <circle cx="18" cy="16" r="3"/>
+    </svg>
+  );
+}
+function PressKitIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M4 22V4a2 2 0 0 1 2-2h9l5 5v15a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z"/>
+      <path d="M15 2v5h5"/>
+      <path d="M9 12h6M9 16h4"/>
     </svg>
   );
 }

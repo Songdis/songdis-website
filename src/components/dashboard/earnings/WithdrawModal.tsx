@@ -1,19 +1,30 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useWithdrawal, useBanks } from "@/lib/hooks/useEarnings";
 import { getPayoutStatus, type PayoutStatus } from "@/lib/api/payout";
+import { getBalance, pauseFromBalance, type BalanceData } from "@/lib/api/earnings";
 import BankSelect from "./BankSelect";
 
 type Step = "amount" | "otp" | "done";
 
 interface Props {
   availableBalance: number;
+  /** Set when the page already knows withdrawals are paused. */
+  pausedMessage?: string | null;
+  /** Fired when the server tells us mid-flow, so the page behind agrees. */
+  onPaused?: (message: string) => void;
   onClose: () => void;
   onSuccess: () => void;
 }
 
-export default function WithdrawModal({ availableBalance, onClose, onSuccess }: Props) {
+export default function WithdrawModal({
+  availableBalance,
+  pausedMessage: pausedFromPage = null,
+  onPaused,
+  onClose,
+  onSuccess,
+}: Props) {
   const [step, setStep] = useState<Step>("amount");
   const [amount, setAmount] = useState("");
   const [currency, setCurrency] = useState("NGN");
@@ -26,9 +37,52 @@ export default function WithdrawModal({ availableBalance, onClose, onSuccess }: 
     fetchOtp, isLoadingOtp, otpError,
     withdraw, isLoadingWithdraw, withdrawError,
     accountName, verifyBankAccount, isVerifying,
+    pausedMessage: pausedFromServer,
   } = useWithdrawal();
 
   const { banks, isLoading: banksLoading } = useBanks(currency);
+
+  /*
+   * ── Withdrawals paused ────────────────────────────────────────────────────
+   *
+   * Three ways we can find out, in order of freshness:
+   *   1. the page already knew when this opened,
+   *   2. the balance re-read below, in case it was paused since the page loaded,
+   *   3. a 423 from send-otp / initiate, if it was paused while this was open.
+   *
+   * All three end in the same place: the server's own message, shown instead of
+   * the form. The point is that nobody types an amount and picks a bank first.
+   */
+  const [pausedOnOpen, setPausedOnOpen] = useState<string | null>(null);
+  const paused = pausedFromServer ?? pausedOnOpen ?? pausedFromPage;
+
+  useEffect(() => {
+    let cancelled = false;
+
+    getBalance().then((res) => {
+      if (cancelled || res.error) return;
+      const raw = res.data as Record<string, unknown> | null;
+      const data = (raw?.data as BalanceData) ?? (raw as BalanceData | null);
+      const message = pauseFromBalance(data);
+      if (message) setPausedOnOpen(message);
+    });
+
+    return () => { cancelled = true; };
+  }, []);
+
+  /* Tell the page, once, so its banner and button match what we just learned. */
+  const reportedPause = useRef<string | null>(null);
+  const pauseRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!paused || reportedPause.current === paused) return;
+    reportedPause.current = paused;
+    onPaused?.(paused);
+    /* This modal scrolls. If the 423 landed at the OTP step, the notice
+       replaces content further down the page and would otherwise appear
+       off-screen — the artist would see the button do nothing. */
+    pauseRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+  }, [paused, onPaused]);
 
   /*
    * Whether identity verification stands between them and a payout.
@@ -102,9 +156,42 @@ export default function WithdrawModal({ availableBalance, onClose, onSuccess }: 
             Available: <span className="text-white font-semibold">${availableBalance.toLocaleString("en-US", { minimumFractionDigits: 2 })}</span>
           </p>
 
+          {/*
+            Paused: the whole form goes, replaced by the reason. Amber and not
+            red — this is not a failed withdrawal, it is a withdrawal that
+            cannot start yet, and the balance above is still theirs.
+          */}
+          {paused && (
+            <div ref={pauseRef} role="status" className="rounded-xl border border-amber-500/25 bg-amber-500/[0.07] p-5">
+              <div className="flex items-start gap-3">
+                <span aria-hidden className="text-amber-400 shrink-0 mt-0.5">
+                  <PauseNoticeIcon />
+                </span>
+                <div className="min-w-0">
+                  <p className="font-body text-white text-sm font-medium mb-1.5">
+                    Withdrawals are paused
+                  </p>
+                  {/* The server's wording, unchanged. */}
+                  <p className="font-body text-white/70 text-xs leading-relaxed">
+                    {paused}
+                  </p>
+                  <p className="font-body text-white/40 text-[11px] leading-relaxed mt-2">
+                    Nothing you entered has been sent and no money has moved.
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={onClose}
+                className="w-full sm:w-auto mt-4 font-body text-xs text-white border border-white/20 rounded-full px-5 py-2.5 hover:border-white/40 transition-colors min-h-[44px]"
+              >
+                Close
+              </button>
+            </div>
+          )}
+
           {/* Verification stands in the way — say so before they fill in a
               form the server is going to refuse. */}
-          {blockedByIdentity && (
+          {!paused && blockedByIdentity && (
             <div className="rounded-xl border border-[#C30100]/30 bg-[#C30100]/[0.07] p-5 text-center">
               <p className="font-body text-white text-sm font-medium mb-2">
                 {payout?.identity_verified
@@ -128,7 +215,7 @@ export default function WithdrawModal({ availableBalance, onClose, onSuccess }: 
           )}
 
           {/* ── Step 1: Amount + Bank details ── */}
-          {!blockedByIdentity && step === "amount" && (
+          {!paused && !blockedByIdentity && step === "amount" && (
             <div className="flex flex-col gap-4">
 
               {/* Amount */}
@@ -276,7 +363,7 @@ export default function WithdrawModal({ availableBalance, onClose, onSuccess }: 
           )}
 
           {/* ── Step 2: OTP ── */}
-          {step === "otp" && (
+          {!paused && step === "otp" && (
             <div className="flex flex-col gap-4">
               <p className="font-body text-white/60 text-sm text-center leading-relaxed">
                 A one-time password has been sent to your registered email/phone. Enter it below to complete your withdrawal.
@@ -325,6 +412,17 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 
 const inputCls = "w-full bg-[#0E0808] border border-white/10 rounded-lg px-4 py-3 font-body text-white text-sm placeholder:text-white/25 outline-none focus:border-[#C30100] transition-colors";
 const selectCls = "w-full appearance-none bg-[#0E0808] border border-white/10 rounded-lg px-4 py-3 font-body text-white text-sm outline-none focus:border-[#C30100] transition-colors";
+
+/* Pause bars, not a warning triangle — nothing has gone wrong here. */
+function PauseNoticeIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+      <circle cx="12" cy="12" r="9" />
+      <line x1="10" y1="9" x2="10" y2="15" />
+      <line x1="14" y1="9" x2="14" y2="15" />
+    </svg>
+  );
+}
 
 function CloseIcon() {
   return <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>;

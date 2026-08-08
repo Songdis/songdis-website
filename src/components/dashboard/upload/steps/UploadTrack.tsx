@@ -657,6 +657,7 @@ export default function UploadTrack({ state, update, updateTrack, removeTrack, r
         twitter: (p.twitter_url ?? p.twitter ?? "") as string,
         facebook: (p.facebook_url ?? p.facebook ?? "") as string,
         tiktok: (p.tiktok_url ?? p.tiktok ?? "") as string,
+        youtube: (p.youtube_url ?? p.youtube ?? "") as string,
         appleMusic: (p.apple_music_url ?? p.appleMusic ?? "") as string,
         spotify: (p.spotify_url ?? p.spotify ?? "") as string,
         cover: (p.cover ?? "") as string,

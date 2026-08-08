@@ -1,7 +1,17 @@
-import { request } from "./core";
+import { request, type ApiResponse } from "./core";
 
 
-export interface BalanceData {
+export const WITHDRAWALS_PAUSED_STATUS = 423;
+
+export const WITHDRAWALS_PAUSED_FALLBACK =
+  "Withdrawals are paused for a short while. Your balance is safe and nothing has been lost.";
+
+export interface WithdrawalPauseState {
+  withdrawals_paused?: boolean;
+  withdrawals_paused_message?: string | null;
+}
+
+export interface BalanceData extends WithdrawalPauseState {
   balance_usd: number;
   balance_ngn?: number;
   total_earnings?: number;
@@ -9,6 +19,23 @@ export interface BalanceData {
   from_releases?: number;
   from_splits?: number;
   [key: string]: unknown;
+}
+
+
+export function withdrawalPauseMessage(
+  res: ApiResponse<unknown>
+): string | null {
+  if (res.status !== WITHDRAWALS_PAUSED_STATUS) return null;
+  const message = (res.error ?? "").trim();
+  return message !== "" ? message : WITHDRAWALS_PAUSED_FALLBACK;
+}
+
+export function pauseFromBalance(
+  data: WithdrawalPauseState | null | undefined
+): string | null {
+  if (!data?.withdrawals_paused) return null;
+  const message = (data.withdrawals_paused_message ?? "").trim();
+  return message !== "" ? message : WITHDRAWALS_PAUSED_FALLBACK;
 }
 
 export interface PreviewPayload {

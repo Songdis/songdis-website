@@ -28,12 +28,24 @@ const ACCOUNT_SCOPED_ROUTES = ["/dashboard/earnings", "/dashboard/royalties"];
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
-  customCta?: { label: string; onClick: () => void };
+  /**
+   * `disabled` keeps the action visible but inert — a feature that is
+   * temporarily off has to stay on screen, or the artist assumes it was taken
+   * away. `disabledReason` is announced with the button so the state is not
+   * carried by the dimmed styling alone.
+   */
+  customCta?: {
+    label: string;
+    onClick: () => void;
+    disabled?: boolean;
+    disabledReason?: string;
+  };
   showWelcome?: boolean;
   pageTitle?: string;
 }
 
 export default function DashboardLayout({ children, customCta, showWelcome = false, pageTitle }: DashboardLayoutProps) {
+  const ctaDisabled = Boolean(customCta?.disabled);
   const [uploadOpen, setUploadOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
@@ -194,12 +206,22 @@ export default function DashboardLayout({ children, customCta, showWelcome = fal
 
             {!isLocked && (
               <button
-                onClick={customCta ? customCta.onClick : () => setUploadOpen(true)}
-                className="flex items-center gap-1.5 font-heading text-white uppercase text-[10px] sm:text-xs tracking-widest rounded-full border border-[#C30100] bg-[#140C0C] hover:bg-[#C30100] px-3 sm:px-5 py-2 sm:py-3 transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C30100] whitespace-nowrap"
+                onClick={ctaDisabled ? undefined : customCta ? customCta.onClick : () => setUploadOpen(true)}
+                disabled={ctaDisabled}
+                title={ctaDisabled ? customCta?.disabledReason : undefined}
+                className={[
+                  "flex items-center gap-1.5 font-heading text-white uppercase text-[10px] sm:text-xs tracking-widest rounded-full border border-[#C30100] bg-[#140C0C] px-3 sm:px-5 py-2 sm:py-3 transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C30100] whitespace-nowrap",
+                  ctaDisabled ? "opacity-50 cursor-not-allowed" : "hover:bg-[#C30100]",
+                ].join(" ")}
               >
                 {!customCta && <span className="text-sm leading-none">+</span>}
                 <span className="hidden sm:inline">{customCta ? customCta.label : "Upload New Release"}</span>
                 <span className="sm:hidden">{customCta ? customCta.label.replace("+ ", "").split(" ").slice(0, 2).join(" ") : "Upload"}</span>
+                {/* The reason travels with the button, so it is not conveyed by
+                    the dimmed styling alone. */}
+                {ctaDisabled && customCta?.disabledReason && (
+                  <span className="sr-only">{customCta.disabledReason}</span>
+                )}
               </button>
             )}
           </div>

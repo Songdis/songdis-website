@@ -8,6 +8,7 @@ import WithdrawModal from "@/components/dashboard/earnings/WithdrawModal";
 import PayoutAccountCard from "@/components/dashboard/earnings/PayoutAccountCard";
 import { useEarningsBalance, useWithdrawalHistory } from "@/lib/hooks/useEarnings";
 import { useSplitEarnings } from "@/lib/hooks/useSplit";
+import { WITHDRAWALS_PAUSED_FALLBACK } from "@/lib/api/earnings";
 import { MOCK_EARNINGS } from "@/app/mock/earnings";
 
 
@@ -38,16 +39,64 @@ export default function EarningsPage() {
   const [withdrawOpen, setWithdrawOpen] = useState(false);
   const [withdrawSuccess, setWithdrawSuccess] = useState(false);
 
-  const { availableBalance, totalEarnings, thisMonth, fromSplits, isLoading: balanceLoading, refresh: refreshBalance } = useEarningsBalance();
+  const {
+    availableBalance, totalEarnings, thisMonth, fromSplits,
+    withdrawalsPaused: balanceSaysPaused,
+    withdrawalsPausedMessage,
+    isLoading: balanceLoading,
+    refresh: refreshBalance,
+  } = useEarningsBalance();
+
+
+  const [pausedMidFlow, setPausedMidFlow] = useState<string | null>(null);
+
+  const withdrawalsPaused = balanceSaysPaused || pausedMidFlow !== null;
+
+  const pauseMessage =
+    pausedMidFlow ?? withdrawalsPausedMessage ?? WITHDRAWALS_PAUSED_FALLBACK;
+
+  const handlePaused = (message: string) => {
+    setPausedMidFlow(message);
+    refreshBalance();
+  };
   const { history, isLoading: historyLoading, page: txPage, totalPages: txTotalPages, goToPage: txGoToPage } = useWithdrawalHistory(10);
 
-  /* Still mock — split earnings and revenue by platform need dedicated endpoints */
   const { withdrawalInfo } = MOCK_EARNINGS;
   const { earnings: splitEarningsData, isLoading: splitsLoading } = useSplitEarnings();
 
   return (
-    <DashboardLayout pageTitle="Earnings" customCta={{ label: "Withdraw Funds", onClick: () => setWithdrawOpen(true) }}>
+    <DashboardLayout
+      pageTitle="Earnings"
+      customCta={{
+        label: "Withdraw Funds",
+        onClick: () => { if (!withdrawalsPaused) setWithdrawOpen(true); },
+        disabled: withdrawalsPaused,
+        disabledReason: withdrawalsPaused ? `Withdrawals are paused. ${pauseMessage}` : undefined,
+      }}
+    >
       <div className="flex flex-col gap-5">
+
+        <div role="status" aria-live="polite">
+          {withdrawalsPaused && (
+            <div className="rounded-2xl border border-amber-500/25 bg-amber-500/[0.07] p-4 sm:p-5 flex items-start gap-3">
+              <span aria-hidden className="text-amber-400 shrink-0 mt-0.5">
+                <PauseNoticeIcon />
+              </span>
+              <div className="min-w-0">
+                <p className="font-heading text-white uppercase text-xs sm:text-sm tracking-wide mb-1.5">
+                  Withdrawals are paused
+                </p>
+                <p className="font-body text-white/75 text-xs sm:text-sm leading-relaxed">
+                  {pauseMessage}
+                </p>
+                <p className="font-body text-white/40 text-[11px] sm:text-xs leading-relaxed mt-2">
+                  Your balance and transaction history are unchanged. Withdrawing switches
+                  back on by itself as soon as the pause is lifted.
+                </p>
+              </div>
+            </div>
+          )}
+        </div>
 
         {/* Stat cards */}
         <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
@@ -56,8 +105,6 @@ export default function EarningsPage() {
           <StatCard label="From Splits"    value={balanceLoading ? "..." : fmt(fromSplits)}    icon="/images/splits.svg" />
         </div>
 
-        {/* Identity and payout account. Renders nothing until there is
-            something to act on, so it stays out of the way once set up. */}
         <PayoutAccountCard />
 
         {/* Ayo insight */}
@@ -74,7 +121,9 @@ export default function EarningsPage() {
               : totalEarnings > 0
                 ? `You've earned a total of ${fmt(totalEarnings)} from your releases${fromSplits > 0 ? `, plus ${fmt(fromSplits)} from splits` : ""}. Your available balance is ${fmt(availableBalance)} — ${
                     availableBalance > 0
-                      ? "you can withdraw anytime from the Wallet."
+                      ? withdrawalsPaused
+                        ? "it is safe where it is while withdrawals are paused."
+                        : "you can withdraw anytime from the Wallet."
                       : "keep releasing music to start earning."
                   }`
               : "Start releasing music to see your earnings grow. Every stream counts towards your balance."
@@ -218,6 +267,8 @@ export default function EarningsPage() {
       {withdrawOpen && (
         <WithdrawModal
           availableBalance={availableBalance}
+          pausedMessage={withdrawalsPaused ? pauseMessage : null}
+          onPaused={handlePaused}
           onClose={() => setWithdrawOpen(false)}
           onSuccess={() => {
             setWithdrawOpen(false);
@@ -252,6 +303,16 @@ export default function EarningsPage() {
         </div>
       )}
     </DashboardLayout>
+  );
+}
+
+function PauseNoticeIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+      <circle cx="12" cy="12" r="9" />
+      <line x1="10" y1="9" x2="10" y2="15" />
+      <line x1="14" y1="9" x2="14" y2="15" />
+    </svg>
   );
 }
 

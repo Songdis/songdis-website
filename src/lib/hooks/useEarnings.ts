@@ -7,6 +7,8 @@ import {
   sendWithdrawalOtp,
   initiateWithdrawal,
   verifyAccount,
+  pauseFromBalance,
+  withdrawalPauseMessage,
   type BalanceData,
   type PreviewData,
   type WithdrawalRecord,
@@ -42,7 +44,23 @@ export function useEarningsBalance() {
   const thisMonth        = (d?.this_month ?? breakdown?.this_month ?? 0) as number;
   const fromSplits       = (d?.split_earnings_usd ?? breakdown?.from_splits ?? d?.from_splits ?? 0) as number;
 
-  return { balance, availableBalance, totalEarnings, thisMonth, fromSplits, isLoading, error, refresh: load };
+  /* Withdrawals paused rides along with the balance. Read here so the page can
+     say so before the artist commits to an amount. Balance and history stay
+     visible regardless — this only governs the withdraw affordance. */
+  const withdrawalsPausedMessage = pauseFromBalance(balance);
+
+  return {
+    balance,
+    availableBalance,
+    totalEarnings,
+    thisMonth,
+    fromSplits,
+    withdrawalsPaused: withdrawalsPausedMessage !== null,
+    withdrawalsPausedMessage,
+    isLoading,
+    error,
+    refresh: load,
+  };
 }
 
 export function useWithdrawalHistory(pageSize = 10) {
@@ -122,11 +140,22 @@ export function useWithdrawal() {
   const [accountName, setAccountName] = useState<string | null>(null);
   const [isVerifying, setIsVerifying] = useState(false);
 
+  /*
+   * An admin can pause withdrawals while this modal is already open. When that
+   * happens the write endpoints answer 423, and the message they carry is the
+   * one written for that incident — it is kept apart from the error strings so
+   * the UI can present it as a calm notice rather than a failed request.
+   */
+  const [pausedMessage, setPausedMessage] = useState<string | null>(null);
+
   const fetchPreview = useCallback(async (amountUsd: number, targetCurrency: string) => {
     setIsLoadingPreview(true);
     setPreviewError(null);
     const res = await previewWithdrawal({ amount_usd: amountUsd, target_currency: targetCurrency });
-    if (res.error) {
+    const paused = withdrawalPauseMessage(res);
+    if (paused) {
+      setPausedMessage(paused);
+    } else if (res.error) {
       setPreviewError(res.error);
     } else {
       const raw = res.data as Record<string, unknown> | null;
@@ -143,7 +172,10 @@ export function useWithdrawal() {
     setIsLoadingOtp(true);
     setOtpError(null);
     const res = await sendWithdrawalOtp({ amount_usd: amountUsd, target_currency: targetCurrency });
-    if (res.error) {
+    const paused = withdrawalPauseMessage(res);
+    if (paused) {
+      setPausedMessage(paused);
+    } else if (res.error) {
       setOtpError(res.error);
     } else {
       onSuccess?.();
@@ -158,7 +190,10 @@ export function useWithdrawal() {
     setIsLoadingWithdraw(true);
     setWithdrawError(null);
     const res = await initiateWithdrawal(payload);
-    if (res.error) {
+    const paused = withdrawalPauseMessage(res);
+    if (paused) {
+      setPausedMessage(paused);
+    } else if (res.error) {
       setWithdrawError(res.error);
     } else {
       onSuccess?.();
@@ -187,5 +222,6 @@ export function useWithdrawal() {
     fetchOtp, isLoadingOtp, otpError,
     withdraw, isLoadingWithdraw, withdrawError,
     accountName, verifyBankAccount, isVerifying,
+    pausedMessage, setPausedMessage,
   };
 }
