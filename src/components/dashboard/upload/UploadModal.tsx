@@ -62,19 +62,13 @@ function normaliseTimestamp(value: unknown): number {
   return Number.isFinite(asNumber) ? Math.max(0, Math.floor(asNumber)) : 0;
 }
 
-/** A problem the server refused, and where the artist can fix it. */
 interface SubmitProblem {
   field: string;
   message: string;
   step: "Release details" | "Tracks" | "Distribution" | null;
 }
 
-/**
- * Which step a rejected field belongs to.
- *
- * Telling someone to "go back and correct these" is no use if they then have
- * to hunt for the field across three steps.
- */
+
 function stepForField(field: string): SubmitProblem["step"] {
   const base = field.replace(/^tracks\.\d+\./, "");
 
@@ -234,8 +228,6 @@ export default function UploadModal({
   const [fieldErrors, setFieldErrors] = useState<StepFieldErrors>({});
   const [submitErrors, setSubmitErrors] = useState<SubmitProblem[]>([]);
 
-  // Errors render above the step content, but Submit is at the bottom of a
-  // scrolling modal — without this the page would appear to do nothing.
   const submitErrorRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {

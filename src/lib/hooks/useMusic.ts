@@ -16,6 +16,8 @@ import {
   type TakedownPayload,
   type MusicListParams,
 } from "@/lib/api/music";
+import { useAnalyticsV2Optional } from "@/lib/hooks/useAnalyticsV2";
+import { ANALYTICS_V2_ENABLED } from "@/lib/featureFlags";
 
 /* ─── Helper — unwraps Laravel paginator or plain array ───────── */
 function unwrapList<T>(raw: unknown): T[] {
@@ -32,6 +34,45 @@ function unwrapList<T>(raw: unknown): T[] {
   }
   return [];
 }
+
+/**
+ * How many pages the paginator says there are. 1 when the endpoint returned a plain
+ * array, or when the shape is unrecognised — never guess higher, or the caller loops
+ * fetching pages that do not exist.
+ */
+function readLastPage(raw: unknown): number {
+  if (!raw || typeof raw !== "object") return 1;
+
+  const obj = raw as Record<string, unknown>;
+  const candidate =
+    typeof obj.last_page === "number"
+      ? obj.last_page
+      : obj.data && typeof obj.data === "object"
+        ? (obj.data as Record<string, unknown>).last_page
+        : undefined;
+
+  return typeof candidate === "number" && candidate > 0 ? candidate : 1;
+}
+
+/** Groups album/EP tracks into one entry per release; singles pass through. */
+function groupReleases(rows: Release[]): NormalisedRelease[] {
+  return rows.map(normaliseRelease).reduce<NormalisedRelease[]>((acc, r) => {
+    if (r.type === "album_ep") {
+      // Keyed on title AND artist: on a label account two artists can each have an
+      // album called the same thing, and title alone would merge them into one card.
+      const existing = acc.find(
+        (a) => a.title === r.title && a.artist === r.artist && a.type === "album_ep"
+      );
+      if (existing) {
+        existing.trackCount += 1;
+        return acc;
+      }
+    }
+    acc.push(r);
+    return acc;
+  }, []);
+}
+
 export interface NormalisedRelease {
   id: number;
   title: string;
@@ -123,12 +164,7 @@ function normaliseTrack(t: ReleaseTrack, i: number): NormalisedTrack {
   const performers = contributors.filter((c) => c.type === "performer").map((c) => c.name).join(", ");
 
   // metadata is a JSON string: { duration (seconds), bitrate, sample_rate, ... }
-  const meta = safeParse<{ duration?: number }>(t.metadata, {});
-
-  // Confirmed API field: audio_file_path is an array of S3 URLs.
-  // audio_url is sometimes present as a flattened convenience field —
-  // prefer it when present, otherwise take the first audio_file_path entry.
-  const audioUrl = t.audio_url || (Array.isArray(t.audio_file_path) ? t.audio_file_path[0] : "") || "";
+  const meta = safeParse<{ duration?: number }>(t.metadata, {});  const audioUrl = t.audio_url || (Array.isArray(t.audio_file_path) ? t.audio_file_path[0] : "") || "";
 
   return {
     id: String(t.id ?? i),
@@ -143,10 +179,7 @@ function normaliseTrack(t: ReleaseTrack, i: number): NormalisedTrack {
 }
 
 function normaliseReleaseDetail(r: Release): NormalisedReleaseDetail {
-  // Confirmed: GET /music/{id} for a Single returns the track fields directly
-  // on the root object — there is no nested tracks[] array at all.
-  // Albums/EPs nest each track inside data.tracks[].
-  // When tracks is absent, treat the release object itself as the one track.
+
   const rawTracks = r.tracks;
   const tracks = (rawTracks && rawTracks.length > 0)
     ? rawTracks.map(normaliseTrack)
@@ -193,40 +226,71 @@ export function useReleaseDetail(uploadId: number | null) {
   return { release, isLoading, error, refresh: () => uploadId != null && load(uploadId) };
 }
 
-/* ─── useMusic — main releases list ──────────────────────────── */
 export function useMusic(params: MusicListParams = {}) {
   const [releases, setReleases] = useState<NormalisedRelease[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const analytics = useAnalyticsV2Optional();
+
+  if (process.env.NODE_ENV !== "production" && ANALYTICS_V2_ENABLED && !analytics) {
+    console.warn(
+      "[useMusic] No AnalyticsV2Provider above this component — the artist switcher will " +
+        "be ignored and the full account catalogue shown. The provider belongs in " +
+        "app/dashboard/layout.tsx, above the page module."
+    );
+  }
+
+  const artistProfileId = params.artist_profile_id ?? analytics?.activeId ?? null;
+
   const load = useCallback(async () => {
     setIsLoading(true);
     setError(null);
-    const res = await getMusic(params);
-    if (res.error) {
-      setError(res.error);
-    } else {
-      setReleases(unwrapList<Release>(res.data).map(normaliseRelease).reduce<NormalisedRelease[]>((acc, r) => {
-        if (r.type === "album_ep") {
-          const existing = acc.find((a) => a.title === r.title && a.type === "album_ep");
-          if (existing) {
-            existing.trackCount += 1;
-            return acc;
-          }
-        }
-        acc.push(r);
-        return acc;
-      }, []));
+
+    const first = await getMusic({ ...params, artist_profile_id: artistProfileId });
+
+    if (first.error) {
+      setError(first.error);
+      setIsLoading(false);
+      return;
     }
+
+    let rows = unwrapList<Release>(first.data);
+    const lastPage = readLastPage(first.data);
+
+    if (!params.page && lastPage > 1) {
+      const BATCH = 6;
+      let incomplete = false;
+
+      for (let start = 2; start <= lastPage; start += BATCH) {
+        const batch = Array.from(
+          { length: Math.min(BATCH, lastPage - start + 1) },
+          (_, i) => getMusic({ ...params, artist_profile_id: artistProfileId, page: start + i })
+        );
+
+        for (const res of await Promise.all(batch)) {
+          if (res.error) {
+            incomplete = true;
+            continue;
+          }
+          rows = rows.concat(unwrapList<Release>(res.data));
+        }
+      }
+
+      if (incomplete) {
+        setError("Some releases could not be loaded. This list may be incomplete.");
+      }
+    }
+
+    setReleases(groupReleases(rows));
     setIsLoading(false);
-  }, [params.filter, params.page]);
+  }, [params.filter, params.page, artistProfileId]);
 
   useEffect(() => { load(); }, [load]);
 
   return { releases, isLoading, error, refresh: load };
 }
 
-/* ─── useDrafts ───────────────────────────────────────────────── */
 export function useDrafts() {
   const [drafts, setDrafts] = useState<Draft[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -243,12 +307,7 @@ export function useDrafts() {
     setIsLoading(false);
   }, []);
 
-  /**
-   * Delete a draft, and only drop it from the list once the server agrees.
-   *
-   * It used to filter the list regardless of the response, so a failed delete
-   * looked like it had worked until the page was reloaded.
-   */
+
   const remove = useCallback(async (id: number): Promise<string | null> => {
     const res = await deleteDraft(id);
 
@@ -263,7 +322,6 @@ export function useDrafts() {
   return { drafts, isLoading, error, refresh: load, remove };
 }
 
-/* ─── useMusicRequests — edit history tab ─────────────────────── */
 export function useMusicRequests() {
   const [requests, setRequests] = useState<EditRequest[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -285,7 +343,6 @@ export function useMusicRequests() {
   return { requests, isLoading, error, refresh: load };
 }
 
-/* ─── useRequestEdit ──────────────────────────────────────────── */
 export function useRequestEdit() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -312,7 +369,6 @@ export function useRequestEdit() {
   return { submit, isLoading, error };
 }
 
-/* ─── useRequestTakedown ──────────────────────────────────────── */
 export function useRequestTakedown() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -339,7 +395,6 @@ export function useRequestTakedown() {
   return { submit, isLoading, error };
 }
 
-/* ─── useMusicStats — derived from releases list ─────────────── */
 export function useMusicStats(releases: NormalisedRelease[]) {
   return {
     totalReleases: releases.length,

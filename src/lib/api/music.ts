@@ -76,6 +76,12 @@ export interface EditRequest {
 export interface MusicListParams {
   filter?: "single" | "album_ep";
   page?: number;
+  /**
+   * Narrow the catalogue to one artist profile. Omit for the pooled view — every artist
+   * on the account, which is what a solo artist always sees and what a label sees until
+   * it picks someone.
+   */
+  artist_profile_id?: number | null;
 }
 
 export interface UploadSinglePayload {
@@ -143,6 +149,7 @@ export async function getMusic(params: MusicListParams = {}) {
   const query = new URLSearchParams();
   if (params.filter) query.set("filter", params.filter);
   if (params.page)   query.set("page", String(params.page));
+  if (params.artist_profile_id) query.set("artist_profile_id", String(params.artist_profile_id));
   const qs = query.toString() ? `?${query.toString()}` : "";
   return request<Release[]>(`/music${qs}`, { method: "GET" }, true);
 }

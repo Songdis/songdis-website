@@ -4,7 +4,15 @@ export type BillingTrack = "usd_card" | "local_transfer";
 export type BillingInterval = "month" | "year";
 
 export interface Entitlements {
-  artist_limit: number;
+  /**
+   * How many artist profiles the account may OWN.
+   *
+   * `null` means unlimited (Label) and is not the same as 0, which means no active
+   * subscription. The backend really does send null — `EntitlementService::artistLimit()`
+   * returns it — so never write `artist_limit || 3` or `?? 0`: both collapse an unlimited
+   * roster into a cap. Test for null first.
+   */
+  artist_limit: number | null;
   unlimited_releases: boolean;
   stream_links: boolean;
   lyrics_distribution: boolean;
@@ -18,7 +26,7 @@ export interface Entitlements {
   songwriter_royalties: boolean;
   visual_consultation: boolean;
   full_distribution: boolean;
-  [key: string]: number | boolean;
+  [key: string]: number | boolean | null;
 }
 
 export interface BillingPrice {
@@ -81,7 +89,8 @@ export interface BillingStatus {
   is_contract?: boolean;
   contract_years?: number | null;
   contract_ended_at?: string | null;
-  artists?: { used: number; limit: number; can_create: boolean };
+  /** `limit: null` is unlimited (Label), not "no limit information". */
+  artists?: { used: number; limit: number | null; can_create: boolean };
 }
 
 export interface TrackOption {

@@ -10,8 +10,21 @@ import AyoChatWidget from "@/components/dashboard/ayo/AyoChatWidget";
 import { useUser } from "@/lib/hooks/useUser";
 import { useBilling } from "@/lib/hooks/useBilling";
 import { getUnreadCount } from "@/lib/api/notifications";
+import { ArtistSwitcher } from "@/components/dashboard/analytics-v2/ArtistSwitcher";
+import { ViewCrossfade } from "@/components/dashboard/analytics-v2/ViewCrossfade";
 
 const ALLOWED_ROUTES_WHEN_EXPIRED = ["/dashboard", "/dashboard/settings"];
+
+/**
+ * Routes that are ALWAYS pooled across the whole account, where the artist switcher is
+ * hidden rather than shown-and-ignored.
+ *
+ * These are the money screens. `royalty_data` carries no artist attribution at all —
+ * ownership is inferred by UPC/ISRC back to a release — so there is no honest way to split
+ * earnings per artist today (Label design DL8). A switcher here would promise a filter that
+ * does not exist, and a wrong number about money is worse than no number.
+ */
+const ACCOUNT_SCOPED_ROUTES = ["/dashboard/earnings", "/dashboard/royalties"];
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -74,6 +87,12 @@ export default function DashboardLayout({ children, customCta, showWelcome = fal
   if (isRouteBlocked) return null;
 
   return (
+    /*
+     * The AnalyticsV2Provider used to wrap this component. It now lives in the route
+     * layout at app/dashboard/layout.tsx — a page calling a scope-aware hook in its own
+     * body sits ABOVE this component, so a provider here was invisible to exactly the
+     * callers that needed it. Do not move it back.
+     */
     <div className="flex h-screen w-full bg-[#0E0808] overflow-hidden">
 
       {/* Mobile overlay */}
@@ -142,6 +161,16 @@ export default function DashboardLayout({ children, customCta, showWelcome = fal
           </div>
 
           <div className="flex items-center gap-2 sm:gap-4 shrink-0 relative">
+            {/* Multi-profile accounts only; renders nothing otherwise. */}
+            {/* Money is reported per ACCOUNT, not per artist (Label design DL8): royalty
+                rows carry no artist attribution, so an artist-scoped earnings figure would
+                be a number nobody can stand behind. Offering a switcher on these pages
+                would imply a filter that does not exist — so it is hidden, and those
+                screens stay pooled across the whole account. */}
+            {!ACCOUNT_SCOPED_ROUTES.some((r) => pathname === r || pathname.startsWith(r + "/")) && (
+              <ArtistSwitcher />
+            )}
+
             <button
               data-notification-toggle
               onClick={() => setNotifOpen((open) => !open)}
@@ -178,7 +207,7 @@ export default function DashboardLayout({ children, customCta, showWelcome = fal
 
         {/* Scrollable content */}
         <main className="flex-1 overflow-y-auto px-4 sm:px-6 lg:px-8 pb-6 sm:pb-8">
-          {children}
+          <ViewCrossfade>{children}</ViewCrossfade>
         </main>
       </div>
 

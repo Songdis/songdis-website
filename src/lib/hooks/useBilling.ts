@@ -121,5 +121,12 @@ export function useBilling(pollInterval = 0) {
 
   const needsFirstArtist = !state.isLoading && artists !== null && artists.used === 0;
 
-  return { ...state, isLocked, isContract, artists, needsFirstArtist, can, refresh: load };
+  const LABEL_ROSTER_THRESHOLD = 3;
+
+  const isLabel =
+    !state.isLoading &&
+    (state.entitlements.artist_limit === null ||
+      (artists?.used ?? 0) > LABEL_ROSTER_THRESHOLD);
+
+  return { ...state, isLocked, isContract, isLabel, artists, needsFirstArtist, can, refresh: load };
 }

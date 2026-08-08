@@ -7,6 +7,23 @@ import { useState, useEffect } from "react";
 import { removeToken } from "@/lib/api/auth";
 import { clearUserCache } from "@/lib/hooks/useUser";
 import { useBilling } from "@/lib/hooks/useBilling";
+import { ANALYTICS_V2_ENABLED } from "@/lib/featureFlags";
+
+/**
+ * The label roster.
+ *
+ * Two conditions, and both are load-bearing:
+ *
+ *  - the analytics v2 flag, because /dashboard/label 404s without it (its layout calls
+ *    notFound()) and the page reads v2 endpoints for every number it shows. A link that
+ *    leads to a 404 is worse than no link.
+ *  - an unlimited artist allowance, because a roster of one is not a roster. This is the
+ *    entitlement, so it covers Label subscribers and Label-tier contracts alike.
+ *
+ * Placed directly under Dashboard: for a label this is the screen they actually work
+ * from, and burying it under Artist Tools would frame a whole account tier as a widget.
+ */
+const ROSTER_NAV = { label: "Roster", href: "/dashboard/label", svgIcon: <RosterIcon /> };
 
 const MAIN_NAV = [
   { label: "Dashboard", href: "/dashboard", icon: "/images/home.svg" },
@@ -309,6 +326,16 @@ function ReleaseIcon() {
     </svg>
   );
 }
+function RosterIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+      <circle cx="9" cy="7" r="4"/>
+      <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+      <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+    </svg>
+  );
+}
 function VideoIcon() {
   return (
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -330,7 +357,8 @@ interface SidebarProps {
 export default function Sidebar({ onClose, isMobile, user, isLocked = false }: SidebarProps) {
   const displayName = user ? `${user.first_name} ${user.last_name}`.trim() : "Artist";
   const avatar = user?.avatar_url || "/images/avatar-artiste.svg";
-  const { planName, isExpired, hasSubscription, endDate } = useBilling(0);
+  const { planName, isExpired, hasSubscription, endDate, isLabel } = useBilling(0);
+  const showRoster = ANALYTICS_V2_ENABLED && isLabel;
   const plan = planName ?? "Free Plan";
   const expiryLabel = isLocked
     ? (isExpired || hasSubscription ? "Expired" : "No plan")
@@ -392,6 +420,9 @@ export default function Sidebar({ onClose, isMobile, user, isLocked = false }: S
           <p className="font-heading text-white/30 uppercase text-[10px] tracking-[0.25em] px-2.5 mb-1.5">Main</p>
           <ul className="flex flex-col gap-px">
             <NavItem item={MAIN_NAV[0]} pathname={pathname} collapsed={collapsed} isLocked={isLocked} />
+            {showRoster && (
+              <NavItem item={ROSTER_NAV} pathname={pathname} collapsed={collapsed} isLocked={isLocked} />
+            )}
             <ReleaseDropdown pathname={pathname} collapsed={collapsed} isLocked={isLocked} />
             {MAIN_NAV.slice(1).map((item) => (
               <NavItem key={item.href} item={item} pathname={pathname} collapsed={collapsed} isLocked={isLocked} />
