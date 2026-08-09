@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import Image from "next/image";
-import { useReleaseDetail, type NormalisedReleaseDetail } from "@/lib/hooks/useMusic";
+import { useReleaseDetail, type NormalisedReleaseDetail, isTakedownEligible } from "@/lib/hooks/useMusic";
 import { getPlatformLogoUrl } from "@/lib/hooks/useRoyalties";
 import {
   getReleaseLink,
@@ -469,8 +469,17 @@ export function ReleaseDetailModal({
               <button onClick={onClose} className="flex-1 font-heading text-white uppercase text-xs tracking-widest rounded-full border border-white/20 py-3.5 hover:border-white/40 transition-colors">
                 Cancel
               </button>
-              {onRequestTakedown && (
+              {onRequestTakedown && isTakedownEligible(release.releaseDateIso) && (
                 <button onClick={onRequestTakedown} className="flex-1 font-heading text-white uppercase text-xs tracking-widest rounded-full border border-white/20 py-3.5 hover:border-white/40 transition-colors">
+                  Request Takedown
+                </button>
+              )}
+              {onRequestTakedown && !isTakedownEligible(release.releaseDateIso) && (
+                <button
+                  aria-disabled
+                  title="Available 1 year after the release date"
+                  className="flex-1 font-heading text-white/35 uppercase text-xs tracking-widest rounded-full border border-white/10 py-3.5 cursor-not-allowed"
+                >
                   Request Takedown
                 </button>
               )}

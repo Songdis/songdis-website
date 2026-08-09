@@ -1,31 +1,5 @@
 "use client";
 
-/**
- * The co-sign opt-in.
- *
- * ── Why this form explains itself so much ───────────────────────────────────
- *
- * It asks for a BVN. An unexplained BVN request inside a tipping feature is
- * indistinguishable from a scam, and an artist who is right to be suspicious will
- * simply not finish — so the explanation sits AT the field, before the input, not in a
- * help centre article and not in a tooltip. It says what a BVN is for, what it cannot
- * do, and what Songdis never asks for. All three of those are what makes it credible.
- *
- * Everything here is collected because Maplerad's tier-1 KYC requires it to issue a
- * real Nigerian bank account in the artist's own name. Nothing extra is asked for.
- *
- * ── Format details that come straight from the controller ───────────────────
- *
- *   dob  `date_format:d-m-Y` — so the artist gets a native date picker and this file
- *        converts. A free-text field here produces "12/04/1998" and a validation error
- *        the artist cannot decode.
- *   bvn  `digits:11` — checked before sending, because a round trip to be told you
- *        typed ten digits is a waste of a nervous moment.
- *   country `size:2` — "NG", not "Nigeria". Sent, not asked for: Maplerad NGN virtual
- *        accounts are Nigeria-only, so offering a country picker would offer a choice
- *        that does not exist.
- */
-
 import { useMemo, useState } from "react";
 import { Loader2, ShieldCheck } from "lucide-react";
 
@@ -34,18 +8,13 @@ import type { CoSignFailure } from "@/lib/hooks/useCoSign";
 import { FailureNotice, InlineField, PrimaryButton, Sheet } from "./primitives";
 import { ACCENT_TEXT } from "./theme";
 
-/**
- * Mounted only while it is open (see `CoSignPanel`). That is deliberate here beyond
- * tidiness: closing the sheet unmounts it, so the typed BVN leaves React state with it
- * rather than sitting behind a hidden panel for the rest of the session.
- */
+
 interface Props {
   onClose: () => void;
   artistName: string;
   busy: boolean;
   failure: CoSignFailure | null;
   onSubmit: (details: CoSignEnableRequest) => Promise<boolean>;
-  /** True when a previous attempt failed — the copy then says "try again". */
   retrying?: boolean;
 }
 
@@ -53,7 +22,6 @@ interface Draft {
   first_name: string;
   last_name: string;
   email: string;
-  /** YYYY-MM-DD from `<input type="date">`; converted on submit. */
   dob: string;
   bvn: string;
   phone_country_code: string;
@@ -78,13 +46,11 @@ const EMPTY: Draft = {
   postal_code: "",
 };
 
-/** "1998-04-12" → "12-04-1998". Returns null for anything else. */
 function toMapleradDob(value: string): string | null {
   const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value.trim());
   return m ? `${m[3]}-${m[2]}-${m[1]}` : null;
 }
 
-/** Every problem this form can see without asking the server. */
 function localProblems(draft: Draft): Partial<Record<keyof Draft, string>> {
   const out: Partial<Record<keyof Draft, string>> = {};
 
@@ -189,7 +155,6 @@ export function CoSignEnableSheet({
         </div>
       }
     >
-      {/* ── The BVN explanation, before the field, not after it ───────── */}
       <div
         className="rounded-xl border p-4 flex flex-col gap-2"
         style={{ borderColor: "rgba(255,255,255,0.09)", backgroundColor: "rgba(255,255,255,0.02)" }}
@@ -215,7 +180,6 @@ export function CoSignEnableSheet({
         </p>
       </div>
 
-      {/* ── Legal identity ───────────────────────────────────────────── */}
       <FieldGroup
         title="Your legal name"
         hint="As it appears on your bank records — not your stage name. The bank matches these against your BVN."
@@ -265,7 +229,6 @@ export function CoSignEnableSheet({
         />
       </FieldGroup>
 
-      {/* ── Phone ────────────────────────────────────────────────────── */}
       <FieldGroup title="Phone" hint="The number your bank has on file.">
         <div className="grid grid-cols-[88px_1fr] gap-3">
           <InlineField
@@ -285,7 +248,6 @@ export function CoSignEnableSheet({
         </div>
       </FieldGroup>
 
-      {/* ── Address ──────────────────────────────────────────────────── */}
       <FieldGroup
         title="Address"
         hint="Nigeria only for now — a co-sign account is a naira account."
@@ -325,7 +287,6 @@ export function CoSignEnableSheet({
   );
 }
 
-/* ─── Local pieces ────────────────────────────────────────────── */
 
 function FieldGroup({
   title,
@@ -351,10 +312,7 @@ function FieldGroup({
   );
 }
 
-/**
- * A native date input. `InlineField` only does text and email, and a birthday typed
- * free-hand is the single most reliable way to earn a `date_format` rejection.
- */
+
 function DateField({
   label,
   value,

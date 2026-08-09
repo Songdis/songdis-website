@@ -1,20 +1,5 @@
 "use client";
 
-/**
- * The address sheet: the shareable link, a copy button, and the slug editor.
- *
- * ── Why "taken" and "reserved" are shown as different things ────────────────
- *
- * They need different next steps. "Taken" means somebody claimed the clean name first
- * (`stage_name` has no unique index — two accounts can both be "Jubet"), so the answer
- * is to pick a variation. "Reserved" means the word belongs to the platform and no
- * variation of *that exact word* will ever work. Collapsing both into "invalid slug"
- * leaves the artist retrying the one thing that cannot succeed.
- *
- * The sentence rendered is the SERVER'S — it is the authority on uniqueness. The
- * classification only decides which suggestion sits beside it.
- */
-
 import { useEffect, useState } from "react";
 import { Copy, Link2, Lock, ShieldAlert } from "lucide-react";
 import { publicKitLabel, publicKitOrigin, slugify } from "@/lib/api/press-kit";
@@ -44,8 +29,6 @@ export function AddressSheet({
 }) {
   const [value, setValue] = useState(slug.current ?? "");
 
-  // Re-seed whenever the sheet opens, so a cancelled edit does not persist as a
-  // half-typed address the next time it is opened.
   useEffect(() => {
     if (open) setValue(slug.current ?? slugify(suggestedFrom));
   }, [open, slug.current, suggestedFrom]);

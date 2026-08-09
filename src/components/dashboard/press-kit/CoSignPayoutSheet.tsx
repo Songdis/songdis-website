@@ -1,20 +1,5 @@
 "use client";
 
-/**
- * Request a co-sign payout.
- *
- * CS5 — this REQUESTS. It does not send. The backend writes a `requested` row and
- * nothing on this path can reach the transfer call; a human approves and an operator
- * sends. So the button says "Request", the confirmation says "requested", and nothing
- * in this file tells an artist their money is on its way. Telling someone their money
- * has been sent when it is sitting in a queue is the complaint that follows on the day
- * it matters.
- *
- * The destination is the artist's existing verified payout account — the same one
- * royalty withdrawals use. Co-sign does not collect bank details a second time, and
- * this sheet cannot change them: it names the account and links to where it is managed.
- */
-
 import { useMemo, useState } from "react";
 import { Loader2 } from "lucide-react";
 
@@ -24,11 +9,7 @@ import type { CoSignFailure } from "@/lib/hooks/useCoSign";
 import { FailureNotice, Notice, PrimaryButton, Sheet } from "./primitives";
 import { ACCENT_TEXT } from "./theme";
 
-/**
- * Mounted only while it is open (see `CoSignPanel`), so the amount resets by unmounting
- * rather than by a setState-in-effect that cascades a render every time the sheet is
- * toggled.
- */
+
 interface Props {
   onClose: () => void;
   availableKobo: number;
@@ -38,7 +19,6 @@ interface Props {
   onSubmit: (amountKobo: number) => Promise<boolean>;
 }
 
-/** "0123456789" → "••••6789". The artist only needs to recognise it, not read it. */
 function maskAccount(number: string): string {
   const tail = number.slice(-4);
   return tail ? `••••${tail}` : number;
@@ -52,8 +32,6 @@ export function CoSignPayoutSheet({
   failure,
   onSubmit,
 }: Props) {
-  // Pre-filled with the whole balance: taking all of it is what an artist means most of
-  // the time, and it is still editable.
   const [amountText, setAmountText] = useState(() =>
     formatNaira(availableKobo, { withSymbol: false })
   );

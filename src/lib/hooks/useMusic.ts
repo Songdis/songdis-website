@@ -81,10 +81,24 @@ export interface NormalisedRelease {
   status: string;
   type: "single" | "album_ep";
   releaseDate: string;
+  releaseDateIso: string;
   genre: string;
   platforms: string[];
   createdAt: string;
   trackCount: number;
+}
+
+/**
+ * Takedowns are only allowed from 1 year after the release date. The rule is
+ * anchored on the release date (not created_at / distribution_date), so a
+ * release stays locked until that date is a full year in the past.
+ */
+export function isTakedownEligible(releaseDateIso: string | undefined | null): boolean {
+  if (!releaseDateIso) return false;
+  const cutoff = new Date();
+  cutoff.setFullYear(cutoff.getFullYear() - 1);
+  const cutoffIso = cutoff.toISOString().slice(0, 10);
+  return releaseDateIso.slice(0, 10) <= cutoffIso;
 }
 
 function formatDate(raw: string | undefined): string {
@@ -120,6 +134,7 @@ function normaliseRelease(r: Release): NormalisedRelease {
     status: r.status ?? "pending",
     type: r.upload_type?.toLowerCase().includes("single") ? "single" : "album_ep",
     releaseDate: formatDate(r.release_date),
+    releaseDateIso: r.release_date ?? "",
     genre: r.primary_genre ?? "",
     platforms: safeParse<string[]>(r.platforms, []),
     createdAt: r.created_at ?? "",

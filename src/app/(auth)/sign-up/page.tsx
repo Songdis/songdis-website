@@ -18,6 +18,7 @@ interface FieldErrors {
   email?: string;
   password?: string;
   confirmPassword?: string;
+  agreedToTerms?: string;
 }
 
 function validate(fields: {
@@ -25,6 +26,7 @@ function validate(fields: {
   email: string;
   password: string;
   confirmPassword: string;
+  agreedToTerms: boolean;
 }): FieldErrors {
   const errors: FieldErrors = {};
 
@@ -48,6 +50,11 @@ function validate(fields: {
     errors.confirmPassword = "Passwords do not match.";
   }
 
+  if (!fields.agreedToTerms) {
+    errors.agreedToTerms =
+      "You must accept the Distribution Agreement and Terms of Service to continue.";
+  }
+
   return errors;
 }
 
@@ -64,16 +71,22 @@ export default function SignUpPage() {
     referralCode: "",
   });
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
 
   const set = (key: keyof typeof fields) => (e: React.ChangeEvent<HTMLInputElement>) => {
     setFields((f) => ({ ...f, [key]: e.target.value }));
     setFieldErrors((fe) => ({ ...fe, [key]: undefined }));
   };
 
+  const toggleAgreedToTerms = () => {
+    setAgreedToTerms((v) => !v);
+    setFieldErrors((fe) => ({ ...fe, agreedToTerms: undefined }));
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    const errors = validate(fields);
+    const errors = validate({ ...fields, agreedToTerms });
     if (Object.keys(errors).length) {
       setFieldErrors(errors);
       return;
@@ -156,6 +169,58 @@ export default function SignUpPage() {
           onChange={set("referralCode")}
         />
 
+        {/* Distribution Agreement consent */}
+        <div className="mt-1">
+          <label className="flex items-start gap-3 cursor-pointer select-none">
+            <div
+              role="checkbox"
+              aria-checked={agreedToTerms}
+              tabIndex={0}
+              onClick={toggleAgreedToTerms}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  toggleAgreedToTerms();
+                }
+              }}
+              className={[
+                "w-5 h-5 rounded border flex items-center justify-center shrink-0 mt-0.5 transition-colors",
+                agreedToTerms
+                  ? "border-[#C30100] bg-[#C30100]"
+                  : fieldErrors.agreedToTerms
+                    ? "border-red-500"
+                    : "border-white/25 bg-[#1A0808] hover:border-white/40",
+              ].join(" ")}
+            >
+              {agreedToTerms && <CheckIcon />}
+            </div>
+            <p className="font-body text-white/60 text-xs leading-relaxed">
+              I have read and agree to the{" "}
+              <a
+                href="/agreements/songdis-distribution-agreement.pdf"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-[#C30100] hover:text-red-400 underline underline-offset-2 transition-colors"
+              >
+                Songdis Distribution Agreement
+              </a>{" "}
+              and{" "}
+              <Link
+                href="/terms"
+                className="text-[#C30100] hover:text-red-400 underline underline-offset-2 transition-colors"
+              >
+                Terms of Service
+              </Link>
+              . By creating an account, I confirm that I have read and understood the agreement, including content ownership, revenue sharing, and distribution policies.
+            </p>
+          </label>
+          {fieldErrors.agreedToTerms && (
+            <p className="font-body text-red-400 text-xs mt-2">
+              {fieldErrors.agreedToTerms}
+            </p>
+          )}
+        </div>
+
         <div className="mt-2">
           <AuthButton type="submit" isLoading={isLoading}>
             Sign Up
@@ -191,5 +256,13 @@ export default function SignUpPage() {
         </AuthButton>
       </form>
     </AuthLayout>
+  );
+}
+
+function CheckIcon() {
+  return (
+    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="20 6 9 17 4 12" />
+    </svg>
   );
 }

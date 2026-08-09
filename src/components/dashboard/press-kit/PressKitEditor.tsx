@@ -110,7 +110,6 @@ function useEditorScope(): EditorScope {
   };
 }
 
-/* ─── Entry ───────────────────────────────────────────────────── */
 
 export function PressKitEditor() {
   const scope = useEditorScope();
@@ -226,7 +225,6 @@ function ArtistPicker({ scope }: { scope: EditorScope }) {
   );
 }
 
-/* ─── The editor proper ───────────────────────────────────────── */
 
 function EditorForProfile({
   profileId,
@@ -247,7 +245,6 @@ function EditorForProfile({
   const publicUrl = publicKitUrl(slugValue);
   const addressLabel = publicKitLabel(slugValue);
 
-  /* Leaving with unsaved edits is a real loss — the draft lives in memory only. */
   useEffect(() => {
     if (!kit.isDirty) return;
     const warn = (e: BeforeUnloadEvent) => {
@@ -305,9 +302,6 @@ function EditorForProfile({
         {scope.profiles.length > 1 && (
           <>
             {" · "}
-            {/* Goes back to the picker. On an account with the header switcher this is
-                the same action as choosing "All profiles" there, so the two controls
-                never disagree about who is selected. */}
             <button
               type="button"
               onClick={scope.clear}
@@ -429,10 +423,6 @@ function EditorForProfile({
       <HeroEditor kit={kit} />
       <EditorSections kit={kit} />
 
-      {/* Co-sign owns its own data and its own saves — it is money, not part of the
-          kit draft, so it must never ride along on the press-kit Save button or be
-          thrown away by Discard. It sits inside this surface because the account
-          number it issues is what renders on the public page. */}
       <CoSignPanel
         profileId={profileId}
         artistName={kit.draft.artist.name || profile?.display_name || "this artist"}
@@ -481,11 +471,6 @@ function StatusChip({ published }: { published: boolean }) {
   );
 }
 
-/**
- * The save bar is `fixed`, not sticky at the bottom of a long scroll — the mock's edit
- * bar is always reachable, and on a phone the alternative is scrolling past nine
- * sections to find out whether anything saved.
- */
 function SaveBar({ kit, onSave }: { kit: UsePressKit; onSave: () => void }) {
   if (!kit.isDirty && !kit.saveFailure) {
     return kit.savedAt ? (

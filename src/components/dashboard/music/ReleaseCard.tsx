@@ -189,6 +189,7 @@
 
 import { Release, STATUS_CONFIG } from "@/app/mock/music";
 import Image from "next/image";
+import { isTakedownEligible } from "@/lib/hooks/useMusic";
 
 interface ReleaseCardProps {
   release: Release;
@@ -204,6 +205,8 @@ export default function ReleaseCard({ release, onView, onEdit, onTakedown }: Rel
     color: "#ffffff",
     bg: "rgba(255,255,255,0.10)",
   };
+  const releaseDateIso = (release as unknown as { releaseDateIso?: string }).releaseDateIso;
+  const takedownEligible = isTakedownEligible(releaseDateIso);
 
   return (
     <div
@@ -279,9 +282,16 @@ export default function ReleaseCard({ release, onView, onEdit, onTakedown }: Rel
               <EditIcon /> <span className="hidden sm:inline">Edit</span>
             </button>
             <button
-              onClick={(e) => { e.stopPropagation(); onTakedown(release); }}
-              className="flex items-center gap-1 font-body text-[10px] rounded-full px-2 py-1 transition-colors"
-              style={{ color: "#C30100", backgroundColor: "rgba(195,1,0,0.10)", border: "1px solid rgba(195,1,0,0.25)" }}
+              onClick={(e) => { e.stopPropagation(); if (takedownEligible) onTakedown(release); }}
+              title={takedownEligible ? undefined : "Available 1 year after the release date"}
+              aria-disabled={!takedownEligible}
+              className={[
+                "flex items-center gap-1 font-body text-[10px] rounded-full px-2 py-1 transition-colors",
+                takedownEligible ? "" : "opacity-40 cursor-not-allowed",
+              ].join(" ")}
+              style={takedownEligible
+                ? { color: "#C30100", backgroundColor: "rgba(195,1,0,0.10)", border: "1px solid rgba(195,1,0,0.25)" }
+                : { color: "rgba(255,255,255,0.35)", border: "1px solid rgba(255,255,255,0.15)" }}
             >
               <TakedownIcon /> <span className="hidden sm:inline">Takedown</span>
             </button>

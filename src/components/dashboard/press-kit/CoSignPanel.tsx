@@ -1,33 +1,5 @@
 "use client";
 
-/**
- * Co-sign, inside the press-kit editor.
- *
- * One panel that covers the whole life of the feature for one artist profile:
- * opt in → account issued → money arrives → request a payout. It lives here rather
- * than on its own route because the account number it produces renders on the press
- * kit, and the artist should see the two together.
- *
- * ── The states, and why each one reads the way it does ──────────────────────
- *
- *   not configured   Maplerad is switched off for the whole platform. There is nothing
- *                    the artist can do, so there is no button — just a plain sentence.
- *                    Offering an opt-in that always 503s would be worse than silence.
- *   not started      The pitch, and the opt-in.
- *   pending_*        Issuance got part-way. The service is resumable, so the action is
- *                    "finish setting up", not "start again" — a second attempt reuses
- *                    the same Maplerad customer rather than creating another.
- *   failed           The persisted reason, verbatim, plus the same resumable retry.
- *   active           Account, balance, recent co-signs, payout.
- *
- * ── Money ───────────────────────────────────────────────────────────────────
- *
- * Every figure on this panel is kobo from the API, formatted once at the edge by
- * `formatNaira()`. No arithmetic happens here at all: the balance is computed by one
- * service on the server and re-read after every write, so this file cannot disagree
- * with it.
- */
-
 import { useCallback, useState } from "react";
 import {
   ArrowDownToLine,
@@ -62,13 +34,7 @@ interface Props {
   artistName: string;
 }
 
-/* ─── Dates ───────────────────────────────────────────────────── */
 
-/**
- * "6 Aug" for this year, "6 Aug 2025" otherwise. Deliberately not "3 days ago": an
- * artist reconciling their own money wants a date they can match against a bank
- * statement, not a relative phrase.
- */
 function formatWhen(iso: string | null): string | null {
   if (!iso) return null;
   const d = new Date(iso);
@@ -81,7 +47,6 @@ function formatWhen(iso: string | null): string | null {
   });
 }
 
-/* ─── Panel ───────────────────────────────────────────────────── */
 
 export function CoSignPanel({ profileId, artistName }: Props) {
   const cs = useCoSign(profileId);
@@ -132,9 +97,6 @@ export function CoSignPanel({ profileId, artistName }: Props) {
     );
   }
 
-  /* A 404 here means the profile is not one this account OWNS — a label reading a
-     granted artist. That is not an error to shout about; co-sign simply is not theirs
-     to switch on, so the panel says so once and stops. */
   if (cs.loadFailure?.status === 404) {
     return (
       <Panel muted>
@@ -165,7 +127,6 @@ export function CoSignPanel({ profileId, artistName }: Props) {
     );
   }
 
-  // Platform switch is off. No button, because there is nothing behind it.
   if (cs.state && !cs.state.configured) {
     return (
       <Panel muted>
@@ -232,8 +193,6 @@ export function CoSignPanel({ profileId, artistName }: Props) {
         </div>
       </Panel>
 
-      {/* Mounted only while open. The enable sheet holds a BVN while it is filled in,
-          and unmounting is the cheapest guarantee that it does not outlive the sheet. */}
       {enableOpen && (
         <CoSignEnableSheet
           onClose={() => setEnableOpen(false)}
@@ -267,7 +226,6 @@ function SectionHeading({ children }: { children: React.ReactNode }) {
   );
 }
 
-/* ─── Before it is on ─────────────────────────────────────────── */
 
 function NotYetOn({
   artistName,
@@ -321,7 +279,6 @@ function NotYetOn({
   );
 }
 
-/* ─── Once it is on ───────────────────────────────────────────── */
 
 function ActiveCoSign({
   account,
@@ -361,7 +318,6 @@ function ActiveCoSign({
         </p>
       </div>
 
-      {/* Balance. Four figures from one service — never summed here. */}
       <div className="grid grid-cols-2 gap-px rounded-xl overflow-hidden bg-white/[0.06] sm:grid-cols-4">
         <Figure label="Available" value={formatNaira(available)} strong />
         <Figure label="Co-signs" value={(balance?.cosign_count ?? 0).toLocaleString("en-NG")} />
@@ -427,13 +383,7 @@ function Figure({
   );
 }
 
-/**
- * Recent co-signs.
- *
- * CS4 — `sender_name` may be null and stays null. A nameless credit renders as the one
- * true thing about it, its bank ("Transfer · GTBank") or simply "Transfer", never as
- * "Anonymous" and never as a fabricated placeholder.
- */
+
 function RecentCoSigns({ items }: { items: CoSignLedgerEntry[] }) {
   if (items.length === 0) {
     return (

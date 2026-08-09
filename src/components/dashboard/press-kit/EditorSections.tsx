@@ -1,18 +1,5 @@
 "use client";
 
-/**
- * The editable sections — the mock's `.editing` mode, one card per `.rs` block.
- *
- * Order comes from `section_order` and each card carries the mock's three controls:
- * move up, move down, hide/show. A hidden section stays visible HERE, dimmed and
- * labelled, exactly as `.editing .rs.hidden-sec` does — an artist needs to see what
- * they switched off in order to switch it back on.
- *
- * The Listen section has no controls beyond order and visibility on purpose: it is
- * driven by live releases (`status = live`), so there is nothing to type into it and a
- * text field there would imply otherwise.
- */
-
 import { useState } from "react";
 import {
   ChevronDown,
@@ -44,7 +31,6 @@ import {
 } from "./primitives";
 import { ACCENT_TEXT, headlineStyle, sectionMeta, themeVars } from "./theme";
 
-/* ─── Frame ───────────────────────────────────────────────────── */
 
 function SectionFrame({
   sectionKey,
@@ -124,7 +110,6 @@ function SectionFrame({
   );
 }
 
-/* ─── Hero (fixed — never reorderable) ────────────────────────── */
 
 export function HeroEditor({ kit }: { kit: UsePressKit }) {
   const { draft } = kit;

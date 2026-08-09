@@ -256,6 +256,28 @@ export default function ReleaseAvailability({ state, update, onBack, onSubmit, o
         <div>
           <p className="font-body text-white/70 text-xs font-semibold mb-1">Terms & Conditions</p>
           <p className="font-body text-white/30 text-xs mb-3">Required to proceed with distribution</p>
+
+          {/* Distribution Agreement */}
+          <a
+            href="/agreements/songdis-distribution-agreement.pdf"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-start gap-3 border border-dashed border-[#C30100]/25 rounded-xl p-4 mb-4 transition-colors hover:border-[#C30100]/60 group"
+          >
+            <div className="w-9 h-9 rounded-lg bg-[#C30100]/15 flex items-center justify-center shrink-0">
+              <DocumentIcon />
+            </div>
+            <div className="min-w-0">
+              <p className="font-body text-white text-sm font-semibold">Distribution Agreement</p>
+              <p className="font-body text-white/40 text-xs mt-1 leading-relaxed">
+                Review the full Songdis distribution agreement — ownership rights, revenue sharing, and distribution policies — before submitting.
+              </p>
+              <span className="inline-flex items-center gap-1.5 font-body text-[#C30100] text-xs font-semibold mt-2 group-hover:underline underline-offset-2">
+                Read the agreement
+                <OpenIcon />
+              </span>
+            </div>
+          </a>
           <label className="flex items-start gap-3 cursor-pointer">
             <div
               onClick={() => update({ agreedToTerms: !state.agreedToTerms })}
@@ -267,7 +289,16 @@ export default function ReleaseAvailability({ state, update, onBack, onSubmit, o
               {state.agreedToTerms && <CheckIcon />}
             </div>
             <p className="font-body text-white/60 text-xs leading-relaxed">
-              I agree to the terms and conditions of Songdis distribution service. By checking this box, I confirm that I have read and understood all terms, including content ownership rights, revenue sharing, and distribution policies.
+              I agree to the{" "}
+              <a
+                href="/agreements/songdis-distribution-agreement.pdf"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-[#C30100] hover:underline underline-offset-2"
+              >
+                terms and conditions
+              </a>{" "}
+              of Songdis distribution service. By checking this box, I confirm that I have read and understood all terms, including content ownership rights, revenue sharing, and distribution policies.
             </p>
           </label>
           {!state.agreedToTerms && (
@@ -308,3 +339,5 @@ export default function ReleaseAvailability({ state, update, onBack, onSubmit, o
 
 function SearchIcon() { return <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-white/30"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>; }
 function CheckIcon() { return <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>; }
+function DocumentIcon() { return <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C30100" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>; }
+function OpenIcon() { return <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>; }
