@@ -219,7 +219,7 @@ export default async function ReleaseDetailPage({ params }: Params) {
               <ol className="overflow-hidden rounded-2xl border border-[var(--pk-line)] bg-[var(--pk-surface)]">
                 {release.tracks.map((t, i) => (
                   <li
-                    key={`${t.isrc ?? t.title}-${i}`}
+                    key={`${t.title}-${i}`}
                     className="flex items-center gap-3.5 border-b border-[var(--pk-line)] px-4 py-3.5 last:border-b-0"
                   >
                     <span className="w-5 shrink-0 text-[13px] tabular-nums text-[var(--pk-muted-2)]">
@@ -229,11 +229,6 @@ export default async function ReleaseDetailPage({ params }: Params) {
                       <span className="block truncate text-[14.5px] font-semibold text-[var(--pk-text)]">
                         {t.title}
                       </span>
-                      {t.isrc && (
-                        <span className="block text-[11.5px] uppercase tracking-wide text-[var(--pk-muted-2)]">
-                          ISRC {t.isrc}
-                        </span>
-                      )}
                     </span>
                     {t.duration && (
                       <span className="shrink-0 text-[13px] tabular-nums text-[var(--pk-muted)]">
@@ -246,16 +241,15 @@ export default async function ReleaseDetailPage({ params }: Params) {
             </section>
           )}
 
-          {release.upc && (
-            <p className="mt-5 text-[12px] uppercase tracking-[0.12em] text-[var(--pk-muted-2)]">
-              UPC {release.upc}
-            </p>
-          )}
 
           <div className="mt-9">
             <ShareButton
               title={`${release.title} — ${artist.name}`}
               label="Share this release"
+              // The release's own smart link when there is one: someone sharing a track
+              // wants the thing that opens in Spotify or Apple, not the press kit page
+              // they happen to be standing on. Falls back to this page when absent.
+              url={release.release_link ?? undefined}
             />
           </div>
 

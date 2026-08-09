@@ -143,7 +143,6 @@ export interface PublicPressKit {
 
 export interface PressKitTrack {
   title: string;
-  isrc: string | null;
   duration: string | null;
 }
 
@@ -160,7 +159,12 @@ export interface PublicPressKitRelease {
   credits: string | null;
   released_on: string | null;
   type: string | null;
-  upc: string | null;
+  /**
+   * The release's own smart link. Replaces the UPC/ISRC that used to sit here: those are
+   * distribution plumbing that no promoter or journalist has a use for, while this is the
+   * one URL a reader actually wants.
+   */
+  release_link: string | null;
   tracks: PressKitTrack[];
   links: PressKitReleaseLinks;
   preview_url: string | null;
@@ -366,7 +370,7 @@ function normaliseRelease(raw: unknown): PublicPressKitRelease | null {
     const o = obj(t);
     const tt = str(o.title);
     if (!tt) return [];
-    return [{ title: tt, isrc: str(o.isrc), duration: str(o.duration) }];
+    return [{ title: tt, duration: str(o.duration) }];
   });
 
   return {
@@ -376,7 +380,7 @@ function normaliseRelease(raw: unknown): PublicPressKitRelease | null {
     credits: str(r.credits),
     released_on: str(r.released_on),
     type: str(r.type),
-    upc: str(r.upc),
+    release_link: url(r.release_link),
     tracks,
     links: {
       spotify: url(links.spotify),

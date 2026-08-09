@@ -1,28 +1,5 @@
 "use client";
 
-/**
- * The press-kit editor.
- *
- * ── One page, sheets not routes ─────────────────────────────────────────────
- *
- * Theme and address open as overlays over the thing being edited, matching the mock.
- * Sending them to `/dashboard/press-kit/theme` would unmount the draft and lose every
- * unsaved edit on the way there.
- *
- * ── It follows the header artist switcher ───────────────────────────────────
- *
- * One kit per artist PROFILE, not per account (PK1) — a label with 12 artists has 12
- * kits — so the editor edits whichever profile the header switcher has selected. When
- * the account is pooled (`activeId === null`) there is no single answer, so it asks
- * instead of picking one: editing an arbitrary artist's public page because it happened
- * to be first in the list is the worst possible default.
- *
- * The provider lives in `src/app/dashboard/layout.tsx`, above this page module, so
- * `useAnalyticsV2Optional()` resolves here. When the analytics flag is off the provider
- * is inert and holds no profiles at all — press kits are not an analytics feature and
- * must not switch off with it, so the roster is then loaded directly.
- */
-
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   AlertTriangle,
@@ -56,7 +33,6 @@ import {
 import { ThemeSheet } from "./ThemeSheet";
 import { ACCENT_TEXT, pageTheme } from "./theme";
 
-/* ─── Scope ───────────────────────────────────────────────────── */
 
 interface EditorScope {
   profiles: ProfileSummary[];
@@ -74,16 +50,7 @@ function useEditorScope(): EditorScope {
   const ctx = useAnalyticsV2Optional();
   const headerDriven = Boolean(ctx?.enabled);
 
-  /*
-   * `null` here means this component is rendering ABOVE the provider, not that the
-   * account has no artists — and the two look identical at runtime. The trap is that a
-   * page component *renders* DashboardLayout rather than living inside it, so context
-   * read in a page body resolves against `app/dashboard/layout.tsx`, not against
-   * anything inside DashboardLayout. This component is passed as children, so it sits
-   * below both and resolves correctly; the warning exists so that if someone later
-   * hoists this call into the page body, the failure announces itself instead of
-   * silently editing the wrong artist's public page.
-   */
+
   if (process.env.NODE_ENV !== "production" && ANALYTICS_V2_ENABLED && !ctx) {
     console.warn(
       "[PressKitEditor] No AnalyticsV2Provider above this component — the header artist " +
@@ -106,8 +73,7 @@ function useEditorScope(): EditorScope {
       if (cancelled) return;
       if (res.data) {
         setFallback(res.data);
-        // One profile is not a choice — select it rather than making the artist
-        // confirm they are themselves.
+ 
         if (res.data.length === 1) setFallbackId(res.data[0].id);
         setError(null);
       } else {

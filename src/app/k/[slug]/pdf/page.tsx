@@ -1,22 +1,27 @@
 /**
- * The printable press kit — `/k/<slug>/pdf`.
+ * The downloadable press kit — `/k/<slug>/pdf`.
  *
- * A properly paginated document a promoter can attach to an email, not a screenshot of the
- * web page and not everything crushed onto one sheet. Each major section gets its own page
- * so nothing straddles a fold, in roughly the order a booker reads: who they are, what they
- * sound like, proof, pictures, how to reach them.
+ * Modelled on a real EPK (the Kdiv Coco reference): dark, full-bleed, bold condensed
+ * headings, artwork doing the talking. NOT a light one-sheet — an EPK is a designed
+ * document an artist is proud to attach, and a white A4 with small type reads like an
+ * invoice.
  *
- * Three deliberate differences from `/k/<slug>`:
+ * Page order, which is how a booker actually reads one:
+ *   1. COVER          full-bleed portrait, name, "ELECTRONIC PRESS KIT", genre band
+ *   2. BIOGRAPHY      the story, in the artist's own words
+ *   3. MUSIC          artwork grid — the releases, with credits
+ *   4. LIVE           spotlights and milestones, when the artist has any
+ *   5. PRESS          quotes and placements, when the artist has any
+ *   6. PRESS PHOTOS   large, download link back to the kit
+ *   7. CONTACT        latest release, emails, socials, copyright line
  *
- *   1. It is LIGHT. The site's dark theme prints as a solid black rectangle — it drains a
- *      printer, and "Save as PDF" keeps the background, so the result is unusable in the
- *      exact context a press kit exists for. The cover page keeps the dark treatment
- *      because it is the one page that should look like a poster.
- *   2. CO-SIGN IS ABSENT. A tip jar does not belong in a document sent to a booker or a
- *      journalist, and a bank account number in a file that gets forwarded around is worse
- *      than merely off-message.
- *   3. Page order follows `section_order`/`hidden_sections`, so what the artist arranged is
- *      what they hand over.
+ * CO-SIGN IS ABSENT, deliberately and permanently. A tip jar does not belong in a document
+ * sent to bookers and journalists, and a bank account number in a file that gets forwarded
+ * around is worse than merely off-message.
+ *
+ * Sections follow `section_order`/`hidden_sections`, and a section with nothing in it is
+ * dropped rather than printed empty — a blank "Press & accolades" page makes an artist look
+ * like they have nothing, which is worse than not raising the subject.
  */
 
 import type { Metadata } from "next";
@@ -32,14 +37,17 @@ import PrintTrigger from "./PrintTrigger";
 
 type Params = { params: Promise<{ slug: string }> };
 
+const INK = "#0B0708";
+const RED = "#E5342F";
+
 export async function generateMetadata({ params }: Params): Promise<Metadata> {
   const { slug } = await params;
   const kit = await getPublicPressKit(slug);
 
   return {
-    title: kit ? `${kit.artist.name} — Press Kit` : "Press kit not found — Songdis",
-    // Never index the print view: it would compete with the real page for the same terms,
-    // and it is the wrong thing to land on from a search result.
+    title: kit ? `${kit.artist.name} — Electronic Press Kit` : "Press kit not found — Songdis",
+    // Never indexed: it would compete with the real page for the same terms and is the
+    // wrong thing to land on from a search result.
     robots: { index: false, follow: false },
   };
 }
@@ -78,240 +86,180 @@ export default async function PressKitPdfPage({ params }: Params) {
     { label: "Apple Music", href: artist.socials.apple_music },
   ].filter((s): s is { label: string; href: string } => Boolean(s.href));
 
-  const allReleases = [
-    ...(releases.featured ? [releases.featured] : []),
-    ...releases.others,
-  ];
+  const featured = releases.featured;
+  const allReleases = [...(featured ? [featured] : []), ...releases.others];
 
   const cover = artist.cover_image_url ?? artist.avatar_url;
   const kitUrl = `${SITE_ORIGIN}/k/${artist.slug}`;
+  const year = new Date().getFullYear();
 
-  // Built as a list so page breaks fall BETWEEN sections rather than being hardcoded onto
-  // the first one — a hidden Bio must not leave page 2 blank.
-  const pages: { key: string; node: React.ReactNode }[] = [];
+  const pages: React.ReactNode[] = [];
 
+  /* ── BIOGRAPHY ──────────────────────────────────────────────────── */
   if (show("bio") && artist.bio) {
-    pages.push({
-      key: "bio",
-      node: (
-        <Page title="Biography" artist={artist.name}>
-          {facts.length > 0 && (
-            <div className="mb-8 grid grid-cols-3 gap-6 border-b border-neutral-200 pb-6">
-              {facts.map((f) => (
-                <div key={f.label}>
-                  <div className="mb-1.5 text-[9.5px] uppercase tracking-[0.16em] text-neutral-500">
-                    {f.label}
-                  </div>
-                  <div className="text-[14px] font-semibold leading-snug">{f.value}</div>
+    pages.push(
+      <Page key="bio" title="Biography">
+        <p className="whitespace-pre-line text-[13px] leading-[1.9] text-white/85">
+          {artist.bio}
+        </p>
+        {facts.length > 0 && (
+          <div className="mt-10 grid grid-cols-3 gap-6 border-t border-white/15 pt-6">
+            {facts.map((f) => (
+              <div key={f.label}>
+                <div className="mb-1.5 text-[9px] uppercase tracking-[0.2em] text-white/40">
+                  {f.label}
                 </div>
-              ))}
-            </div>
-          )}
-          <p className="whitespace-pre-line text-[13.5px] leading-[1.85] text-neutral-800">
-            {artist.bio}
-          </p>
-        </Page>
-      ),
-    });
+                <div className="text-[13.5px] font-semibold text-white">{f.value}</div>
+              </div>
+            ))}
+          </div>
+        )}
+      </Page>
+    );
   }
 
+  /* ── MUSIC — the artwork grid the reference leads with ──────────── */
   if (show("listen") && allReleases.length > 0) {
-    pages.push({
-      key: "listen",
-      node: (
-        <Page title="Music" artist={artist.name}>
-          <div className="grid grid-cols-2 gap-x-8 gap-y-4">
-            {allReleases.slice(0, 24).map((r) => (
-              <div key={r.id} className="pk-keep flex items-center gap-3.5">
-                {r.cover ? (
-                  // eslint-disable-next-line @next/next/no-img-element -- next/image routes
-                  // through the optimiser, which the print renderer may not have fetched in
-                  // time; a plain <img> is what reliably appears in the output.
-                  <img
-                    src={r.cover}
-                    alt=""
-                    className="h-[46px] w-[46px] shrink-0 rounded object-cover"
-                  />
-                ) : (
-                  <span className="h-[46px] w-[46px] shrink-0 rounded bg-neutral-200" />
-                )}
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate text-[12.5px] font-semibold">{r.title}</span>
-                  <span className="block text-[10.5px] text-neutral-500">
-                    {"released_on" in r
-                      ? formatReleaseDate(r.released_on) ?? ""
-                      : releaseYear(r.year) ?? ""}
-                  </span>
-                </span>
-              </div>
-            ))}
-          </div>
-          {allReleases.length > 24 && (
-            <p className="mt-6 text-[11px] text-neutral-500">
-              + {allReleases.length - 24} more releases at {kitUrl}
-            </p>
-          )}
-        </Page>
-      ),
-    });
-  }
-
-  if (show("press") && (cfg.quotes.length > 0 || cfg.placements.length > 0)) {
-    pages.push({
-      key: "press",
-      node: (
-        <Page title="Press &amp; accolades" artist={artist.name}>
-          {cfg.quotes.map((q, i) => (
-            <blockquote key={i} className="pk-keep mb-7 border-l-[3px] border-[#C30100] pl-5">
-              <p className="text-[16px] font-semibold italic leading-[1.5]">“{q.quote}”</p>
-              {(q.source || q.year) && (
-                <cite className="mt-2 block text-[11.5px] not-italic text-neutral-500">
-                  — {[q.source, q.year].filter(Boolean).join(", ")}
-                </cite>
+    pages.push(
+      <Page key="listen" title="Music">
+        <div className="grid grid-cols-4 gap-x-5 gap-y-7">
+          {allReleases.slice(0, 12).map((r) => (
+            <div key={r.id} className="pk-keep">
+              {r.cover ? (
+                // eslint-disable-next-line @next/next/no-img-element -- next/image routes
+                // through the optimiser, which the print renderer may not have fetched in
+                // time; a plain <img> is what reliably appears in the output.
+                <img src={r.cover} alt="" className="aspect-square w-full rounded object-cover" />
+              ) : (
+                <span className="block aspect-square w-full rounded bg-white/10" />
               )}
-            </blockquote>
-          ))}
-          {cfg.placements.length > 0 && (
-            <div className="mt-8 border-t border-neutral-200 pt-5">
-              <div className="mb-2.5 text-[9.5px] uppercase tracking-[0.16em] text-neutral-500">
-                Placements
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {cfg.placements.map((p, i) => (
-                  <span
-                    key={i}
-                    className="rounded-full border border-neutral-300 px-3 py-1.5 text-[11.5px]"
-                  >
-                    {p.label}
-                  </span>
-                ))}
-              </div>
+              <p className="mt-2.5 text-[10.5px] font-bold uppercase leading-tight text-white underline decoration-white/30 underline-offset-2">
+                {r.title}
+              </p>
+              <p className="mt-0.5 text-[9.5px] text-white/45">
+                {"released_on" in r
+                  ? formatReleaseDate(r.released_on) ?? ""
+                  : releaseYear(r.year) ?? ""}
+              </p>
             </div>
-          )}
-        </Page>
-      ),
-    });
-  }
-
-  if (show("live") && spotlights.length > 0) {
-    pages.push({
-      key: "live",
-      node: (
-        <Page title="Live &amp; spotlights" artist={artist.name}>
-          <div className="space-y-5">
-            {spotlights.map((s) => (
-              <div key={s.id} className="pk-keep flex gap-4">
-                {s.url && (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={s.url} alt="" className="h-[64px] w-[64px] shrink-0 rounded object-cover" />
-                )}
-                <div className="min-w-0">
-                  {s.title && <div className="text-[13.5px] font-semibold">{s.title}</div>}
-                  {s.description && (
-                    <p className="mt-1 text-[12px] leading-relaxed text-neutral-700">
-                      {s.description}
-                    </p>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        </Page>
-      ),
-    });
-  }
-
-  if (show("photos") && photos.length > 0) {
-    pages.push({
-      key: "photos",
-      node: (
-        <Page title="Press photos" artist={artist.name}>
-          <div className="grid grid-cols-2 gap-4">
-            {photos.slice(0, 6).map((p) => (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                key={p.id}
-                src={p.url}
-                alt=""
-                className="pk-keep aspect-[4/3] w-full rounded object-cover"
-              />
-            ))}
-          </div>
-          <p className="mt-5 text-[11px] text-neutral-500">
-            Hi-res originals available at {kitUrl}
+          ))}
+        </div>
+        {allReleases.length > 12 && (
+          <p className="mt-8 text-[10.5px] text-white/40">
+            + {allReleases.length - 12} more releases at {kitUrl}
           </p>
-        </Page>
-      ),
-    });
+        )}
+      </Page>
+    );
   }
 
-  if (show("contact") && (contacts.length > 0 || socials.length > 0)) {
-    pages.push({
-      key: "contact",
-      node: (
-        <Page title="Contact &amp; booking" artist={artist.name}>
-          {contacts.length > 0 && (
-            <div className="mb-9 space-y-5">
-              {contacts.map((c) => (
-                <div key={c.label} className="pk-keep border-b border-neutral-200 pb-4">
-                  <div className="mb-1 text-[9.5px] uppercase tracking-[0.16em] text-neutral-500">
-                    {c.label}
-                  </div>
-                  <div className="break-words text-[15px] font-semibold">{c.email}</div>
-                </div>
+  /* ── LIVE & MILESTONES ──────────────────────────────────────────── */
+  if (show("live") && spotlights.length > 0) {
+    pages.push(
+      <Page key="live" title="Live &amp; Milestones">
+        <div className="grid grid-cols-2 gap-6">
+          {spotlights.slice(0, 8).map((s) => (
+            <div key={s.id} className="pk-keep">
+              {s.url && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={s.url} alt="" className="aspect-[4/3] w-full rounded object-cover" />
+              )}
+              {s.title && (
+                <p className="mt-2.5 text-[12px] font-bold uppercase text-white">{s.title}</p>
+              )}
+              {s.description && (
+                <p className="mt-1 text-[10.5px] leading-relaxed text-white/60">{s.description}</p>
+              )}
+            </div>
+          ))}
+        </div>
+      </Page>
+    );
+  }
+
+  /* ── PRESS ──────────────────────────────────────────────────────── */
+  if (show("press") && (cfg.quotes.length > 0 || cfg.placements.length > 0)) {
+    pages.push(
+      <Page key="press" title="Press &amp; Accolades">
+        {cfg.quotes.map((q, i) => (
+          <blockquote key={i} className="pk-keep mb-8 border-l-[3px] pl-6" style={{ borderColor: RED }}>
+            <p className="text-[17px] font-semibold italic leading-[1.5] text-white">“{q.quote}”</p>
+            {(q.source || q.year) && (
+              <cite className="mt-2.5 block text-[11px] not-italic text-white/45">
+                — {[q.source, q.year].filter(Boolean).join(", ")}
+              </cite>
+            )}
+          </blockquote>
+        ))}
+        {cfg.placements.length > 0 && (
+          <div className="mt-10 border-t border-white/15 pt-6">
+            <div className="mb-3 text-[9px] uppercase tracking-[0.2em] text-white/40">
+              Placements
+            </div>
+            <div className="flex flex-wrap gap-2.5">
+              {cfg.placements.map((p, i) => (
+                <span
+                  key={i}
+                  className="rounded-full border border-white/25 px-4 py-2 text-[11px] text-white/85"
+                >
+                  {p.label}
+                </span>
               ))}
             </div>
-          )}
-          {socials.length > 0 && (
-            <div>
-              <div className="mb-2.5 text-[9.5px] uppercase tracking-[0.16em] text-neutral-500">
-                Online
-              </div>
-              <div className="space-y-1.5">
-                {socials.map((s) => (
-                  <div key={s.label} className="flex gap-3 text-[11.5px]">
-                    <span className="w-[92px] shrink-0 text-neutral-500">{s.label}</span>
-                    <span className="min-w-0 break-all text-neutral-800">{s.href}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </Page>
-      ),
-    });
+          </div>
+        )}
+      </Page>
+    );
+  }
+
+  /* ── PRESS PHOTOS ───────────────────────────────────────────────── */
+  if (show("photos") && photos.length > 0) {
+    pages.push(
+      <Page key="photos" title="Press Photos" subtitle={`Download hi-res at ${kitUrl}`}>
+        <div className="grid grid-cols-2 gap-4">
+          {photos.slice(0, 6).map((p) => (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              key={p.id}
+              src={p.url}
+              alt=""
+              className="pk-keep aspect-[3/4] w-full rounded object-cover"
+            />
+          ))}
+        </div>
+      </Page>
+    );
   }
 
   return (
     <>
       {/*
-        Print rules live here rather than in globals.css: they must not leak into the app,
-        and `@page` cannot be expressed in Tailwind. `print-color-adjust: exact` is what
-        stops browsers helpfully stripping backgrounds and leaving the cover page white.
+        Print rules live here, not globals.css: they must not leak into the app, and
+        `@page` cannot be expressed in Tailwind. `print-color-adjust: exact` is what stops
+        browsers stripping the dark backgrounds — without it every page prints white with
+        white text, i.e. blank.
       */}
       <style>{`
         @page { size: A4; margin: 0; }
-        .pk-page { width: 210mm; min-height: 297mm; padding: 20mm 18mm; }
+        .pk-page { width: 210mm; min-height: 297mm; }
         .pk-keep { break-inside: avoid; page-break-inside: avoid; }
         @media print {
-          html, body { background: #fff !important; }
-          .pk-shell { background: #fff !important; padding: 0 !important; }
+          html, body { background: ${INK} !important; }
+          .pk-shell { background: ${INK} !important; padding: 0 !important; }
           .pk-page { box-shadow: none !important; margin: 0 !important; break-after: page; page-break-after: always; }
           .pk-page:last-child { break-after: auto; page-break-after: auto; }
           * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
           a { text-decoration: none !important; color: inherit !important; }
         }
-        @media screen {
-          .pk-page { margin: 0 auto 24px; box-shadow: 0 8px 30px rgba(0,0,0,.13); }
-        }
+        @media screen { .pk-page { margin: 0 auto 22px; box-shadow: 0 10px 34px rgba(0,0,0,.5); } }
       `}</style>
 
       <PrintTrigger />
 
-      <main className="pk-shell min-h-screen bg-neutral-200 py-8">
+      <main className="pk-shell min-h-screen py-8" style={{ background: "#1b1516" }}>
 
-        {/* ── COVER — the one page that should look like a poster ──── */}
-        <section className="pk-page relative flex flex-col justify-end overflow-hidden bg-[#170D0E] text-white">
+        {/* ── COVER ──────────────────────────────────────────────── */}
+        <section className="pk-page relative overflow-hidden" style={{ background: INK }}>
           {cover && (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={cover} alt="" className="absolute inset-0 h-full w-full object-cover" />
@@ -320,69 +268,144 @@ export default async function PressKitPdfPage({ params }: Params) {
             className="absolute inset-0"
             style={{
               background:
-                "linear-gradient(180deg, rgba(14,7,8,.45) 0%, rgba(14,7,8,.15) 38%, rgba(14,7,8,.88) 74%, #170D0E 100%)",
+                `linear-gradient(180deg, rgba(11,7,8,.72) 0%, rgba(11,7,8,.18) 34%, rgba(11,7,8,.52) 68%, ${INK} 100%)`,
             }}
           />
-          <div className="relative">
-            {artist.eyebrow && (
-              <p className="mb-3 text-[11px] uppercase tracking-[0.3em] text-white/75">
-                {artist.eyebrow}
-              </p>
-            )}
-            <h1 className="font-heading text-[52px] uppercase leading-[0.95] tracking-wide">
+
+          <div className="absolute inset-x-0 top-0 px-[18mm] pt-[18mm]">
+            <p className="font-heading text-[15px] uppercase leading-[1.1] tracking-[0.02em] text-white">
+              Electronic Press Kit
+            </p>
+            <p className="mt-1 font-heading text-[13px] tracking-[0.2em] text-white/70">{year}</p>
+
+            <h1
+              className="mt-12 font-heading text-[46px] uppercase leading-[0.92] tracking-wide"
+              style={{ color: RED }}
+            >
               {artist.name}
             </h1>
-            <p className="mt-5 text-[12px] uppercase tracking-[0.16em] text-white/60">
-              Press Kit
-            </p>
-            {facts.length > 0 && (
-              <div className="mt-8 flex flex-wrap gap-x-8 gap-y-3 border-t border-white/20 pt-5">
-                {facts.map((f) => (
-                  <div key={f.label}>
-                    <div className="text-[9px] uppercase tracking-[0.16em] text-white/50">
-                      {f.label}
-                    </div>
-                    <div className="mt-0.5 text-[13px] font-semibold">{f.value}</div>
-                  </div>
-                ))}
+          </div>
+
+          {/* The red band the reference closes the cover with. */}
+          {artist.eyebrow && (
+            <div
+              className="absolute inset-x-0 bottom-0 px-[18mm] py-5 text-center"
+              style={{ background: RED }}
+            >
+              <p className="text-[14px] font-bold uppercase tracking-[0.06em] text-white">
+                {artist.eyebrow}
+              </p>
+            </div>
+          )}
+        </section>
+
+        {pages}
+
+        {/* ── CONTACT — always last, always present ──────────────── */}
+        <section
+          className="pk-page relative flex flex-col justify-end overflow-hidden"
+          style={{ background: INK }}
+        >
+          {featured?.cover && (
+            <>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={featured.cover}
+                alt=""
+                className="absolute inset-0 h-full w-full object-cover opacity-45"
+              />
+              <div
+                className="absolute inset-0"
+                style={{ background: `linear-gradient(180deg, rgba(11,7,8,.55), ${INK} 72%)` }}
+              />
+            </>
+          )}
+
+          <div className="absolute inset-x-0 top-0 px-[18mm] pt-[18mm]">
+            <h2 className="font-heading text-[30px] uppercase tracking-[0.06em] text-white">
+              Latest Release
+            </h2>
+            {featured && (
+              <div className="mt-7 flex items-center gap-5">
+                {featured.cover && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={featured.cover} alt="" className="h-[110px] w-[110px] rounded object-cover" />
+                )}
+                <div className="min-w-0">
+                  <p className="text-[17px] font-bold uppercase leading-tight text-white underline decoration-white/40 underline-offset-4">
+                    {featured.title}
+                  </p>
+                  <p className="mt-1.5 text-[12px] text-white/60">
+                    {formatReleaseDate(featured.released_on) ?? ""}
+                  </p>
+                </div>
               </div>
             )}
           </div>
-        </section>
 
-        {pages.map((p) => (
-          <div key={p.key}>{p.node}</div>
-        ))}
+          <div className="relative px-[18mm] pb-[18mm]">
+            {contacts.length > 0 && (
+              <div className="mb-6 space-y-2">
+                {contacts.map((c) => (
+                  <p key={c.label} className="text-[13px] font-bold uppercase tracking-[0.04em] text-white">
+                    {c.email}
+                  </p>
+                ))}
+              </div>
+            )}
+
+            {socials.length > 0 && (
+              <div className="mb-6 flex flex-wrap gap-x-5 gap-y-1.5 border-t border-white/15 pt-5">
+                {socials.map((s) => (
+                  <span key={s.label} className="text-[10px] uppercase tracking-[0.14em] text-white/55">
+                    {s.label}
+                  </span>
+                ))}
+              </div>
+            )}
+
+            <p className="text-[9.5px] uppercase tracking-[0.1em] text-white/40">
+              © Songdis {year} · {kitUrl}
+            </p>
+            {contacts[0] && (
+              <p className="mt-1 text-[9.5px] uppercase tracking-[0.1em] text-white/40">
+                Press inquiries: {artist.name} · {contacts[0].email}
+              </p>
+            )}
+          </div>
+        </section>
       </main>
     </>
   );
 }
 
-/** One A4 page with a running header and footer, so a printed stack stays identifiable. */
+/** One A4 page: big condensed title, optional subtitle, content, hairline footer. */
 function Page({
   title,
-  artist,
+  subtitle,
   children,
 }: {
   title: string;
-  artist: string;
+  subtitle?: string;
   children: React.ReactNode;
 }) {
   return (
-    <section className="pk-page flex flex-col bg-white text-[#141013]">
-      <header className="mb-8 flex items-baseline justify-between border-b-2 border-[#C30100] pb-3">
+    <section className="pk-page flex flex-col px-[18mm] py-[18mm]" style={{ background: INK }}>
+      <header className="mb-9">
         <h2
-          className="font-heading text-[13px] uppercase tracking-[0.2em] text-[#C30100]"
+          className="font-heading text-[34px] uppercase leading-none tracking-[0.04em] text-white"
           dangerouslySetInnerHTML={{ __html: title }}
         />
-        <span className="text-[10px] uppercase tracking-[0.16em] text-neutral-400">
-          {artist}
-        </span>
+        {subtitle && (
+          <p className="mt-2.5 text-[10.5px] uppercase tracking-[0.16em]" style={{ color: RED }}>
+            {subtitle}
+          </p>
+        )}
       </header>
 
       <div className="flex-1">{children}</div>
 
-      <footer className="mt-8 border-t border-neutral-200 pt-3 text-[9.5px] text-neutral-400">
+      <footer className="mt-8 border-t border-white/12 pt-3 text-[8.5px] uppercase tracking-[0.16em] text-white/30">
         Distributed by Songdis
       </footer>
     </section>

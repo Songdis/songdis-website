@@ -7,6 +7,14 @@ import { Check, Share2 } from "lucide-react";
 interface Props {
   title: string;
   label?: string;
+  /**
+   * What to actually share. Defaults to the current page.
+   *
+   * On a release, this is the release's own smart link — somebody sharing a track means
+   * "here is the song", and handing them the press-kit URL instead makes the recipient
+   * hunt for it. Absent (no smart link yet), sharing the page is still the right answer.
+   */
+  url?: string;
   variant?: "pill" | "icon";
   className?: string;
 }
@@ -14,13 +22,15 @@ interface Props {
 export default function ShareButton({
   title,
   label,
+  url: shareUrl,
   variant = "pill",
   className = "",
 }: Props) {
   const [copied, setCopied] = useState(false);
 
   const onShare = useCallback(async () => {
-    const url = typeof window === "undefined" ? "" : window.location.href;
+    const url =
+      shareUrl ?? (typeof window === "undefined" ? "" : window.location.href);
     if (!url) return;
 
 
@@ -37,7 +47,7 @@ export default function ShareButton({
       window.setTimeout(() => setCopied(false), 2000);
     } catch {
     }
-  }, [title]);
+  }, [title, shareUrl]);
 
   if (variant === "icon") {
     return (
