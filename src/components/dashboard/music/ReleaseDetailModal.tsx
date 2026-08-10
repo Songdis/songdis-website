@@ -4,6 +4,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import Image from "next/image";
 import { useReleaseDetail, type NormalisedReleaseDetail, isTakedownEligible } from "@/lib/hooks/useMusic";
 import { getPlatformLogoUrl } from "@/lib/hooks/useRoyalties";
+import { useToast, Toaster } from "@/components/dashboard/press-kit/primitives";
 import {
   getReleaseLink,
   deleteReleaseLink,
@@ -339,6 +340,7 @@ export function ReleaseDetailModal({
 }) {
   const { release, isLoading, error } = useReleaseDetail(uploadId);
   const status = STATUS_CONFIG[release?.status ?? "live"] ?? STATUS_CONFIG.live;
+  const { toast, show } = useToast();
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center px-4 py-6">
@@ -476,9 +478,9 @@ export function ReleaseDetailModal({
               )}
               {onRequestTakedown && !isTakedownEligible(release.releaseDateIso) && (
                 <button
-                  aria-disabled
+                  onClick={() => show("Takedown is available 1 year after the release date", "bad")}
                   title="Available 1 year after the release date"
-                  className="flex-1 font-heading text-white/35 uppercase text-xs tracking-widest rounded-full border border-white/10 py-3.5 cursor-not-allowed"
+                  className="flex-1 font-heading text-white/35 uppercase text-xs tracking-widest rounded-full border border-white/10 py-3.5 cursor-pointer"
                 >
                   Request Takedown
                 </button>
@@ -492,6 +494,8 @@ export function ReleaseDetailModal({
           </div>
         )}
       </div>
+
+      <Toaster toast={toast} />
     </div>
   );
 }
