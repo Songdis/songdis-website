@@ -112,7 +112,7 @@ export function CoSignEnableSheet({
       dob,
       bvn: draft.bvn.replace(/\D/g, ""),
       phone_country_code: draft.phone_country_code.replace(/\D/g, ""),
-      phone_number: draft.phone_number.replace(/\D/g, ""),
+      phone_number: draft.phone_number.replace(/\D/g, "").replace(/^0+/, ""),
       street: draft.street.trim(),
       city: draft.city.trim(),
       state: draft.state.trim(),
