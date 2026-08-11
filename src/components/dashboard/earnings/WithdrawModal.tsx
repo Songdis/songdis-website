@@ -149,6 +149,16 @@ export default function WithdrawModal({
     ? true
     : payoutChecked && Boolean(bankCode) && accountNumber.length === 10;
 
+  /*
+   * Who the money is going to.
+   *
+   * `accountName` is only ever set by the live bank lookup, which needs a bank code and a
+   * ten-digit number typed into the form. A saved account never triggers it, so gating
+   * anything on `accountName` alone leaves the artist stuck with a valid preview and a
+   * dead Continue button. The saved name is already verified — prefer it.
+   */
+  const destinationName = savedAccount?.account_name ?? accountName;
+
   const handlePreview = async () => {
     if (!amountNum || !destinationReady) return;
     await fetchPreview(amountNum, currency);
@@ -172,7 +182,7 @@ export default function WithdrawModal({
          */
         bank_code: savedAccount?.bank_code ?? bankCode,
         account_number: savedAccount?.account_number ?? accountNumber,
-        account_name: savedAccount?.account_name ?? accountName ?? "",
+        account_name: destinationName ?? "",
         country: "NG",
       },
       onSuccess
@@ -413,7 +423,7 @@ export default function WithdrawModal({
                 </button>
                 <button
                   onClick={handleSendOtp}
-                  disabled={!preview || isLoadingOtp || !accountName}
+                  disabled={!preview || isLoadingOtp || !destinationName}
                   className="flex-1 font-heading text-white uppercase text-xs tracking-widest rounded-full border border-[#C30100] bg-[#C30100]/10 hover:bg-[#C30100] py-3.5 transition-all disabled:opacity-40"
                 >
                   {isLoadingOtp ? "Sending OTP..." : "Continue"}
