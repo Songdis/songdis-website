@@ -32,6 +32,7 @@ import {
   publishPressKit,
   readMediaUrlFromResponse,
   readSlugFromResponse,
+  sectionOrderAllows,
   unpublishPressKit,
   updatePressKit,
   updatePressKitSlug,
@@ -280,6 +281,10 @@ export function usePressKit(profileId: number | null, artistName = ""): UsePress
       const to = from + direction;
       if (from < 0 || to < 0 || to >= order.length) return d;
       [order[from], order[to]] = [order[to], order[from]];
+      // Co-sign can be moved anywhere below the bio, never above it. The check is on the
+      // WHOLE result so moving the bio down past the co-sign is blocked exactly the same
+      // way moving the co-sign up is — either way it ends up leading the kit.
+      if (!sectionOrderAllows(order)) return d;
       return { ...d, kit: { ...d.kit, section_order: order } };
     });
   }, []);

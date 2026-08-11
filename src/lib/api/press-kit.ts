@@ -30,6 +30,7 @@ export const SECTION_KEYS = [
   "contact",
   "kit",
   "join",
+  "cosign",
 ] as const;
 
 export type SectionKey = (typeof SECTION_KEYS)[number];
@@ -293,6 +294,19 @@ export function emptyContacts(): PressKitContacts {
 
 export function defaultSectionOrder(): SectionKey[] {
   return [...SECTION_KEYS];
+}
+
+/**
+ * A section order is only allowed when co-sign never sits above the bio — the tip jar
+ * must never lead a press kit. Shared by the editor's move clamp and the move-button
+ * disabled states, so "blocked" is announced (a greyed-out arrow) and enforced in the
+ * same place.
+ */
+export function sectionOrderAllows(order: readonly SectionKey[]): boolean {
+  const bio = order.indexOf("bio");
+  const cosign = order.indexOf("cosign");
+  // Either key absent: nothing to violate. Present keys must keep the bio first.
+  return bio < 0 || cosign < 0 || bio < cosign;
 }
 
 function asRecord(value: unknown): Record<string, unknown> {

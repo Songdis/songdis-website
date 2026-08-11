@@ -255,6 +255,12 @@ export const SECTION_META: Record<SectionKey, SectionMeta> = {
     hint: "Email capture isn't built yet, so this won't appear on your page.",
     live: false,
   },
+  cosign: {
+    key: "cosign",
+    label: "Co-sign",
+    hint: "The tip jar — where fans transfer straight to you. Never above your bio.",
+    live: true,
+  },
 };
 
 export function sectionMeta(key: SectionKey): SectionMeta {

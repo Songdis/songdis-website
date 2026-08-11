@@ -21,7 +21,8 @@ export type PressKitSectionKey =
   | "live"
   | "contact"
   | "kit"
-  | "join";
+  | "join"
+  | "cosign";
 
 export const PRESS_KIT_SECTION_KEYS: readonly PressKitSectionKey[] = [
   "glance",
@@ -33,6 +34,7 @@ export const PRESS_KIT_SECTION_KEYS: readonly PressKitSectionKey[] = [
   "contact",
   "kit",
   "join",
+  "cosign",
 ];
 
 export const DEFAULT_SECTION_ORDER: readonly PressKitSectionKey[] = [
@@ -44,6 +46,7 @@ export const DEFAULT_SECTION_ORDER: readonly PressKitSectionKey[] = [
   "live",
   "contact",
   "kit",
+  "cosign",
 ];
 
 export interface PressKitSocials {

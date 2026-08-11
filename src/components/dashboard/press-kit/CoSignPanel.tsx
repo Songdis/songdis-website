@@ -32,6 +32,12 @@ import { ACCENT_TEXT } from "./theme";
 interface Props {
   profileId: number;
   artistName: string;
+  /**
+   * Render without the panel chrome. Used when the panel is embedded as the body of the
+   * "Co-sign" row in the section order — that row already supplies the card, so an extra
+   * bordered box (and a second "Co-sign" heading) would be noise.
+   */
+  bare?: boolean;
 }
 
 
@@ -48,7 +54,7 @@ function formatWhen(iso: string | null): string | null {
 }
 
 
-export function CoSignPanel({ profileId, artistName }: Props) {
+export function CoSignPanel({ profileId, artistName, bare = false }: Props) {
   const cs = useCoSign(profileId);
   const { toast, show } = useToast();
 
@@ -88,57 +94,49 @@ export function CoSignPanel({ profileId, artistName }: Props) {
 
   if (cs.isLoading) {
     return (
-      <Panel>
-        <div className="p-4 sm:p-5 flex flex-col gap-3">
-          <Shimmer className="h-5 w-32" />
-          <Shimmer className="h-20 w-full" />
-        </div>
-      </Panel>
+      <Shell bare={bare}>
+        <Shimmer className="h-5 w-32" />
+        <Shimmer className="h-20 w-full" />
+      </Shell>
     );
   }
 
   if (cs.loadFailure?.status === 404) {
     return (
-      <Panel muted>
-        <div className="p-4 sm:p-5">
-          <SectionHeading>Co-sign</SectionHeading>
-          <p className="font-body text-white/45 text-xs mt-2 leading-relaxed">
-            Co-sign belongs to the artist who owns this profile. You can see their press
-            kit, but their fan payments are not yours to set up.
-          </p>
-        </div>
-      </Panel>
+      <Shell bare={bare}>
+        <SectionHeading bare>Co-sign</SectionHeading>
+        <p className="font-body text-white/45 text-xs leading-relaxed">
+          Co-sign belongs to the artist who owns this profile. You can see their press
+          kit, but their fan payments are not yours to set up.
+        </p>
+      </Shell>
     );
   }
 
   if (cs.loadFailure) {
     return (
-      <Panel>
-        <div className="p-4 sm:p-5 flex flex-col gap-3">
-          <SectionHeading>Co-sign</SectionHeading>
-          <FailureNotice
-            title="Could not load co-sign"
-            error={cs.loadFailure.error}
-            errors={cs.loadFailure.errors}
-            onRetry={cs.reload}
-          />
-        </div>
-      </Panel>
+      <Shell bare={bare}>
+        <SectionHeading bare>Co-sign</SectionHeading>
+        <FailureNotice
+          title="Could not load co-sign"
+          error={cs.loadFailure.error}
+          errors={cs.loadFailure.errors}
+          onRetry={cs.reload}
+        />
+      </Shell>
     );
   }
 
   if (cs.state && !cs.state.configured) {
     return (
-      <Panel muted>
-        <div className="p-4 sm:p-5">
-          <SectionHeading>Co-sign</SectionHeading>
-          <p className="font-body text-white/45 text-xs mt-2 leading-relaxed">
-            Fan payments are not switched on for Songdis yet. When they are, you will be
-            able to open a naira account here and take co-signs straight from your press
-            kit.
-          </p>
-        </div>
-      </Panel>
+      <Shell bare={bare}>
+        <SectionHeading bare>Co-sign</SectionHeading>
+        <p className="font-body text-white/45 text-xs leading-relaxed">
+          Fan payments are not switched on for Songdis yet. When they are, you will be
+          able to open a naira account here and take co-signs straight from your press
+          kit.
+        </p>
+      </Shell>
     );
   }
 
@@ -149,49 +147,47 @@ export function CoSignPanel({ profileId, artistName }: Props) {
 
   return (
     <>
-      <Panel>
-        <div className="p-4 sm:p-5 flex flex-col gap-4">
-          <div className="flex items-start gap-3">
-            <div className="min-w-0 flex-1 min-w-0">
-              <SectionHeading>Co-sign</SectionHeading>
-              <p className="font-body text-white/40 text-[11px] mt-0.5 leading-relaxed">
-                {isActive
-                  ? "Fans transfer straight to your account from your press kit."
-                  : "Let fans back you with a bank transfer, right from your press kit."}
-              </p>
-            </div>
-            {isActive && (
-              <span
-                className="font-body text-[10px] uppercase tracking-wider rounded-full px-2.5 py-1 border shrink-0 flex items-center gap-1.5"
-                style={{
-                  color: "#0ca30c",
-                  borderColor: "#0ca30c55",
-                  backgroundColor: "rgba(12,163,12,0.1)",
-                }}
-              >
-                <BadgeCheck size={10} aria-hidden />
-                On
-              </span>
-            )}
+      <Shell bare={bare}>
+        <div className="flex items-start gap-3">
+          <div className="min-w-0 flex-1 min-w-0">
+            <SectionHeading bare>Co-sign</SectionHeading>
+            <p className="font-body text-white/40 text-[11px] leading-relaxed">
+              {isActive
+                ? "Fans transfer straight to your account from your press kit."
+                : "Let fans back you with a bank transfer, right from your press kit."}
+            </p>
           </div>
-
-          {isActive && account ? (
-            <ActiveCoSign
-              account={account}
-              cs={cs}
-              onCopy={() => void copyNumber()}
-              onPayout={() => setPayoutOpen(true)}
-            />
-          ) : (
-            <NotYetOn
-              artistName={artistName}
-              partWayThrough={partWayThrough}
-              failedReason={failedReason}
-              onStart={() => setEnableOpen(true)}
-            />
+          {isActive && (
+            <span
+              className="font-body text-[10px] uppercase tracking-wider rounded-full px-2.5 py-1 border shrink-0 flex items-center gap-1.5"
+              style={{
+                color: "#0ca30c",
+                borderColor: "#0ca30c55",
+                backgroundColor: "rgba(12,163,12,0.1)",
+              }}
+            >
+              <BadgeCheck size={10} aria-hidden />
+              On
+            </span>
           )}
         </div>
-      </Panel>
+
+        {isActive && account ? (
+          <ActiveCoSign
+            account={account}
+            cs={cs}
+            onCopy={() => void copyNumber()}
+            onPayout={() => setPayoutOpen(true)}
+          />
+        ) : (
+          <NotYetOn
+            artistName={artistName}
+            partWayThrough={partWayThrough}
+            failedReason={failedReason}
+            onStart={() => setEnableOpen(true)}
+          />
+        )}
+      </Shell>
 
       {enableOpen && (
         <CoSignEnableSheet
@@ -220,9 +216,32 @@ export function CoSignPanel({ profileId, artistName }: Props) {
   );
 }
 
-function SectionHeading({ children }: { children: React.ReactNode }) {
+function SectionHeading({
+  children,
+  bare = false,
+}: {
+  children: React.ReactNode;
+  bare?: boolean;
+}) {
+  if (bare) return null;
   return (
     <h2 className="font-heading text-white uppercase text-sm tracking-wide">{children}</h2>
+  );
+}
+
+/**
+ * The panel chrome, or nothing when `bare`. `bare` mode is used inside the section-order
+ * row, which already provides the card and the "Co-sign" label — so the heading is
+ * dropped there and only the substantive content is shown.
+ */
+function Shell({ bare, children }: { bare: boolean; children: React.ReactNode }) {
+  if (bare) {
+    return <div className="flex flex-col gap-4">{children}</div>;
+  }
+  return (
+    <Panel>
+      <div className="p-4 sm:p-5 flex flex-col gap-4">{children}</div>
+    </Panel>
   );
 }
 

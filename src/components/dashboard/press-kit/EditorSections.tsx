@@ -18,7 +18,9 @@ import type {
   PressKitQuote,
   SectionKey,
 } from "@/lib/api/press-kit";
+import { sectionOrderAllows } from "@/lib/api/press-kit";
 import type { UsePressKit } from "@/lib/hooks/usePressKit";
+import { CoSignPanel } from "./CoSignPanel";
 import {
   FailureNotice,
   FilePicker,
@@ -40,6 +42,8 @@ function SectionFrame({
   onMove,
   onToggle,
   children,
+  disableUp,
+  disableDown,
 }: {
   sectionKey: SectionKey;
   index: number;
@@ -47,6 +51,13 @@ function SectionFrame({
   hidden: boolean;
   onMove: (key: SectionKey, direction: -1 | 1) => void;
   onToggle: (key: SectionKey) => void;
+  /**
+   * Extra reasons a move is unavailable, on top of being at the end of the list — the
+   * co-sign block cannot be lifted above the bio, so its up arrow is greyed out (and
+   * the bio's down arrow, for the same reason) rather than left looking clickable.
+   */
+  disableUp?: boolean;
+  disableDown?: boolean;
   children: React.ReactNode;
 }) {
   const meta = sectionMeta(sectionKey);
@@ -82,14 +93,14 @@ function SectionFrame({
           <div className="flex items-center gap-1.5 shrink-0">
             <IconButton
               label={`Move ${meta.label} up`}
-              disabled={index === 0}
+              disabled={disableUp ?? index === 0}
               onClick={() => onMove(sectionKey, -1)}
             >
               <ChevronUp size={15} aria-hidden />
             </IconButton>
             <IconButton
               label={`Move ${meta.label} down`}
-              disabled={index === total - 1}
+              disabled={disableDown ?? index === total - 1}
               onClick={() => onMove(sectionKey, 1)}
             >
               <ChevronDown size={15} aria-hidden />
@@ -207,8 +218,26 @@ export function HeroEditor({ kit }: { kit: UsePressKit }) {
 
 /* ─── The ordered list ────────────────────────────────────────── */
 
-export function EditorSections({ kit }: { kit: UsePressKit }) {
+export function EditorSections({
+  kit,
+  profileId,
+  artistName,
+}: {
+  kit: UsePressKit;
+  profileId: number;
+  artistName: string;
+}) {
   const order = kit.draft.kit.section_order;
+
+  /** Would a swap with the neighbour end in a legal order? Mirrors the hook's clamp. */
+  const canMove = (key: SectionKey, direction: -1 | 1): boolean => {
+    const from = order.indexOf(key);
+    const to = from + direction;
+    if (from < 0 || to < 0 || to >= order.length) return false;
+    const next = [...order];
+    [next[from], next[to]] = [next[to], next[from]];
+    return sectionOrderAllows(next);
+  };
 
   return (
     <div className="flex flex-col gap-3 sm:gap-4">
@@ -221,15 +250,32 @@ export function EditorSections({ kit }: { kit: UsePressKit }) {
           hidden={kit.isHidden(key)}
           onMove={kit.moveSection}
           onToggle={kit.toggleSection}
+          disableUp={!canMove(key, -1)}
+          disableDown={!canMove(key, 1)}
         >
-          <SectionBody sectionKey={key} kit={kit} />
+          <SectionBody
+            sectionKey={key}
+            kit={kit}
+            profileId={profileId}
+            artistName={artistName}
+          />
         </SectionFrame>
       ))}
     </div>
   );
 }
 
-function SectionBody({ sectionKey, kit }: { sectionKey: SectionKey; kit: UsePressKit }) {
+function SectionBody({
+  sectionKey,
+  kit,
+  profileId,
+  artistName,
+}: {
+  sectionKey: SectionKey;
+  kit: UsePressKit;
+  profileId: number;
+  artistName: string;
+}) {
   switch (sectionKey) {
     case "glance":
       return <GlanceBody kit={kit} />;
@@ -259,6 +305,10 @@ function SectionBody({ sectionKey, kit }: { sectionKey: SectionKey; kit: UsePres
           Email capture is not part of this release, so this block is not rendered on your
           public page yet.
         </Notice>
+      );
+    case "cosign":
+      return (
+        <CoSignPanel profileId={profileId} artistName={artistName} bare />
       );
     default:
       return null;

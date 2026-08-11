@@ -20,7 +20,6 @@ export function AddressSheet({
   open: boolean;
   onClose: () => void;
   slug: SlugState;
-  /** The artist's name, used to propose a first address when there is none. */
   suggestedFrom: string;
   onCheck: (value: string) => void;
   onSave: (value: string) => Promise<boolean>;

@@ -11,6 +11,7 @@ import {
   Globe,
   Loader2,
   Palette,
+  Pencil,
   Users,
 } from "lucide-react";
 import { getProfiles, type ProfileSummary } from "@/lib/api/analytics-v2";
@@ -18,8 +19,8 @@ import { publicKitLabel, publicKitUrl } from "@/lib/api/press-kit";
 import { ANALYTICS_V2_ENABLED, useAnalyticsV2Optional } from "@/lib/hooks/useAnalyticsV2";
 import { usePressKit, type UsePressKit } from "@/lib/hooks/usePressKit";
 import { AddressSheet } from "./AddressSheet";
-import { CoSignPanel } from "./CoSignPanel";
 import { EditorSections, HeroEditor } from "./EditorSections";
+import { PressKitPreview } from "./PressKitPreview";
 import {
   FailureNotice,
   Notice,
@@ -238,6 +239,7 @@ function EditorForProfile({
   const kit = usePressKit(profileId, profile?.display_name ?? "");
   const { toast, show } = useToast();
 
+  const [mode, setMode] = useState<"preview" | "edit">("preview");
   const [themeOpen, setThemeOpen] = useState(false);
   const [addressOpen, setAddressOpen] = useState(false);
 
@@ -411,6 +413,15 @@ function EditorForProfile({
             </SecondaryButton>
           </div>
 
+          <div className="flex items-center gap-3 border-t border-white/[0.05] pt-4">
+            <ModeToggle mode={mode} onChange={setMode} />
+            <p className="font-body text-white/35 text-[11px] ml-auto text-right">
+              {mode === "preview"
+                ? "Preview updates live as you edit"
+                : "Back to preview to see the public view"}
+            </p>
+          </div>
+
           {kit.isPublished && kit.isDirty && (
             <Notice tone="warning">
               Your page is live and you have unsaved changes. Visitors still see the last
@@ -420,13 +431,32 @@ function EditorForProfile({
         </div>
       </Panel>
 
-      <HeroEditor kit={kit} />
-      <EditorSections kit={kit} />
+      {mode === "preview" ? (
+        <>
+          <PressKitPreview kit={kit} />
 
-      <CoSignPanel
-        profileId={profileId}
-        artistName={kit.draft.artist.name || profile?.display_name || "this artist"}
-      />
+          <Panel>
+            <div className="p-5 sm:p-6 flex flex-col items-center gap-3 text-center">
+              <p className="font-body text-white/60 text-sm">
+                This is how fans see your press kit. Switch to Edit to change any of it.
+              </p>
+              <PrimaryButton onClick={() => setMode("edit")}>
+                <Pencil size={13} aria-hidden />
+                Edit press kit
+              </PrimaryButton>
+            </div>
+          </Panel>
+        </>
+      ) : (
+        <>
+          <HeroEditor kit={kit} />
+          <EditorSections
+            kit={kit}
+            profileId={profileId}
+            artistName={kit.draft.artist.name || profile?.display_name || "this artist"}
+          />
+        </>
+      )}
 
       <SaveBar kit={kit} onSave={onSave} />
 
@@ -451,6 +481,43 @@ function EditorForProfile({
       />
 
       <Toaster toast={toast} />
+    </div>
+  );
+}
+
+function ModeToggle({
+  mode,
+  onChange,
+}: {
+  mode: "preview" | "edit";
+  onChange: (mode: "preview" | "edit") => void;
+}) {
+  const options = [
+    { key: "preview", label: "Preview", Icon: Eye },
+    { key: "edit", label: "Edit", Icon: Pencil },
+  ] as const;
+
+  return (
+    <div className="inline-flex rounded-full border border-white/12 p-0.5">
+      {options.map(({ key, label, Icon }) => {
+        const active = mode === key;
+        return (
+          <button
+            key={key}
+            type="button"
+            onClick={() => onChange(key)}
+            aria-pressed={active}
+            className={`inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-[12px] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#E5342F] ${
+              active
+                ? "bg-white/10 text-white"
+                : "text-white/50 hover:text-white/80"
+            }`}
+          >
+            <Icon size={13} aria-hidden />
+            {label}
+          </button>
+        );
+      })}
     </div>
   );
 }
