@@ -91,18 +91,36 @@ export default function WithdrawModal({
    * the form in, rather than after entering an amount and a bank account.
    */
   const [payout, setPayout] = useState<PayoutStatus | null>(null);
+  /*
+   * Separate from `payout` because a failed lookup also settles the question. Without it,
+   * an artist who HAS an account sees the bank fields flash up before the status lands —
+   * and an artist whose status call failed would never see them at all.
+   */
+  const [payoutChecked, setPayoutChecked] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
 
     getPayoutStatus().then((res) => {
-      if (!cancelled && !res.error && res.data) setPayout(res.data);
+      if (cancelled) return;
+      if (!res.error && res.data) setPayout(res.data);
+      setPayoutChecked(true);
     });
 
     return () => { cancelled = true; };
   }, []);
 
   const blockedByIdentity = payout !== null && payout.enforced && !payout.can_withdraw;
+
+  /*
+   * The verified destination, when there is one.
+   *
+   * The server pays into this account and ignores whatever bank_code/account_number the
+   * request carries (RoyaltyWithdrawalController builds payout_details from the saved
+   * row). Asking for them again was therefore not just repetition — the artist could type
+   * a different account, watch it verify, and still be paid somewhere else.
+   */
+  const savedAccount = payout?.account ?? null;
 
   /* Auto-verify account when bank + 10-digit number selected */
   useEffect(() => {
@@ -114,8 +132,13 @@ export default function WithdrawModal({
   const amountNum = parseFloat(amount) || 0;
   const belowMinimum = amountNum > 0 && amountNum < 50;
 
+  /** With a verified account there is nothing left to fill in but the amount. */
+  const destinationReady = savedAccount
+    ? true
+    : payoutChecked && Boolean(bankCode) && accountNumber.length === 10;
+
   const handlePreview = async () => {
-    if (!amountNum || !bankCode || !accountNumber) return;
+    if (!amountNum || !destinationReady) return;
     await fetchPreview(amountNum, currency);
   };
 
@@ -124,16 +147,20 @@ export default function WithdrawModal({
   };
 
   const handleWithdraw = async () => {
-    const selectedBank = banks.find((b) => b.code === bankCode);
     await withdraw(
       {
         otp_code: otp,
         amount_usd: amountNum,
         target_currency: currency,
         payout_method: "bank_transfer",
-        bank_code: bankCode,
-        account_number: accountNumber,
-        account_name: accountName ?? "",
+        /*
+         * Echoed from the saved account, not collected. The server overwrites these with
+         * the saved row anyway; sending them keeps the request valid against a backend
+         * that has not yet relaxed `required_if` — deploy skew, not a real input.
+         */
+        bank_code: savedAccount?.bank_code ?? bankCode,
+        account_number: savedAccount?.account_number ?? accountNumber,
+        account_name: savedAccount?.account_name ?? accountName ?? "",
         country: "NG",
       },
       onSuccess
@@ -239,34 +266,56 @@ export default function WithdrawModal({
                 </select>
               </Field>
 
-              {/* Bank — searchable, because the Nigerian list runs past a
-                  hundred entries once microfinance banks are included. */}
-              <BankSelect
-                banks={banks}
-                value={bankCode}
-                onChange={setBankCode}
-                isLoading={banksLoading}
-              />
+              {/* The destination. Shown, not asked for, once an account is verified —
+                  it is the whole point of having added one. */}
+              {savedAccount ? (
+                <Field label="Paid into">
+                  <div className="rounded-xl border border-white/[0.08] bg-[#0E0808] px-4 py-3">
+                    <p className="font-body text-white text-sm font-medium">
+                      {savedAccount.account_name}
+                    </p>
+                    <p className="font-body text-white/50 text-xs mt-0.5">
+                      {savedAccount.bank_name} · ••••{savedAccount.account_number.slice(-4)}
+                    </p>
+                  </div>
+                  <p className="font-body text-white/30 text-[11px] mt-1.5">
+                    Change this on the Earnings page, under Payout Account.
+                  </p>
+                </Field>
+              ) : !payoutChecked ? (
+                <div className="h-[92px] rounded-xl border border-white/[0.06] bg-[#0E0808] animate-pulse" aria-hidden />
+              ) : (
+                <>
+                  {/* Bank — searchable, because the Nigerian list runs past a
+                      hundred entries once microfinance banks are included. */}
+                  <BankSelect
+                    banks={banks}
+                    value={bankCode}
+                    onChange={setBankCode}
+                    isLoading={banksLoading}
+                  />
 
-              {/* Account number */}
-              <Field label="Account Number">
-                <input
-                  type="text"
-                  value={accountNumber}
-                  onChange={(e) => setAccountNumber(e.target.value.replace(/\D/g, "").slice(0, 10))}
-                  placeholder="10-digit account number"
-                  className={inputCls}
-                />
-                {isVerifying && <p className="font-body text-white/30 text-xs mt-1">Verifying account...</p>}
-                {accountName && (
-                  <p className="font-body text-green-400 text-xs mt-1">{accountName}</p>
-                )}
-              </Field>
+                  {/* Account number */}
+                  <Field label="Account Number">
+                    <input
+                      type="text"
+                      value={accountNumber}
+                      onChange={(e) => setAccountNumber(e.target.value.replace(/\D/g, "").slice(0, 10))}
+                      placeholder="10-digit account number"
+                      className={inputCls}
+                    />
+                    {isVerifying && <p className="font-body text-white/30 text-xs mt-1">Verifying account...</p>}
+                    {accountName && (
+                      <p className="font-body text-green-400 text-xs mt-1">{accountName}</p>
+                    )}
+                  </Field>
+                </>
+              )}
 
               {/* Preview button */}
               <button
                 onClick={handlePreview}
-                disabled={!amountNum || belowMinimum || !bankCode || accountNumber.length < 10 || isLoadingPreview}
+                disabled={!amountNum || belowMinimum || !destinationReady || isLoadingPreview}
                 className="w-full font-heading text-white uppercase text-xs tracking-widest rounded-full border border-white/20 py-3 hover:border-white/40 transition-colors disabled:opacity-40"
               >
                 {isLoadingPreview ? "Loading preview..." : "Preview Withdrawal"}
