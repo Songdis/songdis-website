@@ -10,9 +10,7 @@ type Step = "amount" | "otp" | "done";
 
 interface Props {
   availableBalance: number;
-  /** Set when the page already knows withdrawals are paused. */
   pausedMessage?: string | null;
-  /** Fired when the server tells us mid-flow, so the page behind agrees. */
   onPaused?: (message: string) => void;
   onClose: () => void;
   onSuccess: () => void;
@@ -42,17 +40,6 @@ export default function WithdrawModal({
 
   const { banks, isLoading: banksLoading } = useBanks(currency);
 
-  /*
-   * ── Withdrawals paused ────────────────────────────────────────────────────
-   *
-   * Three ways we can find out, in order of freshness:
-   *   1. the page already knew when this opened,
-   *   2. the balance re-read below, in case it was paused since the page loaded,
-   *   3. a 423 from send-otp / initiate, if it was paused while this was open.
-   *
-   * All three end in the same place: the server's own message, shown instead of
-   * the form. The point is that nobody types an amount and picks a bank first.
-   */
   const [pausedOnOpen, setPausedOnOpen] = useState<string | null>(null);
   const paused = pausedFromServer ?? pausedOnOpen ?? pausedFromPage;
 
@@ -70,7 +57,6 @@ export default function WithdrawModal({
     return () => { cancelled = true; };
   }, []);
 
-  /* Tell the page, once, so its banner and button match what we just learned. */
   const reportedPause = useRef<string | null>(null);
   const pauseRef = useRef<HTMLDivElement>(null);
 
@@ -78,24 +64,11 @@ export default function WithdrawModal({
     if (!paused || reportedPause.current === paused) return;
     reportedPause.current = paused;
     onPaused?.(paused);
-    /* This modal scrolls. If the 423 landed at the OTP step, the notice
-       replaces content further down the page and would otherwise appear
-       off-screen — the artist would see the button do nothing. */
     pauseRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
   }, [paused, onPaused]);
 
-  /*
-   * Whether identity verification stands between them and a payout.
-   *
-   * Checked here as well as on the server so an artist is told before filling
-   * the form in, rather than after entering an amount and a bank account.
-   */
+ 
   const [payout, setPayout] = useState<PayoutStatus | null>(null);
-  /*
-   * Separate from `payout` because a failed lookup also settles the question. Without it,
-   * an artist who HAS an account sees the bank fields flash up before the status lands —
-   * and an artist whose status call failed would never see them at all.
-   */
   const [payoutChecked, setPayoutChecked] = useState(false);
 
   useEffect(() => {
@@ -407,7 +380,10 @@ export default function WithdrawModal({
                   })()}
                   <div className="border-t border-white/[0.06] pt-2 flex items-center justify-between">
                     <p className="font-body text-white/70 text-xs font-semibold">You Receive</p>
-                    <p className="font-heading text-[#C30100] text-sm font-bold">
+                    {/* Green: this is the one line in the breakdown that is money arriving,
+                        not money leaving. Brand red read as a deduction like the rows above
+                        it — and #C30100 is 2.98:1 on this background besides. */}
+                    <p className="font-heading text-green-400 text-sm font-bold">
                       {typeof preview.estimated_amount_after_transfer_fee === "number"
                         ? preview.estimated_amount_after_transfer_fee.toLocaleString(undefined, { maximumFractionDigits: 2 })
                         : "—"} {currency}
