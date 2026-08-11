@@ -3,8 +3,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { Eye } from "lucide-react";
 
+import PressKitChrome from "@/app/k/[slug]/_components/PressKitChrome";
 import PressKitView from "@/app/k/[slug]/_components/PressKitView";
-import { pressKitThemeVars } from "@/app/k/[slug]/_theme";
 import { CO_SIGN_DISABLED } from "@/lib/api/co-sign";
 import type { PressKitEditorState } from "@/lib/api/press-kit";
 import {
@@ -86,7 +86,15 @@ function buildPreviewPressKit(
   };
 }
 
-export function PressKitPreview({ kit }: { kit: UsePressKit }) {
+export function PressKitPreview({
+  kit,
+  onEdit,
+  shareUrl,
+}: {
+  kit: UsePressKit;
+  onEdit: () => void;
+  shareUrl?: string;
+}) {
   const slug = kit.draft.artist.slug;
 
   const [fetched, setFetched] = useState<{
@@ -116,40 +124,36 @@ export function PressKitPreview({ kit }: { kit: UsePressKit }) {
 
   return (
     <Panel>
-      <div className="p-4 sm:p-6 flex flex-col gap-4">
-        <div className="flex items-center justify-between gap-3">
-          <div className="flex items-center gap-2.5 min-w-0">
-            <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-[#E5342F]/10 text-[#E5342F]">
-              <Eye size={15} aria-hidden />
-            </span>
-            <div className="min-w-0">
-              <p className="font-heading text-white uppercase text-[12px] tracking-[0.14em]">
-                Preview
-              </p>
-              <p className="font-body text-white/35 text-[11px]">
-                This is exactly what a visitor sees. Edits below apply instantly.
-              </p>
-            </div>
-          </div>
-          <span
-            className={`font-body text-[10px] uppercase tracking-wider rounded-full px-2.5 py-1 border shrink-0 ${
-              isPublished
-                ? "text-[#0ca30c] border-[#0ca30c55] bg-[rgba(12,163,12,0.1)]"
-                : "text-white/50 border-white/12"
-            }`}
-          >
-            {isPublished ? "Live" : "Draft — not public yet"}
+      <div className="flex items-center justify-between gap-3 p-4 sm:p-6">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-[#E5342F]/10 text-[#E5342F]">
+            <Eye size={15} aria-hidden />
           </span>
-        </div>
-
-        <div className="mx-auto w-full max-w-[400px] rounded-[1.8rem] bg-black/50 p-2 ring-1 ring-white/10">
-          <div
-            className="h-[62vh] min-h-[380px] max-h-[720px] overflow-y-auto rounded-[1.35rem] bg-[var(--pk-bg)]"
-            style={pressKitThemeVars(preview.kit.theme, preview.kit.headline_font)}
-          >
-            <PressKitView kit={preview} />
+          <div className="min-w-0">
+            <p className="font-heading text-white uppercase text-[12px] tracking-[0.14em]">
+              Preview
+            </p>
+            <p className="font-body text-white/35 text-[11px]">
+              The real page, at real size. Change any field below and it updates
+              here instantly.
+            </p>
           </div>
         </div>
+        <span
+          className={`font-body text-[10px] uppercase tracking-wider rounded-full px-2.5 py-1 border shrink-0 ${
+            isPublished
+              ? "text-[#0ca30c] border-[#0ca30c55] bg-[rgba(12,163,12,0.1)]"
+              : "text-white/50 border-white/12"
+          }`}
+        >
+          {isPublished ? "Live" : "Draft — not public yet"}
+        </span>
+      </div>
+
+      <div className="border-t border-white/[0.05]">
+        <PressKitChrome kit={preview} onEdit={onEdit} shareUrl={shareUrl}>
+          <PressKitView kit={preview} />
+        </PressKitChrome>
       </div>
     </Panel>
   );

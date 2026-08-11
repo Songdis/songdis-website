@@ -432,21 +432,11 @@ function EditorForProfile({
       </Panel>
 
       {mode === "preview" ? (
-        <>
-          <PressKitPreview kit={kit} />
-
-          <Panel>
-            <div className="p-5 sm:p-6 flex flex-col items-center gap-3 text-center">
-              <p className="font-body text-white/60 text-sm">
-                This is how fans see your press kit. Switch to Edit to change any of it.
-              </p>
-              <PrimaryButton onClick={() => setMode("edit")}>
-                <Pencil size={13} aria-hidden />
-                Edit press kit
-              </PrimaryButton>
-            </div>
-          </Panel>
-        </>
+        <PressKitPreview
+          kit={kit}
+          onEdit={() => setMode("edit")}
+          shareUrl={publicUrl ?? undefined}
+        />
       ) : (
         <>
           <HeroEditor kit={kit} />
