@@ -1,23 +1,9 @@
 "use client";
 
-/**
- * The small pieces the press-kit editor is built from: the inline fields that stand in
- * for the mock's `contentEditable` nodes, the sheet, the toast, and the failure surface.
- *
- * ── Why these are real form controls and not contentEditable ────────────────
- *
- * The mock marks editable text with `.ed` and flips `contentEditable` on. In React a
- * controlled contentEditable fights the caret on every keystroke, and on a phone it
- * loses the keyboard type, the autocorrect hints and half of the accessibility tree.
- * These render as `<input>`/`<textarea>` wearing the same dashed accent outline, which
- * is what the artist actually recognises about `.editing` mode.
- */
-
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { AlertTriangle, Check, X } from "lucide-react";
 import { ACCENT_TEXT } from "./theme";
 
-/* ─── Inline text fields ──────────────────────────────────────── */
 
 const INLINE_BASE =
   "w-full bg-transparent text-white placeholder:text-white/25 rounded-md px-2 py-1.5 " +
@@ -82,7 +68,6 @@ export function InlineField({
   );
 }
 
-/** Auto-growing textarea — a bio should never be edited through a four-line porthole. */
 export function InlineArea({
   label,
   value,
@@ -153,7 +138,6 @@ export function InlineArea({
   );
 }
 
-/* ─── Buttons ─────────────────────────────────────────────────── */
 
 export function PrimaryButton({
   children,
@@ -174,8 +158,6 @@ export function PrimaryButton({
       onClick={onClick}
       disabled={disabled}
       className={[
-        // A large brand fill is the one place #C30100 is legitimate — the label on top
-        // is white, not brand red.
         "font-heading uppercase text-[11px] tracking-[0.12em] text-white rounded-full",
         "px-5 py-2.5 bg-[#C30100] hover:bg-[#a30100] transition-colors",
         "disabled:opacity-40 disabled:cursor-not-allowed",
@@ -258,7 +240,6 @@ export function IconButton({
   );
 }
 
-/* ─── Card ────────────────────────────────────────────────────── */
 
 export function Panel({
   children,
@@ -377,87 +358,11 @@ export function Notice({
 /* ─── Sheet ───────────────────────────────────────────────────── */
 
 /**
- * The mock's bottom sheet. One page with sheets, not separate routes — so theme and
- * address never take the artist away from what they were editing.
- *
- * Bottom-anchored on a phone (thumb reach), centred from `sm:` up. Escape closes it and
- * focus moves into the panel on open, because a sheet you cannot dismiss from the
- * keyboard is a trap.
+ * Moved to `@/components/ui/Sheet` — the payout and identity flows use the same dialog,
+ * so it is no longer press-kit's to own. Re-exported here so every existing import in the
+ * editor keeps working and there is still exactly one implementation.
  */
-export function Sheet({
-  open,
-  onClose,
-  title,
-  subtitle,
-  children,
-  footer,
-}: {
-  open: boolean;
-  onClose: () => void;
-  title: string;
-  subtitle?: string;
-  children: React.ReactNode;
-  footer?: React.ReactNode;
-}) {
-  const panelRef = useRef<HTMLDivElement | null>(null);
-
-  useEffect(() => {
-    if (!open) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    document.addEventListener("keydown", onKey);
-    panelRef.current?.focus();
-    return () => document.removeEventListener("keydown", onKey);
-  }, [open, onClose]);
-
-  if (!open) return null;
-
-  return (
-    <div className="fixed inset-0 z-[80] flex items-end sm:items-center sm:justify-center">
-      <div
-        className="absolute inset-0 bg-black/70 backdrop-blur-[2px]"
-        onClick={onClose}
-        aria-hidden
-      />
-      <div
-        ref={panelRef}
-        role="dialog"
-        aria-modal="true"
-        aria-label={title}
-        tabIndex={-1}
-        className={[
-          "relative w-full sm:max-w-lg max-h-[88dvh] overflow-y-auto outline-none",
-          "bg-[#0E0808] border-t sm:border border-white/[0.09]",
-          "rounded-t-3xl sm:rounded-2xl px-5 sm:px-6 pt-3 pb-6 sm:pb-6",
-        ].join(" ")}
-      >
-        <div className="w-10 h-1 rounded-full bg-white/20 mx-auto mb-4 sm:hidden" aria-hidden />
-
-        <div className="flex items-start justify-between gap-4 mb-4">
-          <div className="min-w-0">
-            <h2 className="font-heading text-white uppercase text-base tracking-wide">{title}</h2>
-            {subtitle && (
-              <p className="font-body text-white/45 text-xs mt-1 leading-relaxed">{subtitle}</p>
-            )}
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Close"
-            className="shrink-0 w-8 h-8 rounded-full grid place-items-center text-white/50 hover:text-white border border-white/10 hover:border-white/25 transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#E5342F]"
-          >
-            <X size={15} aria-hidden />
-          </button>
-        </div>
-
-        <div className="flex flex-col gap-4">{children}</div>
-
-        {footer && <div className="mt-5">{footer}</div>}
-      </div>
-    </div>
-  );
-}
+export { Sheet } from "@/components/ui/Sheet";
 
 /* ─── Toast ───────────────────────────────────────────────────── */
 
@@ -513,14 +418,7 @@ export function Toaster({ toast }: { toast: ToastMessage | null }) {
   );
 }
 
-/* ─── File picker ─────────────────────────────────────────────── */
 
-/**
- * A hidden `<input type="file">` driven by a render-prop trigger.
- *
- * `capture` is deliberately NOT set: on a phone that would force the camera and remove
- * the artist's photo library, which is where a press shot actually lives.
- */
 export function FilePicker({
   onPick,
   accept = "image/*",
@@ -556,7 +454,6 @@ export function FilePicker({
   );
 }
 
-/* ─── Shimmer ─────────────────────────────────────────────────── */
 
 export function Shimmer({ className = "" }: { className?: string }) {
   return <div className={`av2-shimmer rounded-md ${className}`} />;

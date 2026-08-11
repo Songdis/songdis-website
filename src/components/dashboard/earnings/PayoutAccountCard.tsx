@@ -5,9 +5,13 @@ import {
   getPayoutStatus,
   verifyIdentity,
   savePayoutAccount,
+  confirmPayoutAccountChange,
+  isOtpChallenge,
+  type PayoutOtpChallenge,
   type PayoutStatus,
 } from "@/lib/api/payout";
 import { useBanks } from "@/lib/hooks/useEarnings";
+import { Sheet } from "@/components/ui/Sheet";
 import BankSelect from "./BankSelect";
 
 
@@ -26,6 +30,16 @@ export default function PayoutAccountCard() {
   const [status, setStatus] = useState<PayoutStatus | null>(null);
   const [loading, setLoading] = useState(true);
   const [mode, setMode] = useState<"idle" | "verify" | "account">("idle");
+  /*
+   * Held here, not inside AccountPanel, so the code step is its own sheet with its own
+   * title. Dropping it discards the staged change — the server expires it either way.
+   */
+  const [challenge, setChallenge] = useState<PayoutOtpChallenge | null>(null);
+
+  const cancelChange = useCallback(() => {
+    setChallenge(null);
+    setMode("idle");
+  }, []);
 
 
   const load = useCallback(async (): Promise<void> => {
@@ -89,24 +103,60 @@ export default function PayoutAccountCard() {
         )}
       </div>
 
-      {mode === "verify" && (
+      {/*
+        The card body stays put and every step opens over it, so the artist never loses
+        sight of the account they are changing. Same Sheet the press-kit editor uses.
+      */}
+      <IdleView status={status} onVerify={() => setMode("verify")} onAccount={() => setMode("account")} />
+
+      <Sheet
+        open={mode === "verify"}
+        onClose={() => setMode("idle")}
+        title="Verify your identity"
+        subtitle="A government ID, so we can confirm your royalties are going to you."
+      >
         <VerifyIdentityPanel
           onDone={() => { setMode("account"); load(); }}
           onCancel={() => setMode("idle")}
         />
-      )}
+      </Sheet>
 
-      {mode === "account" && (
+      <Sheet
+        open={mode === "account" && !challenge}
+        onClose={() => setMode("idle")}
+        title={status.account ? "Change payout account" : "Add payout account"}
+        subtitle={
+          status.account
+            ? "We check your ID and selfie again, then email a code to confirm the change."
+            : "Where your royalties are sent."
+        }
+      >
         <AccountPanel
           isChange={Boolean(status.account)}
+          onChallenge={setChallenge}
           onDone={() => { setMode("idle"); load(); }}
           onCancel={() => setMode("idle")}
         />
-      )}
+      </Sheet>
 
-      {mode === "idle" && (
-        <IdleView status={status} onVerify={() => setMode("verify")} onAccount={() => setMode("account")} />
-      )}
+      <Sheet
+        open={Boolean(challenge)}
+        onClose={cancelChange}
+        title="Enter your code"
+        subtitle={
+          challenge
+            ? `We emailed a 6-digit code to ${challenge.sent_to}. Your royalties keep going to your current account until you enter it.`
+            : undefined
+        }
+      >
+        {challenge && (
+          <OtpStep
+            challenge={challenge}
+            onDone={() => { setChallenge(null); setMode("idle"); load(); }}
+            onCancel={cancelChange}
+          />
+        )}
+      </Sheet>
     </div>
   );
 }
@@ -281,10 +331,13 @@ function VerifyIdentityPanel({ onDone, onCancel }: { onDone: () => void; onCance
 
 function AccountPanel({
   isChange,
+  onChallenge,
   onDone,
   onCancel,
 }: {
   isChange: boolean;
+  /** A change is staged, not saved — the card takes over and opens the code sheet. */
+  onChallenge: (challenge: PayoutOtpChallenge) => void;
   onDone: () => void;
   onCancel: () => void;
 }) {
@@ -331,6 +384,12 @@ function AccountPanel({
 
     if (res.error) {
       setError(res.error);
+      return;
+    }
+
+    // A change is not saved yet — the server is holding it behind an emailed code.
+    if (isOtpChallenge(res.data)) {
+      onChallenge(res.data);
       return;
     }
 
@@ -427,6 +486,93 @@ function AccountPanel({
           className="font-body text-xs text-white bg-[#C30100] rounded-full px-5 py-2.5 hover:bg-[#a80000] transition-colors min-h-[44px] disabled:opacity-30"
         >
           {busy ? "Checking..." : isChange ? "Change account" : "Add account"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * The last step of a change: the account is verified and staged, but nothing has moved
+ * until this code is entered.
+ *
+ * There is no Cancel-and-keep-it — backing out drops the staged change, which is the safe
+ * default. The copy says so, because a half-finished change that silently applied later
+ * would be the worst outcome here.
+ */
+function OtpStep({
+  challenge,
+  onDone,
+  onCancel,
+}: {
+  challenge: PayoutOtpChallenge;
+  onDone: () => void;
+  onCancel: () => void;
+}) {
+  const [code, setCode] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const submit = async () => {
+    setBusy(true);
+    setError(null);
+
+    const res = await confirmPayoutAccountChange(code.trim());
+
+    setBusy(false);
+
+    if (res.error) {
+      setError(res.error);
+      return;
+    }
+
+    onDone();
+  };
+
+  return (
+    <div className="flex flex-col gap-4">
+      {/* Heading and "we emailed…" line live on the Sheet, so they are not repeated here. */}
+      <div className="rounded-xl border border-white/[0.08] bg-[#0E0808] px-4 py-3">
+        <p className="font-body text-white/35 text-[10px] uppercase tracking-[0.12em]">
+          Moving to
+        </p>
+        <p className="font-body text-white text-sm font-medium mt-1">
+          {challenge.account_preview.account_name}
+        </p>
+        <p className="font-body text-white/50 text-xs mt-0.5">
+          {challenge.account_preview.bank_name} ·{" "}
+          {challenge.account_preview.account_number_masked}
+        </p>
+      </div>
+
+      <input
+        value={code}
+        onChange={(e) => setCode(e.target.value.replace(/[^0-9]/g, "").slice(0, 6))}
+        inputMode="numeric"
+        autoComplete="one-time-code"
+        placeholder="000000"
+        aria-label="6-digit confirmation code"
+        className="w-full bg-[#0E0808] border border-white/10 rounded-lg px-4 py-3 font-body text-white text-center text-2xl tracking-[0.5em] outline-none focus:border-[#C30100] transition-colors"
+      />
+
+      {error && (
+        <p className="font-body text-[#ff6b6b] text-xs leading-relaxed">{error}</p>
+      )}
+
+      <div className="flex gap-2">
+        <button
+          onClick={onCancel}
+          disabled={busy}
+          className="font-body text-xs text-white border border-white/20 rounded-full px-5 py-2.5 hover:border-white/40 transition-colors min-h-[44px] disabled:opacity-40"
+        >
+          Cancel change
+        </button>
+        <button
+          onClick={submit}
+          disabled={code.length !== 6 || busy}
+          className="font-body text-xs text-white bg-[#C30100] rounded-full px-5 py-2.5 hover:bg-[#a80000] transition-colors min-h-[44px] disabled:opacity-30"
+        >
+          {busy ? "Confirming..." : "Confirm change"}
         </button>
       </div>
     </div>

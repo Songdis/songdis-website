@@ -390,35 +390,52 @@ function EditorForProfile({
             />
           )}
 
-          <div className="flex items-center gap-2 flex-wrap border-t border-white/[0.05] pt-4">
-            <SecondaryButton onClick={() => setThemeOpen(true)}>
-              <span
-                className="w-3.5 h-3.5 rounded-full shrink-0"
-                style={{
-                  background: `linear-gradient(135deg, ${pageTheme(kit.draft.kit.theme).accent}, ${
-                    pageTheme(kit.draft.kit.theme).gold
-                  })`,
-                }}
-                aria-hidden
-              />
-              {themeName} theme
-            </SecondaryButton>
-            <SecondaryButton onClick={() => setAddressOpen(true)}>
-              <Globe size={13} aria-hidden />
-              Web address
-            </SecondaryButton>
-            <SecondaryButton onClick={() => setThemeOpen(true)}>
-              <Palette size={13} aria-hidden />
-              Headline style
-            </SecondaryButton>
-          </div>
+          {/*
+            Look-and-feel controls belong to Edit. In Preview the artist is judging the
+            page, not configuring it — so the row is replaced by what the page IS, which
+            is the one thing nothing else on this screen says out loud.
+          */}
+          {mode === "edit" ? (
+            <div className="flex items-center gap-2 flex-wrap border-t border-white/[0.05] pt-4">
+              <SecondaryButton onClick={() => setThemeOpen(true)}>
+                <span
+                  className="w-3.5 h-3.5 rounded-full shrink-0"
+                  style={{
+                    background: `linear-gradient(135deg, ${pageTheme(kit.draft.kit.theme).accent}, ${
+                      pageTheme(kit.draft.kit.theme).gold
+                    })`,
+                  }}
+                  aria-hidden
+                />
+                {themeName} theme
+              </SecondaryButton>
+              <SecondaryButton onClick={() => setAddressOpen(true)}>
+                <Globe size={13} aria-hidden />
+                Web address
+              </SecondaryButton>
+              <SecondaryButton onClick={() => setThemeOpen(true)}>
+                <Palette size={13} aria-hidden />
+                Headline style
+              </SecondaryButton>
+            </div>
+          ) : (
+            <div className="border-t border-white/[0.05] pt-4">
+              <h2 className="font-heading text-white uppercase text-[12px] tracking-[0.14em]">
+                Artist page
+              </h2>
+              <p className="font-body text-white/45 text-xs mt-1.5 leading-relaxed max-w-prose">
+                Your website. Fans listen, co-sign you, book you, and read your press
+                kit — all on one link.
+              </p>
+            </div>
+          )}
 
           <div className="flex items-center gap-3 border-t border-white/[0.05] pt-4">
             <ModeToggle mode={mode} onChange={setMode} />
             <p className="font-body text-white/35 text-[11px] ml-auto text-right">
               {mode === "preview"
-                ? "Preview updates live as you edit"
-                : "Back to preview to see the public view"}
+                ? "Updates live as you edit"
+                : "Preview to see the public view"}
             </p>
           </div>
 

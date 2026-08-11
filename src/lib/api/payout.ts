@@ -40,6 +40,30 @@ export async function verifyIdentity(payload: {
 }
 
 
+/**
+ * Changing an account does not apply it — the server holds it and emails a code.
+ * A first-time add still returns the saved account directly, so callers have to look at
+ * `otp_required` rather than assuming success means "done".
+ */
+export interface PayoutOtpChallenge {
+  otp_required: true;
+  /** Seconds until the staged change is dropped. */
+  expires_in: number;
+  /** Masked, for "we sent a code to ob••@…" — never the full address. */
+  sent_to: string;
+  account_preview: {
+    account_name: string;
+    bank_name: string;
+    account_number_masked: string;
+  };
+}
+
+export function isOtpChallenge(
+  data: PayoutAccount | PayoutOtpChallenge | null
+): data is PayoutOtpChallenge {
+  return Boolean(data && (data as PayoutOtpChallenge).otp_required);
+}
+
 export async function savePayoutAccount(payload: {
   bank_code: string;
   bank_name?: string;
@@ -48,9 +72,18 @@ export async function savePayoutAccount(payload: {
   selfie?: string;
   document_front?: string;
 }) {
-  return request<PayoutAccount>(
+  return request<PayoutAccount | PayoutOtpChallenge>(
     "/withdrawal/payout/account",
     { method: "POST", body: JSON.stringify(payload) },
+    true
+  );
+}
+
+
+export async function confirmPayoutAccountChange(otpCode: string) {
+  return request<PayoutAccount>(
+    "/withdrawal/payout/account/confirm",
+    { method: "POST", body: JSON.stringify({ otp_code: otpCode }) },
     true
   );
 }
