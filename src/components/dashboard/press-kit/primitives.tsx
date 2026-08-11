@@ -325,7 +325,6 @@ export function FailureNotice({
   );
 }
 
-/** `contacts.bookings` reads better as "Contacts › bookings" than as a JSON path. */
 function prettyField(field: string): string {
   return field
     .split(".")
@@ -355,16 +354,9 @@ export function Notice({
   );
 }
 
-/* ─── Sheet ───────────────────────────────────────────────────── */
 
-/**
- * Moved to `@/components/ui/Sheet` — the payout and identity flows use the same dialog,
- * so it is no longer press-kit's to own. Re-exported here so every existing import in the
- * editor keeps working and there is still exactly one implementation.
- */
 export { Sheet } from "@/components/ui/Sheet";
 
-/* ─── Toast ───────────────────────────────────────────────────── */
 
 export interface ToastMessage {
   id: number;
