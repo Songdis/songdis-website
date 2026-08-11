@@ -26,9 +26,27 @@ function toBase64(file: File): Promise<string> {
 
 const MAX_UPLOAD_BYTES = 8 * 1024 * 1024;
 
-export default function PayoutAccountCard() {
+export default function PayoutAccountCard({
+  onStatusChange,
+}: {
+  /**
+   * Fired whenever this card learns the payout status, including after an account is
+   * added or changed. The Earnings page uses it to enable its Withdraw button without
+   * fetching the same endpoint a second time and disagreeing with what is on screen.
+   */
+  onStatusChange?: (status: PayoutStatus) => void;
+} = {}) {
   const [status, setStatus] = useState<PayoutStatus | null>(null);
   const [loading, setLoading] = useState(true);
+
+  // Held in a ref so a new closure from the parent never re-runs the load effect.
+  const notify = useRef(onStatusChange);
+  notify.current = onStatusChange;
+
+  const publish = useCallback((next: PayoutStatus) => {
+    setStatus(next);
+    notify.current?.(next);
+  }, []);
   const [mode, setMode] = useState<"idle" | "verify" | "account">("idle");
   /*
    * Held here, not inside AccountPanel, so the code step is its own sheet with its own
@@ -46,11 +64,11 @@ export default function PayoutAccountCard() {
     const res = await getPayoutStatus();
 
     if (!res.error && res.data) {
-      setStatus(res.data);
+      publish(res.data);
     }
 
     setLoading(false);
-  }, []);
+  }, [publish]);
 
   useEffect(() => {
     let cancelled = false;
@@ -71,14 +89,14 @@ export default function PayoutAccountCard() {
           "migrations may not have run on this environment."
         );
       } else if (res.data) {
-        setStatus(res.data);
+        publish(res.data);
       }
 
       setLoading(false);
     });
 
     return () => { cancelled = true; };
-  }, []);
+  }, [publish]);
 
   if (loading || !status) return null;
 

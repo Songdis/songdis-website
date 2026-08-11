@@ -9,6 +9,7 @@ import PayoutAccountCard from "@/components/dashboard/earnings/PayoutAccountCard
 import { useEarningsBalance, useWithdrawalHistory } from "@/lib/hooks/useEarnings";
 import { useSplitEarnings } from "@/lib/hooks/useSplit";
 import { WITHDRAWALS_PAUSED_FALLBACK } from "@/lib/api/earnings";
+import type { PayoutStatus } from "@/lib/api/payout";
 import { MOCK_EARNINGS } from "@/app/mock/earnings";
 
 
@@ -59,6 +60,39 @@ export default function EarningsPage() {
     setPausedMidFlow(message);
     refreshBalance();
   };
+
+  /*
+   * Reported up by PayoutAccountCard rather than fetched again here, so the button and the
+   * card can never disagree — and so adding an account enables the button immediately
+   * instead of on the next page load.
+   */
+  const [payoutStatus, setPayoutStatus] = useState<PayoutStatus | null>(null);
+
+  /**
+   * Why the Withdraw button is closed, or undefined if it is open.
+   *
+   * There is no point opening a form that cannot end in a payout: the server refuses a
+   * bank transfer with no saved account. An unknown status (the lookup failed) does not
+   * block — a network blip should not lock someone out of their own money.
+   */
+  const payoutBlockReason = ((): string | undefined => {
+    if (!payoutStatus || payoutStatus.account) return undefined;
+
+    if (payoutStatus.pending_review) {
+      return "Your payout account is being reviewed. We will email you as soon as it is approved.";
+    }
+
+    // Nowhere to send them — the card hides itself in this state, so do not point at it.
+    if (!payoutStatus.provider_ready && !payoutStatus.identity_verified) {
+      return "Identity checks are unavailable right now. Please try again shortly.";
+    }
+
+    return payoutStatus.identity_verified
+      ? "Add the payout account your royalties go to, under Payout Account below."
+      : "Verify your identity under Payout Account below, then add the account your royalties go to.";
+  })();
+
+  const withdrawBlocked = withdrawalsPaused || payoutBlockReason !== undefined;
   const { history, isLoading: historyLoading, page: txPage, totalPages: txTotalPages, goToPage: txGoToPage } = useWithdrawalHistory(10);
 
   const { withdrawalInfo } = MOCK_EARNINGS;
@@ -69,9 +103,11 @@ export default function EarningsPage() {
       pageTitle="Earnings"
       customCta={{
         label: "Withdraw Funds",
-        onClick: () => { if (!withdrawalsPaused) setWithdrawOpen(true); },
-        disabled: withdrawalsPaused,
-        disabledReason: withdrawalsPaused ? `Withdrawals are paused. ${pauseMessage}` : undefined,
+        onClick: () => { if (!withdrawBlocked) setWithdrawOpen(true); },
+        disabled: withdrawBlocked,
+        disabledReason: withdrawalsPaused
+          ? `Withdrawals are paused. ${pauseMessage}`
+          : payoutBlockReason,
       }}
     >
       <div className="flex flex-col gap-5">
@@ -96,6 +132,25 @@ export default function EarningsPage() {
               </div>
             </div>
           )}
+
+          {/* A dimmed button carries no reason on a phone, where there is no hover title.
+              Say it on the page instead, or the button just looks broken. Only one notice
+              at a time — a pause outranks a missing account, since it blocks either way. */}
+          {!withdrawalsPaused && payoutBlockReason && (
+            <div className="rounded-2xl border border-white/[0.08] bg-[#180F0F] p-4 sm:p-5 flex items-start gap-3">
+              <span aria-hidden className="text-[#E5342F] shrink-0 mt-0.5">
+                <PauseNoticeIcon />
+              </span>
+              <div className="min-w-0">
+                <p className="font-heading text-white uppercase text-xs sm:text-sm tracking-wide mb-1.5">
+                  Before you can withdraw
+                </p>
+                <p className="font-body text-white/75 text-xs sm:text-sm leading-relaxed">
+                  {payoutBlockReason}
+                </p>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Stat cards */}
@@ -105,7 +160,7 @@ export default function EarningsPage() {
           <StatCard label="From Splits"    value={balanceLoading ? "..." : fmt(fromSplits)}    icon="/images/splits.svg" />
         </div>
 
-        <PayoutAccountCard />
+        <PayoutAccountCard onStatusChange={setPayoutStatus} />
 
         {/* Ayo insight */}
         <div className="rounded-2xl border border-white/[0.06] bg-[#180F0F] p-5">

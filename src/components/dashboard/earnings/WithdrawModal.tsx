@@ -110,7 +110,19 @@ export default function WithdrawModal({
     return () => { cancelled = true; };
   }, []);
 
-  const blockedByIdentity = payout !== null && payout.enforced && !payout.can_withdraw;
+  /*
+   * No verified destination, no form.
+   *
+   * This used to also require `payout.enforced` (DOJAH_ENFORCE_WITHDRAWAL), which is off —
+   * so the block never fired and the artist got the whole form, filled it in, and only
+   * then found out. The server refuses a bank transfer without a saved account whatever
+   * that flag says, so the UI should too.
+   *
+   * A failed status lookup leaves `payout` null and does NOT block: better to let the
+   * request through and surface the server's answer than to lock someone out on a
+   * network blip.
+   */
+  const blockedByIdentity = payout !== null && !payout.account;
 
   /*
    * The verified destination, when there is one.
