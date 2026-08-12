@@ -361,8 +361,6 @@ export default function UploadModal({
           setIsLoadingDraft(false);
           return;
         }
-
-
         const raw = res.data as unknown as Record<string, unknown>;
         const fd  = (raw.form_data as Record<string, unknown>) ?? {};
         const uploadType = String(raw.upload_type ?? "Single").toLowerCase();
@@ -431,7 +429,6 @@ export default function UploadModal({
     loadDraft();
   }, [isOpen, initialDraftId]);
 
-  /* Escape to close */
   useEffect(() => {
     if (!isOpen) return;
     const handler = (e: KeyboardEvent) => { if (e.key === "Escape") handleClose(); };
@@ -582,7 +579,11 @@ export default function UploadModal({
     s3_key: state.audioKey,
     audio_file_path: state.audioUrl,
     s3_bucket: state.audioBucket,
-  }), [state]);
+    social_media_timestamp: normaliseTimestamp(state.tiktokTimestamp),
+    composer: state.contributors.writers.map((w) => w.name).join(", ") || state.primaryArtist,
+    lyrics_language: state.metaLanguage,
+    contributors: formatContributorsForBackend(state.contributors),
+  }), [state, formatContributorsForBackend]);
 
 
   const pendingChanges = useMemo(() => {
@@ -602,6 +603,8 @@ export default function UploadModal({
       is_previously_released: "Previously released",
       original_release_date: "Original release date",
       album_art_key: "Artwork", s3_key: "Audio file",
+      social_media_timestamp: "Social clip start", composer: "Composer",
+      lyrics_language: "Lyrics language", contributors: "Contributors",
     };
 
     const asArray = (v: unknown): unknown[] | null => {
