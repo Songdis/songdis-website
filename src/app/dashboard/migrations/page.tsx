@@ -110,6 +110,21 @@ const COLLAB_TYPE_ROLES: Record<string, string[]> = { producer: PRODUCER_ROLES, 
 
 const ALL_PLATFORMS = ["Spotify", "Apple Music", "Tidal", "Amazon Music", "YouTube Music", "Deezer", "Pandora", "SoundCloud", "Boomplay", "Audiomack", "iHeartRadio", "Napster", "Anghami"];
 
+/**
+ * What the audio picker will let an artist choose.
+ *
+ * `audio/*` alone greys out an audio-only MP4 or MOV, because the browser reports those by
+ * their container (`video/mp4`) and not by what is inside them. A lot of catalogue arrives
+ * exactly like that — the master an artist still has is the file they uploaded to YouTube —
+ * and being unable to even select it looks like the page is broken.
+ *
+ * Extensions are listed alongside the MIME types on purpose: Windows and some Android
+ * builds report an empty or wrong `type` for these containers, and match on extension only.
+ *
+ * The server still decides. It rejects anything with no audio stream in it.
+ */
+const AUDIO_ACCEPT = "audio/*,video/mp4,video/quicktime,video/x-m4v,.mp3,.wav,.flac,.m4a,.aac,.mp4,.m4v,.mov";
+
 const EMPTY_FORM: Omit<ReleaseFormState, "release_title" | "primary_artist" | "upload_type"> = {
   label: "", c_line: "", p_line: "",
   cover_art_ai_use: "None", stereo_ai_use: "None",
@@ -856,7 +871,7 @@ function ReleaseDetailsForm({
         {form.upload_type === "Single" && (
           <div>
             <p className="font-heading text-white/30 uppercase text-[10px] tracking-[0.25em] mb-2">Audio File</p>
-            <input ref={audioRef} type="file" accept="audio/*" className="hidden"
+            <input ref={audioRef} type="file" accept={AUDIO_ACCEPT} className="hidden"
               onChange={(e) => { const f = e.target.files?.[0]; if (f) onUploadSingleAudio(f); }} />
             <button onClick={() => audioRef.current?.click()}
               className={[
@@ -973,7 +988,7 @@ function AlbumTrackRow({
           <span className="font-body text-white/30 text-[10px]">ISRC: {track.isrc_code}</span>
         )}
       </div>
-      <input ref={audioRef} type="file" accept="audio/*" className="hidden"
+      <input ref={audioRef} type="file" accept={AUDIO_ACCEPT} className="hidden"
         onChange={(e) => { const f = e.target.files?.[0]; if (f) onUpload(f); }} />
       <button onClick={() => audioRef.current?.click()}
         className={[

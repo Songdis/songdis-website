@@ -68,12 +68,11 @@ function CoSignCardBody({
                   {cosign.count.toLocaleString("en-NG")}
                 </b>{" "}
                 {cosign.count === 1 ? "co-sign" : "co-signs"}
-                {cosign.total_kobo > 0 && (
-                  <>
-                    {" · "}
-                    {formatNaira(cosign.total_kobo)} raised
-                  </>
-                )}
+                {/* The total raised is deliberately not shown in public. How many people
+                    backed an artist is social proof; how much money they hold is the
+                    artist's business, and putting a figure on a public page invites
+                    comparison and makes a small total read as a failure. The artist still
+                    sees it in their dashboard. */}
               </p>
               {/* Real names only (CS4). No avatars exist, so none are faked. */}
               {namedSupporters.length > 0 && (
