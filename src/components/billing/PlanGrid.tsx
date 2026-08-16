@@ -245,7 +245,7 @@ export default function PlanGrid({ onChanged }: PlanGridProps) {
                 : "border-white/[0.08] bg-white/[0.03]",
             ].join(" ")}
           >
-            {track === "usd_card" ? (
+            {/* {track === "usd_card" ? (
               <p className="font-montserrat text-white text-xs">
                 <span className="font-semibold">{trialDays} days free</span>: pay by card to start
                 your trial. Nothing is charged today.
@@ -261,7 +261,7 @@ export default function PlanGrid({ onChanged }: PlanGridProps) {
                 </button>{" "}
                 to get {trialDays} days free. Bank transfer has no trial.
               </p>
-            )}
+            )} */}
           </div>
         )}
       </div>
