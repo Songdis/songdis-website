@@ -1,16 +1,5 @@
 "use client";
 
-/**
- * Analytics v2 — Tracks.
- *
- * A sortable, searchable, paged list; selecting a row opens the detail panel
- * without leaving the page, so the artist keeps the list they were reading.
- *
- * `tracks_streamed` is its own column rather than a derived one: YouTube can
- * report a stream count of zero on a row that still counts as streamed, so the
- * two numbers legitimately disagree.
- */
-
 import { useEffect, useMemo, useState } from "react";
 import { ArrowUpDown, Music4, Search, X } from "lucide-react";
 import {
@@ -282,7 +271,6 @@ function TracksContent() {
   );
 }
 
-/* ─── Detail ──────────────────────────────────────────────────── */
 
 function TrackDetailPanel({
   track,
@@ -316,6 +304,18 @@ function TrackDetailPanel({
   );
 
   return (
+    <div
+      className="fixed inset-0 z-[80] flex items-start justify-center overflow-y-auto px-3 py-6 sm:px-4 sm:py-10"
+      role="dialog"
+      aria-modal="true"
+      aria-label={d?.track.title ?? track.title ?? "Track detail"}
+    >
+      <div
+        aria-hidden
+        className="fixed inset-0 bg-black/70 backdrop-blur-sm"
+        onClick={onClose}
+      />
+      <div className="relative z-10 w-full max-w-[900px]">
     <Card index={0} glow>
       <div className="p-4 sm:p-5">
         <CardHeader
@@ -399,5 +399,7 @@ function TrackDetailPanel({
         )}
       </div>
     </Card>
+      </div>
+    </div>
   );
 }
