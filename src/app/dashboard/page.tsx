@@ -342,10 +342,17 @@ function SpotlightCard() {
           rel="noopener noreferrer"
           className="mt-3 sm:mt-2 font-heading text-white uppercase text-[10px] sm:text-xs tracking-widest rounded-full bg-[#C30100] hover:bg-[#a80000] px-4 sm:px-5 py-2.5 sm:py-3 transition-all whitespace-nowrap"
         >
-          {/* Just "Read" on a phone — the column is narrow and the full label
-              wrapped or overflowed the pill. */}
-          <span className="sm:hidden">Read</span>
-          <span className="hidden sm:inline">Read Article</span>
+          {/* An admin-set label is used verbatim on both breakpoints — they chose the
+              wording and the 40-char limit already keeps it inside the pill. Only the
+              default splits, because "Read Article" overflowed on a narrow column. */}
+          {spotlight.cta_label?.trim() ? (
+            spotlight.cta_label.trim()
+          ) : (
+            <>
+              <span className="sm:hidden">Read</span>
+              <span className="hidden sm:inline">Read Article</span>
+            </>
+          )}
         </a>
       </div>
 

@@ -6,6 +6,8 @@ export interface Spotlight {
   subtitle: string | null;
   image_url: string;
   article_url: string;
+  /** Admin-set button text. Null keeps the dashboard's own default wording. */
+  cta_label: string | null;
 }
 
 export async function getSpotlight() {
