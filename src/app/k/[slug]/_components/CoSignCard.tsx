@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Check, Copy, Landmark, Sparkles, X } from "lucide-react";
+import { Check, Copy, Landmark, X } from "lucide-react";
 
 import {
   CO_SIGN_DEFAULT_KOBO,
@@ -43,11 +43,22 @@ function CoSignCardBody({
 
   const amountKobo = useMemo(() => parseNairaToKobo(amountText), [amountText]);
   const canOpen = amountKobo !== null && amountKobo > 0;
+  const amountRef = useRef<HTMLInputElement | null>(null);
 
   const namedSupporters = cosign.recent.map((r) => r.sender_name);
 
+  // Arriving from the floating Co-sign bar (href="#cosign") should land on the amount
+  // field ready to type, not merely somewhere near the card. Selecting the default lets
+  // the fan overwrite it by typing instead of clearing it first.
+  useEffect(() => {
+    if (window.location.hash !== "#cosign") return;
+    const focus = () => amountRef.current?.select();
+    const timer = window.setTimeout(focus, 400); // after the smooth scroll settles
+    return () => window.clearTimeout(timer);
+  }, []);
+
   return (
-    <section className="pt-10 sm:pt-12">
+    <section id="cosign" className="scroll-mt-24 pt-10 sm:pt-12">
       <div className="mb-4 flex items-center gap-3">
         <h2 className="font-heading text-[10.5px] uppercase leading-none tracking-[0.24em] text-[var(--pk-muted)] sm:text-[11.5px]">
           Co-sign
@@ -59,9 +70,6 @@ function CoSignCardBody({
             brand-new artist is a worse first impression than no badge. */}
         {cosign.count > 0 && (
           <div className="mb-4 flex items-center gap-3">
-            <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-[linear-gradient(150deg,var(--pk-accent),var(--pk-accent-deep))] shadow-[0_6px_18px_var(--pk-glow)]">
-              <Sparkles className="h-[22px] w-[22px] text-white" strokeWidth={2.2} />
-            </span>
             <div className="min-w-0">
               <p className="text-[13px] text-[var(--pk-muted)]">
                 <b className="text-[15px] font-bold text-[var(--pk-text)]">
@@ -114,6 +122,7 @@ function CoSignCardBody({
           </span>
           <input
             id="cosign-amount"
+            ref={amountRef}
             type="text"
             inputMode="decimal"
             autoComplete="off"

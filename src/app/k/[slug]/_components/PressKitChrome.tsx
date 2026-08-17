@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowRight, Mail, Pencil } from "lucide-react";
+import { ArrowRight, HeartHandshake, Mail, Pencil } from "lucide-react";
 
 import type { PublicPressKit } from "@/lib/api/press-kit-public";
 import { headlineStyle, pressKitThemeVars } from "../_theme";
@@ -35,6 +35,12 @@ export default function PressKitChrome({
   const { artist, kit: cfg } = kit;
   const bookingEmail =
     cfg.contacts.bookings ?? cfg.contacts.management ?? cfg.contacts.press;
+
+  // Mirrors CoSignCard's own guard: a kit with co-sign off renders no card, so the bar
+  // must not offer a button that scrolls to nothing. Also respects the section being
+  // hidden — the anchor would exist but the fan chose not to see it.
+  const cosignEnabled =
+    kit.cosign.enabled && !cfg.hidden_sections.includes("cosign");
 
   return (
     <div
@@ -129,16 +135,38 @@ export default function PressKitChrome({
         </footer>
       </div>
 
-      {bookingEmail && !onEdit && (
-        <div className="fixed inset-x-0 bottom-0 z-30 bg-[linear-gradient(180deg,transparent,var(--pk-bg)_34%)] px-5 pb-[calc(14px+env(safe-area-inset-bottom))] pt-6 lg:hidden">
-          <a
-            href={bookingMailto(bookingEmail, artist.name)}
-            className="flex items-center justify-center gap-2.5 rounded-full bg-[linear-gradient(180deg,var(--pk-accent),var(--pk-accent-deep))] px-6 py-4 text-[13.5px] uppercase tracking-[0.1em] text-white shadow-[0_10px_30px_var(--pk-glow)]"
-            style={headlineStyle}
-          >
-            <Mail className="h-[18px] w-[18px]" strokeWidth={2} />
-            Book {artist.name}
-          </a>
+      {/* The floating bar. Co-sign leads when it is enabled — it is the action a fan can
+          complete on the spot, where booking is a promoter's job — and booking keeps the
+          same bar as a compact secondary rather than being displaced by it. With co-sign
+          off this is byte-for-byte the bar that shipped before. */}
+      {(bookingEmail || cosignEnabled) && !onEdit && (
+        <div className="fixed inset-x-0 bottom-0 z-30 flex items-center gap-2.5 bg-[linear-gradient(180deg,transparent,var(--pk-bg)_34%)] px-5 pb-[calc(14px+env(safe-area-inset-bottom))] pt-6 lg:hidden">
+          {cosignEnabled && (
+            <a
+              href="#cosign"
+              className="flex flex-1 items-center justify-center gap-2.5 rounded-full bg-[linear-gradient(180deg,var(--pk-accent),var(--pk-accent-deep))] px-6 py-4 text-[13.5px] uppercase tracking-[0.1em] text-white shadow-[0_10px_30px_var(--pk-glow)]"
+              style={headlineStyle}
+            >
+              <HeartHandshake className="h-[18px] w-[18px]" strokeWidth={2} />
+              Co-sign {artist.name}
+            </a>
+          )}
+
+          {bookingEmail && (
+            <a
+              href={bookingMailto(bookingEmail, artist.name)}
+              aria-label={`Book ${artist.name}`}
+              className={
+                cosignEnabled
+                  ? "grid h-[52px] w-[52px] shrink-0 place-items-center rounded-full border border-[var(--pk-line)] bg-[var(--pk-surface)] text-[var(--pk-text)]"
+                  : "flex flex-1 items-center justify-center gap-2.5 rounded-full bg-[linear-gradient(180deg,var(--pk-accent),var(--pk-accent-deep))] px-6 py-4 text-[13.5px] uppercase tracking-[0.1em] text-white shadow-[0_10px_30px_var(--pk-glow)]"
+              }
+              style={cosignEnabled ? undefined : headlineStyle}
+            >
+              <Mail className="h-[18px] w-[18px]" strokeWidth={2} />
+              {!cosignEnabled && `Book ${artist.name}`}
+            </a>
+          )}
         </div>
       )}
     </div>

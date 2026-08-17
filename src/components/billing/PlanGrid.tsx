@@ -232,18 +232,14 @@ export default function PlanGrid({ onChanged }: PlanGridProps) {
           </p>
         )}
 
-        {/* The free trial only exists on the card track, because it needs a
-            card on file to charge when the trial ends. Saying so on both tabs
-            means a transfer customer learns the option exists instead of never
-            seeing it mentioned. */}
         {trialDays > 0 && (
           <div
-            className={[
-              "mt-1 rounded-xl border px-4 py-2.5 max-w-md text-center",
-              track === "usd_card"
-                ? "border-[#C30100]/30 bg-[#C30100]/[0.07]"
-                : "border-white/[0.08] bg-white/[0.03]",
-            ].join(" ")}
+            // className={[
+            //   "mt-1 rounded-xl border px-4 py-2.5 max-w-md text-center",
+            //   track === "usd_card"
+            //     ? "border-[#C30100]/30 bg-[#C30100]/[0.07]"
+            //     : "border-white/[0.08] bg-white/[0.03]",
+            // ].join(" ")}
           >
             {/* {track === "usd_card" ? (
               <p className="font-montserrat text-white text-xs">

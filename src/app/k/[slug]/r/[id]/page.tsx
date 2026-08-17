@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Play } from "lucide-react";
 import { FaApple, FaSpotify, FaYoutube } from "react-icons/fa6";
 
 import {
@@ -172,6 +172,22 @@ export default async function ReleaseDetailPage({ params }: Params) {
             <div className="mt-6">
               <PreviewPlayer src={release.preview_url} title={release.title} />
             </div>
+          )}
+
+          {/* The smart link, as the page's primary action. The "Listen on" rows below are
+              per-DSP and only exist for the platforms we have a URL for; this one lands on
+              the release's own link, which routes the fan to whatever they actually use. */}
+          {release.release_link && (
+            <a
+              href={release.release_link}
+              target="_blank"
+              rel="noreferrer"
+              className="mt-6 flex items-center justify-center gap-2.5 rounded-full bg-[linear-gradient(180deg,var(--pk-accent),var(--pk-accent-deep))] px-6 py-4 text-[13.5px] uppercase tracking-[0.1em] text-white shadow-[0_10px_30px_var(--pk-glow)] transition hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+              style={headlineStyle}
+            >
+              <Play className="h-[17px] w-[17px] fill-current" strokeWidth={0} aria-hidden />
+              Stream here
+            </a>
           )}
 
           {dsps.length > 0 && (
