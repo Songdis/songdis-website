@@ -31,7 +31,7 @@ export default function WithdrawModal({
   const [otp, setOtp] = useState("");
 
   const {
-    preview, fetchPreview, isLoadingPreview, previewError,
+    preview, fetchPreview, clearPreview, isLoadingPreview, previewError,
     fetchOtp, isLoadingOtp, otpError,
     withdraw, isLoadingWithdraw, withdrawError,
     accountName, verifyBankAccount, isVerifying,
@@ -245,15 +245,23 @@ export default function WithdrawModal({
                 <input
                   type="number"
                   value={amount}
-                  onChange={(e) => { setAmount(e.target.value); }}
+                  onChange={(e) => { setAmount(e.target.value); clearPreview(); }}
                   placeholder="Enter amount"
                   className={inputCls}
                 />
               </Field>
 
-              {/* Target currency */}
+              {/* Target currency.
+                  Changing either this or the amount discards the preview. The OTP and the
+                  withdrawal below are sent with the CURRENT amount/currency, so leaving a
+                  stale preview up means the artist confirms one figure and we submit
+                  another — switching NGN → USD kept the naira numbers on screen. */}
               <Field label="Target Currency">
-                <select value={currency} onChange={(e) => setCurrency(e.target.value)} className={selectCls}>
+                <select
+                  value={currency}
+                  onChange={(e) => { setCurrency(e.target.value); clearPreview(); }}
+                  className={selectCls}
+                >
                   <option value="NGN">Nigerian Naira (NGN)</option>
                   <option value="USD">US Dollar (USD)</option>
                   <option value="GBP">British Pounds (GBP)</option>
@@ -327,6 +335,11 @@ export default function WithdrawModal({
                     const money = (n?: number) =>
                       typeof n === "number" ? n.toLocaleString(undefined, { maximumFractionDigits: 2 }) : "—";
 
+                    // Label from the response, never from the live dropdown. These figures
+                    // were computed for preview.target_currency; tagging them with whatever
+                    // the select happens to hold is how naira amounts ended up labelled USD.
+                    const cur = preview.target_currency ?? currency;
+
                     const rows: { label: string; value: string; muted?: boolean }[] = [
                       { label: "Amount", value: `$${money(preview.amount_usd)}` },
                       {
@@ -335,11 +348,11 @@ export default function WithdrawModal({
                       },
                       {
                         label: "Exchange rate",
-                        value: `1 USD = ${money(preview.exchange_rate)} ${currency}`,
+                        value: `1 USD = ${money(preview.exchange_rate)} ${cur}`,
                       },
                       {
                         label: "Converted amount",
-                        value: `${money(preview.estimated_amount)} ${currency}`,
+                        value: `${money(preview.estimated_amount)} ${cur}`,
                       },
                     ];
 
@@ -348,22 +361,22 @@ export default function WithdrawModal({
                       rows.push(
                         {
                           label: "Transfer fee",
-                          value: `-${money(preview.transfer_fee_base)} ${currency}`,
+                          value: `-${money(preview.transfer_fee_base)} ${cur}`,
                         },
                         {
                           label: `VAT on transfer fee (${preview.transfer_fee_vat_rate}%)`,
-                          value: `-${money(preview.transfer_fee_vat)} ${currency}`,
+                          value: `-${money(preview.transfer_fee_vat)} ${cur}`,
                           muted: true,
                         },
                         {
                           label: "Transfer fee total",
-                          value: `-${money(preview.transfer_fee_local)} ${currency}`,
+                          value: `-${money(preview.transfer_fee_local)} ${cur}`,
                         },
                       );
                     } else {
                       rows.push({
                         label: "Transfer fee",
-                        value: `-${money(preview.transfer_fee_local)} ${currency}`,
+                        value: `-${money(preview.transfer_fee_local)} ${cur}`,
                       });
                     }
 
@@ -386,7 +399,7 @@ export default function WithdrawModal({
                     <p className="font-heading text-green-400 text-sm font-bold">
                       {typeof preview.estimated_amount_after_transfer_fee === "number"
                         ? preview.estimated_amount_after_transfer_fee.toLocaleString(undefined, { maximumFractionDigits: 2 })
-                        : "—"} {currency}
+                        : "—"} {preview.target_currency ?? currency}
                     </p>
                   </div>
                 </div>

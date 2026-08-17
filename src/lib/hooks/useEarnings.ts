@@ -217,8 +217,20 @@ export function useWithdrawal() {
     setIsVerifying(false);
   }, []);
 
+  /**
+   * Drop a preview that no longer describes what the artist has typed.
+   *
+   * The OTP and the withdrawal are sent with the CURRENT amount and currency, not the
+   * previewed ones — so a stale preview on screen is a figure the artist agreed to that
+   * the request will not honour.
+   */
+  const clearPreview = useCallback(() => {
+    setPreview(null);
+    setPreviewError(null);
+  }, []);
+
   return {
-    preview, fetchPreview, isLoadingPreview, previewError,
+    preview, fetchPreview, clearPreview, isLoadingPreview, previewError,
     fetchOtp, isLoadingOtp, otpError,
     withdraw, isLoadingWithdraw, withdrawError,
     accountName, verifyBankAccount, isVerifying,

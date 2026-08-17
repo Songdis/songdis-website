@@ -659,7 +659,12 @@ export async function uploadPressKitMedia(
 ): Promise<ApiResponse<unknown>> {
   const form = new FormData();
   form.append("type", upload.type);
-  form.append("file", upload.file);
+  // MUST be `image`, not `file`. PressKitController::storeMedia branches on
+  // $request->hasFile('image'): under any other name the file is invisible to it, the
+  // rules fall through to the `url` branch, and an upload with an attached image is
+  // rejected with "The url field is required." The cover endpoint below already used the
+  // right name, which is why covers worked and photos did not.
+  form.append("image", upload.file);
   if (upload.title) form.append("title", upload.title);
   if (upload.description) form.append("description", upload.description);
   if (upload.position !== undefined) form.append("position", String(upload.position));
