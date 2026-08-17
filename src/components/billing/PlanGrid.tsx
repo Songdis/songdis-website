@@ -17,6 +17,7 @@ import {
 import { openBachsOverlay, type BachsEvent } from "@/lib/bachs";
 import { useToast } from "@/components/ui/Toast";
 import PromoInput from "./PromoInput";
+import { currenciesFor, detectCurrency, priceIn } from "@/lib/billing/currency";
 
 interface PlanGridProps {
   onChanged: () => void;
@@ -29,6 +30,9 @@ export default function PlanGrid({ onChanged }: PlanGridProps) {
   const [loading, setLoading] = useState(true);
   const [interval, setInterval] = useState<BillingInterval>("year");
   const [track, setTrack] = useState<BillingTrack>("local_transfer");
+  // null = quote each price in its own currency. Guessed once on mount from the
+  // browser timezone, then owned by the picker below — a guess must stay overridable.
+  const [displayCurrency, setDisplayCurrency] = useState<string | null>(null);
   const [promo, setPromo] = useState<PromoPreview | null>(null);
   const [busyPriceId, setBusyPriceId] = useState<number | null>(null);
   const [awaitingWebhook, setAwaitingWebhook] = useState(false);
@@ -65,6 +69,25 @@ export default function PlanGrid({ onChanged }: PlanGridProps) {
         .filter((c): c is { plan: BillingPlan; price: BillingPrice } => Boolean(c.price)),
     [plans, interval, track]
   );
+
+  useEffect(() => {
+    setDisplayCurrency(detectCurrency());
+  }, []);
+
+  /** Every currency the visible prices can be quoted in. */
+  const currencyChoices = useMemo(() => {
+    const all = new Set<string>();
+    for (const { price } of cards) currenciesFor(price).forEach((c) => all.add(c));
+    return [...all];
+  }, [cards]);
+
+  /* A detected currency this track cannot be charged in is worse than none — drop back
+     to the price's own rather than silently showing an unrelated figure. */
+  useEffect(() => {
+    if (displayCurrency && currencyChoices.length > 0 && !currencyChoices.includes(displayCurrency)) {
+      setDisplayCurrency(null);
+    }
+  }, [currencyChoices, displayCurrency]);
 
   useEffect(() => {
     setPromo(null);
@@ -232,6 +255,30 @@ export default function PlanGrid({ onChanged }: PlanGridProps) {
           </p>
         )}
 
+        {/* Currency picker.
+            Only what the server says this track can be charged in — `currency_options` is
+            already filtered to what the provider settles, so nothing here is a quote we
+            cannot honour. Hidden when there is only one, and always present when there is
+            more, because the timezone guess above is a guess. */}
+        {currencyChoices.length > 1 && (
+          <div className="flex items-center gap-2 flex-wrap justify-center">
+            <label htmlFor="plan-currency" className="font-montserrat text-white/35 text-[11px]">
+              Show prices in
+            </label>
+            <select
+              id="plan-currency"
+              value={displayCurrency ?? ""}
+              onChange={(e) => setDisplayCurrency(e.target.value || null)}
+              className="bg-[#0E0808] border border-white/[0.08] rounded-full px-3 py-1.5 font-montserrat text-white text-[11px] outline-none focus:border-[#C30100]/50"
+            >
+              {currencyChoices.map((c) => (
+                <option key={c} value={c}>{c}</option>
+              ))}
+            </select>
+          </div>
+        )}
+
+
         {trialDays > 0 && (
           <div
             // className={[
@@ -279,6 +326,7 @@ export default function PlanGrid({ onChanged }: PlanGridProps) {
             key={plan.id}
             plan={plan}
             price={price}
+            displayCurrency={displayCurrency}
             promo={promo}
             busy={busyPriceId === price.id}
             onSubscribe={() => handleSubscribe(price)}
@@ -302,16 +350,23 @@ export default function PlanGrid({ onChanged }: PlanGridProps) {
 function PlanCard({
   plan,
   price,
+  displayCurrency,
   promo,
   busy,
   onSubscribe,
 }: {
   plan: BillingPlan;
   price: BillingPrice;
+  displayCurrency: string | null;
   promo: PromoPreview | null;
   busy: boolean;
   onSubscribe: () => void;
 }) {
+  // What this card quotes. `priceIn` returns the server's own derived figure for the
+  // chosen currency, or falls back to the price's own — it never converts client-side,
+  // so the number shown is always one checkout can actually charge.
+  const shown = priceIn(price, displayCurrency);
+
   // Worked out per card, from this card's own price.
   //
   // `promo.discounted_amount` is a single figure the server computed for the
@@ -386,11 +441,13 @@ function PlanCard({
       <div className="mb-1 flex items-baseline gap-2 flex-wrap">
         {discounted !== null && (
           <span className="font-nulshock text-white/30 text-base line-through whitespace-nowrap">
-            {formatMoney(price.amount, price.currency)}
+            {formatMoney(shown.amount, shown.currency)}
           </span>
         )}
         <span className="font-nulshock text-white text-xl whitespace-nowrap">
-          {formatMoney(discounted ?? price.amount, price.currency)}
+          {shown.converted
+            ? formatMoney(shown.amount, shown.currency)
+            : formatMoney(discounted ?? price.amount, price.currency)}
         </span>
         <span className="font-montserrat text-white/30 text-xs">
           /{intervalLabel(price.interval)}

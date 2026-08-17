@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import { ArrowUpDown, Music4, Search, X } from "lucide-react";
 import {
   platformLabel,
@@ -291,6 +292,26 @@ function TrackDetailPanel({
     return () => document.removeEventListener("keydown", onKey);
   }, [onClose]);
 
+  /*
+   * Portalled to <body>, and the page frozen behind it.
+   *
+   * `position: fixed` resolves against the nearest ancestor carrying a transform, filter
+   * or will-change — not the viewport. The analytics cards animate in, so the overlay was
+   * being clipped to a card instead of covering the screen: the backdrop stopped short of
+   * the nav and the panel ran off the bottom edge. A portal escapes that entirely, since
+   * the only thing above it is <body>.
+   */
+  const [host, setHost] = useState<HTMLElement | null>(null);
+
+  useEffect(() => {
+    setHost(document.body);
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previous;
+    };
+  }, []);
+
   const d = detail.data;
 
   const platformRows = useMemo(
@@ -303,7 +324,9 @@ function TrackDetailPanel({
     [d]
   );
 
-  return (
+  if (!host) return null;
+
+  return createPortal(
     <div
       className="fixed inset-0 z-[80] flex items-start justify-center overflow-y-auto px-3 py-6 sm:px-4 sm:py-10"
       role="dialog"
@@ -400,6 +423,7 @@ function TrackDetailPanel({
       </div>
     </Card>
       </div>
-    </div>
+    </div>,
+    host
   );
 }
