@@ -1,32 +1,7 @@
 "use client";
 
-/**
- * components/dashboard/label/RosterTable.tsx
- *
- * The label's landing surface: one row per artist.
- *
- * Why a table and not a chart. The job here is comparison across many named
- * entities plus identity — "who is doing what, and which of them needs me." A pie
- * of 40 artists is unreadable and a 40-series line chart is worse. A dense,
- * sortable table with one sparkline per row answers the question directly, and
- * scales from 2 artists to 200 without changing shape.
- *
- * Below `md` that table becomes a stacked card per artist. A horizontally
- * scrolling table is the wrong shape for a phone, and this is the label's primary
- * screen — the columns are re-laid out rather than pushed off-screen. Both
- * renderings read the same sorted `rows` and drive the same `toggle`, so sorting
- * is not a desktop-only affordance.
- *
- * Colour is deliberately restrained. Rows carry no categorical hue — with an
- * unbounded roster there is no fixed hue order to assign, and cycling colours
- * would break the rule that colour follows the entity rather than its position.
- * The only hues present are the platform dot (fixed per platform, from theme.ts)
- * and status colours on the coverage flag. Everything else is ink.
- */
-
 import { useMemo, useState } from "react";
-import Link from "next/link";
-import { ArrowUpDown, ArrowDown, ArrowUp, ChevronRight, AlertTriangle } from "lucide-react";
+import { ArrowUpDown, ArrowDown, ArrowUp } from "lucide-react";
 import { Sparkline } from "@/components/dashboard/analytics-v2/charts";
 import { Shimmer } from "@/components/dashboard/analytics-v2/primitives";
 import {
@@ -46,28 +21,11 @@ const SORT_OPTIONS: Array<{ key: SortKey; label: string }> = [
   { key: "name", label: "Name" },
 ];
 
-/** A roster row whose data cannot reach a chart is worth saying out loud. */
-function coverageGap(artist: RosterArtist): string | null {
-  const dims = artist.coverage?.dimensions ?? [];
-  // `platforms` is a map keyed by platform, not a list.
-  const incomplete = dims.filter((d) =>
-    Object.values(d.platforms ?? {}).some((p) => !p.available || !p.complete)
-  );
-  if (incomplete.length === 0) return null;
-  return incomplete.length === 1
-    ? `${incomplete[0].label ?? incomplete[0].key} incomplete`
-    : `${incomplete.length} breakdowns incomplete`;
-}
-
 function shareLabel(share: number): string {
   return share > 0 && share < 0.001 ? "<0.1%" : `${(share * 100).toFixed(1)}%`;
 }
 
-/**
- * Declared at module scope, not inside RosterTable. A component created during
- * render is a new type on every pass, so React unmounts and remounts it — the sort
- * buttons would lose focus mid-interaction.
- */
+
 function Header({
   label,
   k,
@@ -110,11 +68,7 @@ function Header({
   );
 }
 
-/**
- * The mobile sort control. The table headers are the desktop affordance and they
- * are gone below `md`, so sorting needs its own surface rather than disappearing
- * with the columns it lived in.
- */
+
 function MobileSort({
   sort,
   asc,
@@ -180,20 +134,6 @@ function ArtistAvatar({ artist }: { artist: RosterArtist }) {
   );
 }
 
-function CoverageFlag({ gap }: { gap: string }) {
-  // The gap sits on the artist's own row — never a page footnote. A label
-  // scanning 40 rows cannot infer which one is short.
-  return (
-    <span
-      className="mt-0.5 flex items-start gap-1 text-[10px] leading-tight"
-      style={{ color: STATUS.warning }}
-    >
-      <AlertTriangle className="mt-px h-3 w-3 shrink-0" aria-hidden />
-      <span className="min-w-0 break-words">{gap}</span>
-    </span>
-  );
-}
-
 function TopPlatform({ artist }: { artist: RosterArtist }) {
   if (!artist.top_platform) {
     return (
@@ -218,25 +158,14 @@ function TopPlatform({ artist }: { artist: RosterArtist }) {
   );
 }
 
-/**
- * One artist as a stacked card. Used below `md` in place of a table row.
- *
- * The whole row is activated by a stretched <button> laid over it rather than by
- * wrapping the content: a real button can only contain phrasing content, and the
- * sparkline is a recharts <div>. The overlay keeps a genuine focusable control with
- * a visible ring — the desktop row leans on an sr-only link for that, which would
- * give a touch target no focus state at all.
- */
+
 function ArtistCard({
   artist,
   index,
-  onOpen,
 }: {
   artist: RosterArtist;
   index: number;
-  onOpen: () => void;
 }) {
-  const gap = coverageGap(artist);
   const points = (artist.trend ?? []).map((t) => ({ value: t.streams }));
   const name = artist.name ?? `Profile ${artist.artist_profile_id}`;
 
@@ -257,13 +186,7 @@ function ArtistCard({
               >
                 {name}
               </div>
-              {gap && <CoverageFlag gap={gap} />}
             </div>
-            <ChevronRight
-              className="mt-0.5 h-4 w-4 shrink-0"
-              style={{ color: INK.faint }}
-              aria-hidden
-            />
           </div>
 
           <div className="mt-2 flex items-end justify-between gap-3">
@@ -300,13 +223,6 @@ function ArtistCard({
         </div>
       </div>
 
-      <button
-        type="button"
-        onClick={onOpen}
-        className="absolute inset-0 h-full w-full rounded-lg focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-[#C30100]"
-      >
-        <span className="sr-only">Open {name}</span>
-      </button>
     </li>
   );
 }
@@ -314,11 +230,9 @@ function ArtistCard({
 export function RosterTable({
   roster,
   isLoading,
-  onOpenArtist,
 }: {
   roster: Roster | null;
   isLoading: boolean;
-  onOpenArtist: (artistProfileId: number) => void;
 }) {
   const [sort, setSort] = useState<SortKey>("streams");
   const [asc, setAsc] = useState(false);
@@ -377,7 +291,6 @@ export function RosterTable({
             key={a.artist_profile_id}
             artist={a}
             index={i}
-            onOpen={() => onOpenArtist(a.artist_profile_id)}
           />
         ))}
       </ul>
@@ -405,28 +318,23 @@ export function RosterTable({
                 onSort={toggle}
               />
               <Header label="Top platform" sort={sort} asc={asc} onSort={toggle} />
-              <th scope="col" className="w-8 px-3 py-3 pr-4 sm:pr-5">
-                <span className="sr-only">Open</span>
-              </th>
             </tr>
           </thead>
 
           <tbody>
             {rows.map((a, i) => {
-              const gap = coverageGap(a);
               const points = (a.trend ?? []).map((t) => ({ value: t.streams }));
 
               return (
                 <tr
                   key={a.artist_profile_id}
-                  className="av2-enter group cursor-pointer transition-colors"
+                  className="av2-enter group transition-colors"
                   style={
                     {
                       borderBottom: "1px solid rgba(255,255,255,0.04)",
                       "--av2-delay": `${Math.min(i, 12) * 40}ms`,
                     } as React.CSSProperties
                   }
-                  onClick={() => onOpenArtist(a.artist_profile_id)}
                 >
                   <td className="px-3 py-3 pl-4 sm:pl-5">
                     <div className="flex items-center gap-3">
@@ -438,7 +346,6 @@ export function RosterTable({
                         >
                           {a.name ?? `Profile ${a.artist_profile_id}`}
                         </div>
-                        {gap && <CoverageFlag gap={gap} />}
                       </div>
                     </div>
                   </td>
@@ -476,23 +383,6 @@ export function RosterTable({
                     </div>
                   </td>
 
-                  <td className="px-3 py-3 pr-4 text-right sm:pr-5">
-                    <ChevronRight
-                      className="ml-auto h-4 w-4 opacity-0 transition-opacity group-hover:opacity-60"
-                      style={{ color: INK.secondary }}
-                      aria-hidden
-                    />
-                    <Link
-                      href="/dashboard/analytics-v2"
-                      className="sr-only"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onOpenArtist(a.artist_profile_id);
-                      }}
-                    >
-                      Open {a.name ?? "artist"}
-                    </Link>
-                  </td>
                 </tr>
               );
             })}

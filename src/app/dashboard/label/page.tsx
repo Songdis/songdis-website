@@ -158,10 +158,10 @@ function RosterContent() {
         <div className="px-4 pt-4 sm:px-5 sm:pt-5">
           <CardHeader
             title="Your artists"
-            subtitle="Select an artist to open their full dashboard"
+            subtitle="Everyone on your label, by streams in range"
           />
         </div>
-        <RosterTable roster={roster} isLoading={isLoading} onOpenArtist={openArtist} />
+        <RosterTable roster={roster} isLoading={isLoading} />
       </Card>
 
       {canInvite && <InvitePanel profiles={profiles} />}
