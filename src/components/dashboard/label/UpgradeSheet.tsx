@@ -1,23 +1,5 @@
 "use client";
 
-/**
- * components/dashboard/label/UpgradeSheet.tsx — DL5.
- *
- * Hitting the artist cap is a conversion surface, not a dead end. The API already answers
- * a refused profile creation with a machine-readable payload:
- *
- *   { message, artist_limit, artists_used, upgrade_required: true,
- *     upgrade_plan: { key, name, tier } }
- *
- * Nothing rendered it, so the limit read as an error. This is that screen.
- *
- * Two things it must say out loud, both from DL6/DL7:
- *
- *  - **The credit, itemised.** An upgrade charges an amount that appears on no price list.
- *    Showing the number without the arithmetic is the most common billing support ticket.
- *  - **That Label cannot be downgraded** — BEFORE payment, never after.
- */
-
 import { useEffect, useState } from "react";
 import { X, Loader2, ArrowRight, Infinity as InfinityIcon, AlertTriangle } from "lucide-react";
 import { INK, STATUS } from "@/components/dashboard/analytics-v2/theme";
@@ -28,7 +10,6 @@ export interface UpgradeTrigger {
   artist_limit: number | null;
   artists_used: number;
   upgrade_plan: { key: string; name: string; tier: number } | null;
-  /** Which price to quote. Omit and the sheet explains without pricing. */
   priceId?: number;
 }
 
@@ -50,13 +31,8 @@ export function UpgradeSheet({
   onCheckout?: (priceId: number) => void;
 }) {
   const [quote, setQuote] = useState<UpgradeQuote | null>(null);
-  // Seeded from whether there is anything to quote, so the effect never has to set it
-  // synchronously on mount.
   const [loading, setLoading] = useState(Boolean(trigger.priceId));
   const [error, setError] = useState<string | null>(null);
-
-  // State is only written after the await, so nothing changes synchronously in the effect
-  // body; the cancel flag stops a late quote landing on a closed sheet.
   useEffect(() => {
     const priceId = trigger.priceId;
     if (!priceId) return;
@@ -85,12 +61,6 @@ export function UpgradeSheet({
 
   const planName = trigger.upgrade_plan?.name ?? "the next plan";
 
-  // `items-start` on the scroll container plus `my-auto` on the panel, not
-  // `items-center`: a centred flex child taller than its scroll container has the
-  // overflow clipped *above* the scroll origin, so on a short viewport — a landing
-  // phone in landscape, or a laptop with the devtools open — the heading and the
-  // close button become unreachable. This way the sheet centres when it fits and
-  // scrolls from the top when it does not.
   return (
     <div
       role="dialog"
@@ -176,16 +146,12 @@ export function UpgradeSheet({
             </div>
           )}
 
-          {/* DL7 — stated before payment, not after. */}
           {(quote?.one_way ?? true) && (
             <p className="mb-4 font-body text-[11px] leading-relaxed" style={{ color: INK.muted }}>
               {quote?.one_way_notice ?? `${planName} cannot be downgraded to a lower plan later.`}
             </p>
           )}
 
-          {/* Stacked full-width below the 400px `xs` breakpoint — side by side the
-              two labels total more than the panel's inner width at 360px, and a
-              wrapped primary button reads as broken. */}
           <div className="flex flex-col gap-2 xs:flex-row xs:flex-wrap xs:items-center">
             <button
               type="button"
@@ -225,10 +191,6 @@ function Row({
   strong?: boolean;
 }) {
   return (
-    /* Wraps rather than squashes: at 360px an itemised credit line plus a
-       formatted amount can exceed the panel, and a currency figure broken across
-       two lines is unreadable. The label takes the first line and the amount drops
-       beneath it, still right-aligned, still on one line. */
     <div
       className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5 px-3 py-2.5"
       style={bordered ? { borderTop: "1px solid rgba(255,255,255,0.06)" } : undefined}

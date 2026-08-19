@@ -7,13 +7,6 @@ import { Check, Share2 } from "lucide-react";
 interface Props {
   title: string;
   label?: string;
-  /**
-   * What to actually share. Defaults to the current page.
-   *
-   * On a release, this is the release's own smart link — somebody sharing a track means
-   * "here is the song", and handing them the press-kit URL instead makes the recipient
-   * hunt for it. Absent (no smart link yet), sharing the page is still the right answer.
-   */
   url?: string;
   variant?: "pill" | "icon";
   className?: string;

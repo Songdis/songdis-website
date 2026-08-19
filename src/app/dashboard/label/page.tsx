@@ -13,8 +13,9 @@
  * same state.
  */
 
+import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Users, ArrowRight } from "lucide-react";
+import { Users, ArrowRight, UserPlus } from "lucide-react";
 import { AnalyticsV2Shell } from "@/components/dashboard/analytics-v2/Shell";
 import { Card, CardHeader, CountUp, ErrorPanel } from "@/components/dashboard/analytics-v2/primitives";
 import { RosterTable } from "@/components/dashboard/label/RosterTable";
@@ -37,6 +38,7 @@ function RosterContent() {
    */
   const { can } = useBilling(0);
   const canInvite = can("can_invite_artists");
+  const [inviteOpen, setInviteOpen] = useState(false);
 
   const total = roster?.totals.streams ?? 0;
   const rowSum = (roster?.artists ?? []).reduce((n, a) => n + (a.streams ?? 0), 0);
@@ -164,14 +166,29 @@ function RosterContent() {
         <RosterTable roster={roster} isLoading={isLoading} />
       </Card>
 
-      {canInvite && <InvitePanel profiles={profiles} />}
+      {canInvite && (
+        <>
+          <button
+            type="button"
+            onClick={() => setInviteOpen(true)}
+            className="flex w-full items-center justify-center gap-2 rounded-xl border border-white/10 px-4 py-3 font-body text-sm text-white/70 transition-colors hover:border-white/25 hover:text-white focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#C30100]"
+          >
+            <UserPlus className="h-4 w-4" aria-hidden />
+            Invite an artist
+          </button>
+
+          {inviteOpen && (
+            <InvitePanel profiles={profiles} onClose={() => setInviteOpen(false)} />
+          )}
+        </>
+      )}
     </div>
   );
 }
 
 export default function LabelRosterPage() {
   return (
-    <AnalyticsV2Shell pageTitle="Label Statistics">
+    <AnalyticsV2Shell pageTitle="Label Statistics" pooled>
       <div className="flex min-w-0 items-center gap-2">
         <span
           className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg"

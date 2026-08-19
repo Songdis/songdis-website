@@ -269,14 +269,11 @@ export default function DashboardPage() {
   );
 }
 
-/** How long each spotlight is shown before the next one. */
 const SPOTLIGHT_INTERVAL_MS = 7000;
 
 function SpotlightCard() {
   const [spotlights, setSpotlights] = useState<Spotlight[]>([]);
   const [index, setIndex] = useState(0);
-  // Rotation stops while the pointer is over the card, so a fan reading the
-  // headline does not have it change mid-sentence.
   const [paused, setPaused] = useState(false);
 
   useEffect(() => {
@@ -303,7 +300,6 @@ function SpotlightCard() {
 
   if (spotlights.length === 0) return null;
 
-  // Guards against the index outliving a shorter list after a refetch.
   const spotlight = spotlights[index % spotlights.length];
 
   return (
@@ -311,7 +307,6 @@ function SpotlightCard() {
       className="col-span-1 md:col-span-2 rounded-2xl border border-white/[0.06] bg-[#180F0F] overflow-hidden flex relative"
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
-      // Touch has no hover, so pausing on tap is the equivalent affordance.
       onTouchStart={() => setPaused(true)}
     >
       <div className="relative w-[45%] sm:w-[55%] shrink-0 min-h-[180px] sm:min-h-[220px]">
@@ -342,9 +337,7 @@ function SpotlightCard() {
           rel="noopener noreferrer"
           className="mt-3 sm:mt-2 font-heading text-white uppercase text-[10px] sm:text-xs tracking-widest rounded-full bg-[#C30100] hover:bg-[#a80000] px-4 sm:px-5 py-2.5 sm:py-3 transition-all whitespace-nowrap"
         >
-          {/* An admin-set label is used verbatim on both breakpoints — they chose the
-              wording and the 40-char limit already keeps it inside the pill. Only the
-              default splits, because "Read Article" overflowed on a narrow column. */}
+
           {spotlight.cta_label?.trim() ? (
             spotlight.cta_label.trim()
           ) : (
@@ -356,8 +349,6 @@ function SpotlightCard() {
         </a>
       </div>
 
-      {/* Dots — also let someone jump straight to one. Hidden for a single
-          spotlight, where they would just be noise. */}
       {spotlights.length > 1 && (
         <div className="absolute bottom-3 right-4 flex items-center gap-1.5">
           {spotlights.map((s, i) => (

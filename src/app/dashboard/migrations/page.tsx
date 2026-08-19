@@ -109,20 +109,6 @@ const PERFORMER_ROLES = ["Lead Vocals", "Background Vocals", "Guitar", "Bass Gui
 const COLLAB_TYPE_ROLES: Record<string, string[]> = { producer: PRODUCER_ROLES, writer: WRITER_ROLES, performer: PERFORMER_ROLES };
 
 const ALL_PLATFORMS = ["Spotify", "Apple Music", "Tidal", "Amazon Music", "YouTube Music", "Deezer", "Pandora", "SoundCloud", "Boomplay", "Audiomack", "iHeartRadio", "Napster", "Anghami"];
-
-/**
- * What the audio picker will let an artist choose.
- *
- * `audio/*` alone greys out an audio-only MP4 or MOV, because the browser reports those by
- * their container (`video/mp4`) and not by what is inside them. A lot of catalogue arrives
- * exactly like that — the master an artist still has is the file they uploaded to YouTube —
- * and being unable to even select it looks like the page is broken.
- *
- * Extensions are listed alongside the MIME types on purpose: Windows and some Android
- * builds report an empty or wrong `type` for these containers, and match on extension only.
- *
- * The server still decides. It rejects anything with no audio stream in it.
- */
 const AUDIO_ACCEPT = "audio/*,video/mp4,video/quicktime,video/x-m4v,.mp3,.wav,.flac,.m4a,.aac,.mp4,.m4v,.mov";
 
 const EMPTY_FORM: Omit<ReleaseFormState, "release_title" | "primary_artist" | "upload_type"> = {
@@ -283,7 +269,6 @@ function MigrationWizard({ onBack, onSuccess }: { onBack: () => void; onSuccess:
 
   const stepIndex = STEPS.findIndex((s) => s.key === step);
 
-  /* Step 1: Search artists */
   const searchArtists = async () => {
     if (!query.trim()) return;
     setSearching(true);
@@ -297,7 +282,6 @@ function MigrationWizard({ onBack, onSuccess }: { onBack: () => void; onSuccess:
     setSearching(false);
   };
 
-  /* Step 2: Pick artist → fetch releases */
   const pickArtist = async (artist: SpotifyArtist) => {
     setSelectedArtist(artist);
     setLoadingReleases(true);
@@ -320,7 +304,6 @@ function MigrationWizard({ onBack, onSuccess }: { onBack: () => void; onSuccess:
     });
   };
 
-  /* Step 2→3: Fetch previews for selected releases */
   const proceedToDetails = async () => {
     setLoadingPreviews(true);
     try {
@@ -352,11 +335,9 @@ function MigrationWizard({ onBack, onSuccess }: { onBack: () => void; onSuccess:
     }
   };
 
-  /* Update a release form */
   const updateForm = (id: string, patch: Partial<ReleaseFormState>) =>
     setForms((p) => ({ ...p, [id]: { ...p[id], ...patch } }));
 
-  /* Update a track within a release */
   const updateTrack = (id: string, ti: number, patch: Partial<ExtendedTrack>) => {
     setForms((p) => {
       const tracks = [...(p[id]?.tracks ?? [])];
@@ -382,7 +363,6 @@ function MigrationWizard({ onBack, onSuccess }: { onBack: () => void; onSuccess:
     }
   };
 
-  /* Upload audio for an album track */
   const uploadTrackAudio = async (releaseId: string, ti: number, file: File) => {
     updateTrack(releaseId, ti, { uploading: true, uploadProgress: 0 });
     try {
@@ -399,7 +379,6 @@ function MigrationWizard({ onBack, onSuccess }: { onBack: () => void; onSuccess:
     }
   };
 
-  /* Check all forms valid */
   const allFormsValid = () => {
     for (const id of Array.from(selectedIds)) {
       const f = forms[id];

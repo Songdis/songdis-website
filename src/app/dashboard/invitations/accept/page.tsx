@@ -1,14 +1,5 @@
 "use client";
 
-/**
- * The target of the invitation email's "Accept invitation" button.
- *
- * Deliberately a dashboard route: accepting binds a grant to an ACCOUNT, so the artist has
- * to be signed in. An unauthenticated visitor is bounced to sign-in with a return path, so
- * the token survives the round trip rather than being lost on the login redirect — the
- * single most common way invitation links get wasted.
- */
-
 import { Suspense, useCallback, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { CheckCircle2, AlertTriangle, Loader2, ArrowRight } from "lucide-react";
@@ -27,13 +18,9 @@ function AcceptInner() {
   const params = useSearchParams();
   const token = params.get("token");
   const [state, setState] = useState<State>({ phase: "working" });
-
   const [attempt, setAttempt] = useState(0);
   const run = useCallback(() => setAttempt((n) => n + 1), []);
 
-  // Nothing is set synchronously in the effect body — the token/auth checks resolve to a
-  // redirect or fall through to an awaited request. The cancel flag prevents a late
-  // response writing state after navigation.
   useEffect(() => {
     if (!token) {
       queueMicrotask(() =>
@@ -42,8 +29,6 @@ function AcceptInner() {
       return;
     }
 
-    // Carry the token through sign-in. Without this the artist lands on the dashboard and
-    // the invitation is silently lost — the commonest way invite links get wasted.
     if (!getToken()) {
       const back = encodeURIComponent(`/dashboard/invitations/accept?token=${token}`);
       router.replace(`/sign-in?redirect=${back}`);
@@ -94,8 +79,7 @@ function AcceptInner() {
                 </strong>
                 .
               </p>
-              {/* Said again here, not only in the email. An artist who expects to control
-                  their catalogue and finds a read-only dashboard contacts support. */}
+
               <p className="mt-3 font-body text-xs leading-relaxed text-white/40">
                 This gives you view access to streaming data. Your releases stay managed by
                 the label that invited you.
@@ -117,9 +101,7 @@ function AcceptInner() {
               <h1 className="font-heading text-base uppercase tracking-wide text-white sm:text-lg">
                 We couldn&rsquo;t accept this invitation
               </h1>
-              {/* The API messages are written to be shown: they name the invited address on
-                  a mismatch, and say plainly when a link has expired. An address is a long
-                  unbroken string, so it has to be allowed to break rather than widen the page. */}
+
               <p className="mt-2 break-words font-body text-sm leading-relaxed text-white/70">
                 {state.message}
               </p>
@@ -148,7 +130,6 @@ function AcceptInner() {
 }
 
 export default function AcceptInvitationPage() {
-  // useSearchParams needs a Suspense boundary under the App Router.
   return (
     <Suspense fallback={null}>
       <AcceptInner />

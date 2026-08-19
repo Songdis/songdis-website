@@ -83,31 +83,9 @@ export default function WithdrawModal({
     return () => { cancelled = true; };
   }, []);
 
-  /*
-   * No verified destination, no form.
-   *
-   * This used to also require `payout.enforced` (DOJAH_ENFORCE_WITHDRAWAL), which is off —
-   * so the block never fired and the artist got the whole form, filled it in, and only
-   * then found out. The server refuses a bank transfer without a saved account whatever
-   * that flag says, so the UI should too.
-   *
-   * A failed status lookup leaves `payout` null and does NOT block: better to let the
-   * request through and surface the server's answer than to lock someone out on a
-   * network blip.
-   */
   const blockedByIdentity = payout !== null && !payout.account;
-
-  /*
-   * The verified destination, when there is one.
-   *
-   * The server pays into this account and ignores whatever bank_code/account_number the
-   * request carries (RoyaltyWithdrawalController builds payout_details from the saved
-   * row). Asking for them again was therefore not just repetition — the artist could type
-   * a different account, watch it verify, and still be paid somewhere else.
-   */
   const savedAccount = payout?.account ?? null;
 
-  /* Auto-verify account when bank + 10-digit number selected */
   useEffect(() => {
     if (bankCode && accountNumber.length === 10) {
       verifyBankAccount(bankCode, accountNumber);
@@ -117,19 +95,10 @@ export default function WithdrawModal({
   const amountNum = parseFloat(amount) || 0;
   const belowMinimum = amountNum > 0 && amountNum < 50;
 
-  /** With a verified account there is nothing left to fill in but the amount. */
   const destinationReady = savedAccount
     ? true
     : payoutChecked && Boolean(bankCode) && accountNumber.length === 10;
 
-  /*
-   * Who the money is going to.
-   *
-   * `accountName` is only ever set by the live bank lookup, which needs a bank code and a
-   * ten-digit number typed into the form. A saved account never triggers it, so gating
-   * anything on `accountName` alone leaves the artist stuck with a valid preview and a
-   * dead Continue button. The saved name is already verified — prefer it.
-   */
   const destinationName = savedAccount?.account_name ?? accountName;
 
   const handlePreview = async () => {
@@ -148,11 +117,6 @@ export default function WithdrawModal({
         amount_usd: amountNum,
         target_currency: currency,
         payout_method: "bank_transfer",
-        /*
-         * Echoed from the saved account, not collected. The server overwrites these with
-         * the saved row anyway; sending them keeps the request valid against a backend
-         * that has not yet relaxed `required_if` — deploy skew, not a real input.
-         */
         bank_code: savedAccount?.bank_code ?? bankCode,
         account_number: savedAccount?.account_number ?? accountNumber,
         account_name: destinationName ?? "",
@@ -178,11 +142,6 @@ export default function WithdrawModal({
             Available: <span className="text-white font-semibold">${availableBalance.toLocaleString("en-US", { minimumFractionDigits: 2 })}</span>
           </p>
 
-          {/*
-            Paused: the whole form goes, replaced by the reason. Amber and not
-            red — this is not a failed withdrawal, it is a withdrawal that
-            cannot start yet, and the balance above is still theirs.
-          */}
           {paused && (
             <div ref={pauseRef} role="status" className="rounded-xl border border-amber-500/25 bg-amber-500/[0.07] p-5">
               <div className="flex items-start gap-3">
@@ -211,8 +170,6 @@ export default function WithdrawModal({
             </div>
           )}
 
-          {/* Verification stands in the way — say so before they fill in a
-              form the server is going to refuse. */}
           {!paused && blockedByIdentity && (
             <div className="rounded-xl border border-[#C30100]/30 bg-[#C30100]/[0.07] p-5 text-center">
               <p className="font-body text-white text-sm font-medium mb-2">
@@ -236,7 +193,6 @@ export default function WithdrawModal({
             </div>
           )}
 
-          {/* ── Step 1: Amount + Bank details ── */}
           {!paused && !blockedByIdentity && step === "amount" && (
             <div className="flex flex-col gap-4">
 
@@ -251,11 +207,6 @@ export default function WithdrawModal({
                 />
               </Field>
 
-              {/* Target currency.
-                  Changing either this or the amount discards the preview. The OTP and the
-                  withdrawal below are sent with the CURRENT amount/currency, so leaving a
-                  stale preview up means the artist confirms one figure and we submit
-                  another — switching NGN → USD kept the naira numbers on screen. */}
               <Field label="Target Currency">
                 <select
                   value={currency}
@@ -269,8 +220,6 @@ export default function WithdrawModal({
                 </select>
               </Field>
 
-              {/* The destination. Shown, not asked for, once an account is verified —
-                  it is the whole point of having added one. */}
               {savedAccount ? (
                 <Field label="Paid into">
                   <div className="rounded-xl border border-white/[0.08] bg-[#0E0808] px-4 py-3">
@@ -289,8 +238,6 @@ export default function WithdrawModal({
                 <div className="h-[92px] rounded-xl border border-white/[0.06] bg-[#0E0808] animate-pulse" aria-hidden />
               ) : (
                 <>
-                  {/* Bank — searchable, because the Nigerian list runs past a
-                      hundred entries once microfinance banks are included. */}
                   <BankSelect
                     banks={banks}
                     value={bankCode}
@@ -334,10 +281,6 @@ export default function WithdrawModal({
                   {(() => {
                     const money = (n?: number) =>
                       typeof n === "number" ? n.toLocaleString(undefined, { maximumFractionDigits: 2 }) : "—";
-
-                    // Label from the response, never from the live dropdown. These figures
-                    // were computed for preview.target_currency; tagging them with whatever
-                    // the select happens to hold is how naira amounts ended up labelled USD.
                     const cur = preview.target_currency ?? currency;
 
                     const rows: { label: string; value: string; muted?: boolean }[] = [
@@ -393,9 +336,6 @@ export default function WithdrawModal({
                   })()}
                   <div className="border-t border-white/[0.06] pt-2 flex items-center justify-between">
                     <p className="font-body text-white/70 text-xs font-semibold">You Receive</p>
-                    {/* Green: this is the one line in the breakdown that is money arriving,
-                        not money leaving. Brand red read as a deduction like the rows above
-                        it — and #C30100 is 2.98:1 on this background besides. */}
                     <p className="font-heading text-green-400 text-sm font-bold">
                       {typeof preview.estimated_amount_after_transfer_fee === "number"
                         ? preview.estimated_amount_after_transfer_fee.toLocaleString(undefined, { maximumFractionDigits: 2 })
@@ -422,7 +362,6 @@ export default function WithdrawModal({
             </div>
           )}
 
-          {/* ── Step 2: OTP ── */}
           {!paused && step === "otp" && (
             <div className="flex flex-col gap-4">
               <p className="font-body text-white/60 text-sm text-center leading-relaxed">
@@ -473,7 +412,6 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 const inputCls = "w-full bg-[#0E0808] border border-white/10 rounded-lg px-4 py-3 font-body text-white text-sm placeholder:text-white/25 outline-none focus:border-[#C30100] transition-colors";
 const selectCls = "w-full appearance-none bg-[#0E0808] border border-white/10 rounded-lg px-4 py-3 font-body text-white text-sm outline-none focus:border-[#C30100] transition-colors";
 
-/* Pause bars, not a warning triangle — nothing has gone wrong here. */
 function PauseNoticeIcon() {
   return (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">

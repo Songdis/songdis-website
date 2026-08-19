@@ -1,19 +1,5 @@
 "use client";
 
-/**
- * Analytics v2 — Breakdowns.
- *
- * Two things this page exists to get right:
- *
- * 1. The rows can legitimately sum to less than the headline total. That is not
- *    a rounding error — some feeds cannot contribute to some dimensions — so the
- *    arithmetic is shown beside the chart rather than explained in a footnote.
- *
- * 2. Outside-grain dimensions (gender, device, age…) are groupable only. The
- *    picker marks them, and the client pre-empts the unsupported combinations
- *    the API 422s on so the artist gets an explanation instead of a round trip.
- */
-
 import { useMemo, useState } from "react";
 import {
   IN_GRAIN_DIMENSIONS,
@@ -70,7 +56,6 @@ function BreakdownsContent() {
   const breakdown = useBreakdown(dimension);
   const coverage = useCoverage();
 
-  // The same check the API runs, so the reason is on screen before the request.
   const preflight = useMemo(
     () => validateBreakdown(dimension, filters),
     [dimension, filters]

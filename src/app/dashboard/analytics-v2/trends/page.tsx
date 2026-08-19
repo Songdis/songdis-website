@@ -1,13 +1,5 @@
 "use client";
 
-/**
- * Analytics v2 — Trends.
- *
- * One metric at a time on one axis. Metrics of different scale (a rate and a
- * count) never share a plot: a second y-axis would let the reader infer a
- * correlation the data doesn't contain.
- */
-
 import { useState } from "react";
 import { Clock } from "lucide-react";
 import { METRIC_LABELS, METRICS, RATE_METRICS, type Metric } from "@/lib/api/analytics-v2";
@@ -44,7 +36,6 @@ export default function AnalyticsV2TrendsPage() {
   );
 }
 
-/** The formatter a metric's units call for. */
 function formatterFor(metric: Metric) {
   if (RATE_METRICS.has(metric)) return formatRate;
   if (metric === "avg_duration") return formatDuration;
@@ -157,12 +148,6 @@ function TrendsContent() {
                   />
                 </div>
 
-                {/* The "what this chart covers" aside was removed with the rest of the
-                    coverage notes — see CoveragePanel.tsx. It is worth knowing that feeds
-                    without a timestamp (Deezer, Spotify aggregated) cannot appear in this
-                    chart at all, so the hourly bars sum to less than the headline total.
-                    Nothing on screen says so now. Restore this aside alongside
-                    SHOW_COVERAGE_NOTES if that becomes a question. */}
               </div>
 
               <TableView

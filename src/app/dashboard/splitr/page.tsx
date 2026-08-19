@@ -16,7 +16,6 @@ import { updateRecipient, addRecipient } from "@/lib/api/splitr";
 import { useMusic } from "@/lib/hooks/useMusic";
 import { useUser } from "@/lib/hooks/useUser";
 
-/* ─── Split Agreement Form (shared by New + Edit) ─────────────── */
 interface SplitFormProps {
   mode: "new" | "edit";
   split?: NormalisedSplit;
@@ -285,16 +284,13 @@ export default function SplitrPage() {
   const [modal, setModal] = useState<ModalState>(null);
   const [activeSplit, setActiveSplit] = useState<NormalisedSplit | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
-
   const { splits, isLoading, stats, refresh, remove } = useSplits();
   const { earnings, totalEarnings } = useSplitEarnings();
   const { create, isLoading: createLoading } = useCreateSplit();
   const { update, isLoading: updateLoading } = useUpdateSplit();
   const { releases } = useMusic();
   const { user } = useUser();
-
   const musicUploadOptions = releases.map((r) => ({ id: Number(r.id), title: r.title }));
-
   const vizSplit = splits[0] ?? null;
   const vizCollabs = vizSplit?.collaborators ?? [];
   const myShare = vizCollabs.find((c) => c.isYou)?.split ?? 0;
@@ -330,12 +326,10 @@ export default function SplitrPage() {
   }) => {
     if (!activeSplit) return;
 
-    // Step 1 — update split name if changed
     if (data.splitName !== activeSplit.splitName) {
       await update(activeSplit.id, { split_name: data.splitName });
     }
 
-    // Step 2 — update existing recipients' percentages
     const existingRecipients = activeSplit.collaborators.filter((c) => !c.isYou);
     for (const collab of data.collaborators) {
       const existing = existingRecipients.find((r) => r.email === collab.email);
@@ -344,7 +338,6 @@ export default function SplitrPage() {
           percentage: collab.percentage,
         });
       } else if (!existing && collab.email) {
-        // New collaborator added in edit — add as recipient
         await addRecipient(activeSplit.id, {
           email: collab.email,
           full_name: collab.fullName || collab.email.split("@")[0],

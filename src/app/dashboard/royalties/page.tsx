@@ -232,7 +232,6 @@ export default function RoyaltyReportPage() {
           <Dropdown value={section} options={SECTIONS as unknown as string[]} onChange={(v) => { setSection(v); setPlatformPage(1); }} />
         </div>
 
-        {/* Revenue by Platform — paginated 10 per page */}
         {(section === "Overview" || section === "All Platforms") && (
         <div className="rounded-2xl border border-dashed border-[#C30100]/30 bg-[#180F0F] p-5">
           <div className="flex items-start justify-between mb-1">

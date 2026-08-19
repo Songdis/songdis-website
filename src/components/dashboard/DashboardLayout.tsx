@@ -24,7 +24,11 @@ const ALLOWED_ROUTES_WHEN_EXPIRED = ["/dashboard", "/dashboard/settings"];
  * earnings per artist today (Label design DL8). A switcher here would promise a filter that
  * does not exist, and a wrong number about money is worse than no number.
  */
-const ACCOUNT_SCOPED_ROUTES = ["/dashboard/earnings", "/dashboard/royalties"];
+// Screens that report the whole account and must not offer a per-artist switcher —
+// it would imply a filter that does not exist. Earnings and royalties because money
+// carries no artist attribution (DL8); the label roster because it is an overview of
+// every profile by construction.
+const ACCOUNT_SCOPED_ROUTES = ["/dashboard/earnings", "/dashboard/royalties", "/dashboard/label"];
 
 interface DashboardLayoutProps {
   children: React.ReactNode;

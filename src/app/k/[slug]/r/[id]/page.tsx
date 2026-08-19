@@ -135,7 +135,6 @@ export default async function ReleaseDetailPage({ params }: Params) {
         </div>
       </div>
 
-      {/* ── Body: stacked on mobile, cover beside the detail on desktop ──── */}
       <div className="mx-auto max-w-[1080px] px-5 pb-20 pt-2 sm:px-8 lg:grid lg:grid-cols-[minmax(0,400px)_minmax(0,1fr)] lg:gap-12 lg:pt-6">
         <div className="lg:sticky lg:top-24 lg:self-start">
           <div className="aspect-square w-full overflow-hidden rounded-3xl bg-[var(--pk-tint)] shadow-[0_24px_60px_rgba(0,0,0,.55)]">
@@ -174,9 +173,6 @@ export default async function ReleaseDetailPage({ params }: Params) {
             </div>
           )}
 
-          {/* The smart link, as the page's primary action. The "Listen on" rows below are
-              per-DSP and only exist for the platforms we have a URL for; this one lands on
-              the release's own link, which routes the fan to whatever they actually use. */}
           {release.release_link && (
             <a
               href={release.release_link}
@@ -262,9 +258,6 @@ export default async function ReleaseDetailPage({ params }: Params) {
             <ShareButton
               title={`${release.title} — ${artist.name}`}
               label="Share this release"
-              // The release's own smart link when there is one: someone sharing a track
-              // wants the thing that opens in Spotify or Apple, not the press kit page
-              // they happen to be standing on. Falls back to this page when absent.
               url={release.release_link ?? undefined}
             />
           </div>

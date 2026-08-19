@@ -62,7 +62,6 @@ function TracksContent() {
   const [page, setPage] = useState(1);
   const [selected, setSelected] = useState<TrackListItem | null>(null);
 
-  // Debounced so typing doesn't fire a request per keystroke.
   useEffect(() => {
     const t = setTimeout(() => {
       setSearch(rawSearch);
@@ -292,15 +291,7 @@ function TrackDetailPanel({
     return () => document.removeEventListener("keydown", onKey);
   }, [onClose]);
 
-  /*
-   * Portalled to <body>, and the page frozen behind it.
-   *
-   * `position: fixed` resolves against the nearest ancestor carrying a transform, filter
-   * or will-change — not the viewport. The analytics cards animate in, so the overlay was
-   * being clipped to a card instead of covering the screen: the backdrop stopped short of
-   * the nav and the panel ran off the bottom edge. A portal escapes that entirely, since
-   * the only thing above it is <body>.
-   */
+
   const [host, setHost] = useState<HTMLElement | null>(null);
 
   useEffect(() => {

@@ -60,7 +60,6 @@ function PlatformTile({ platformKey }: { platformKey: string }) {
   );
 }
 
-/* ─── Track row — now with real audio playback ────────────────── */
 function TrackRow({ track }: { track: NormalisedReleaseDetail["tracks"][number] }) {
   const [playing, setPlaying] = useState(false);
   const audioRef = useRef<HTMLAudioElement>(null);
@@ -117,24 +116,13 @@ function TrackRow({ track }: { track: NormalisedReleaseDetail["tracks"][number] 
   );
 }
 
-/**
- * The release's shareable smart link — one URL that sends a fan to whichever
- * store they use.
- *
- * Created by Songdis when the release is assigned its UPC, so it is not
- * something the artist can act on if it is missing. This renders nothing at
- * all in that case rather than showing an empty box or a "coming soon" the
- * artist can do nothing about.
- */
+
 function ShareLinkSection({ releaseId }: { releaseId: number }) {
   const [link, setLink] = useState<ReleaseLink | null>(null);
   const [copied, setCopied] = useState(false);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  // Tracks whether this release could have a link at all, so a deleted one can
-  // offer to come back instead of the section vanishing with no way to undo.
   const [couldHaveLink, setCouldHaveLink] = useState(false);
 
   const load = useCallback(async () => {
@@ -187,16 +175,12 @@ function ShareLinkSection({ releaseId }: { releaseId: number }) {
       return;
     }
 
-    // Creation runs on a queue, so the link is not there the instant this
-    // returns. Give it a moment, then re-read.
     setTimeout(async () => {
       await load();
       setBusy(false);
     }, 2500);
   };
 
-  // Deleted, but this release qualifies for one — offer it back rather than
-  // leaving the artist with no route to a link they used to have.
   if (!link?.smart_link) {
     if (!couldHaveLink) return null;
 
@@ -231,9 +215,6 @@ function ShareLinkSection({ releaseId }: { releaseId: number }) {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {
-      // Clipboard is blocked on insecure origins and in some in-app browsers.
-      // The link is visible and selectable either way, so this is not worth
-      // interrupting the artist over.
     }
   };
 
@@ -262,9 +243,6 @@ function ShareLinkSection({ releaseId }: { releaseId: number }) {
           </button>
         </div>
 
-        {/* The link works immediately; the store buttons behind it are filled
-            in a moment later. Say so, rather than letting an artist think a
-            half-ready page is the finished thing. */}
         {pending ? (
           <p className="font-body text-white/35 text-xs mt-2.5">
             Still finding this release on streaming platforms — the link works now,
@@ -281,8 +259,6 @@ function ShareLinkSection({ releaseId }: { releaseId: number }) {
           <p className="font-body text-[#ff6b6b] text-xs mt-2.5">{error}</p>
         )}
 
-        {/* Deliberately quiet, and behind a confirm: anyone who has already
-            shared this URL will find it dead once it is deleted. */}
         {confirmingDelete ? (
           <div className="mt-3 pt-3 border-t border-white/[0.06]">
             <p className="font-body text-white/50 text-xs mb-3 leading-relaxed">

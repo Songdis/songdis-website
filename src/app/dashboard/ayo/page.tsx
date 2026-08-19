@@ -152,7 +152,6 @@ function BioGenerator() {
           </div>
           <p className="font-body text-white/70 text-sm leading-relaxed whitespace-pre-wrap">{bio}</p>
 
-          {/* Show all versions if available */}
           {result.short_bio && result.short_bio !== bio && (
             <div className="mt-4 pt-4 border-t border-white/[0.06]">
               <p className="font-body text-white/40 text-xs uppercase tracking-wider mb-2">Short Bio</p>

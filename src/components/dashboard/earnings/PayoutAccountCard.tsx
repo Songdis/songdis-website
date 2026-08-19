@@ -29,17 +29,11 @@ const MAX_UPLOAD_BYTES = 8 * 1024 * 1024;
 export default function PayoutAccountCard({
   onStatusChange,
 }: {
-  /**
-   * Fired whenever this card learns the payout status, including after an account is
-   * added or changed. The Earnings page uses it to enable its Withdraw button without
-   * fetching the same endpoint a second time and disagreeing with what is on screen.
-   */
   onStatusChange?: (status: PayoutStatus) => void;
 } = {}) {
   const [status, setStatus] = useState<PayoutStatus | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Held in a ref so a new closure from the parent never re-runs the load effect.
   const notify = useRef(onStatusChange);
   notify.current = onStatusChange;
 
@@ -48,10 +42,6 @@ export default function PayoutAccountCard({
     notify.current?.(next);
   }, []);
   const [mode, setMode] = useState<"idle" | "verify" | "account">("idle");
-  /*
-   * Held here, not inside AccountPanel, so the code step is its own sheet with its own
-   * title. Dropping it discards the staged change — the server expires it either way.
-   */
   const [challenge, setChallenge] = useState<PayoutOtpChallenge | null>(null);
 
   const cancelChange = useCallback(() => {
@@ -77,11 +67,6 @@ export default function PayoutAccountCard({
       if (cancelled) return;
 
       if (res.error) {
-        /*
-         * The card hides itself on failure, which is right for an artist —
-         * but it makes a broken deploy look identical to nothing to show.
-         * Say so in the console so it can be told apart.
-         */
         console.warn(
           "[payout] Could not load verification status:",
           res.error,
@@ -121,10 +106,6 @@ export default function PayoutAccountCard({
         )}
       </div>
 
-      {/*
-        The card body stays put and every step opens over it, so the artist never loses
-        sight of the account they are changing. Same Sheet the press-kit editor uses.
-      */}
       <IdleView status={status} onVerify={() => setMode("verify")} onAccount={() => setMode("account")} />
 
       <Sheet
@@ -354,7 +335,6 @@ function AccountPanel({
   onCancel,
 }: {
   isChange: boolean;
-  /** A change is staged, not saved — the card takes over and opens the code sheet. */
   onChallenge: (challenge: PayoutOtpChallenge) => void;
   onDone: () => void;
   onCancel: () => void;
@@ -405,7 +385,6 @@ function AccountPanel({
       return;
     }
 
-    // A change is not saved yet — the server is holding it behind an emailed code.
     if (isOtpChallenge(res.data)) {
       onChallenge(res.data);
       return;
@@ -510,14 +489,7 @@ function AccountPanel({
   );
 }
 
-/**
- * The last step of a change: the account is verified and staged, but nothing has moved
- * until this code is entered.
- *
- * There is no Cancel-and-keep-it — backing out drops the staged change, which is the safe
- * default. The copy says so, because a half-finished change that silently applied later
- * would be the worst outcome here.
- */
+
 function OtpStep({
   challenge,
   onDone,
@@ -549,7 +521,6 @@ function OtpStep({
 
   return (
     <div className="flex flex-col gap-4">
-      {/* Heading and "we emailed…" line live on the Sheet, so they are not repeated here. */}
       <div className="rounded-xl border border-white/[0.08] bg-[#0E0808] px-4 py-3">
         <p className="font-body text-white/35 text-[10px] uppercase tracking-[0.12em]">
           Moving to

@@ -1,22 +1,7 @@
 "use client";
 
-/**
- * components/dashboard/label/InvitePanel.tsx
- *
- * The label's side of L4: invite an artist to view their own data, see who is outstanding,
- * withdraw access.
- *
- * Two things this deliberately makes visible rather than hiding:
- *
- *  - **`expired` is separate from `status`.** A row stays `pending` in the database until
- *    something touches it, so a stale invitation would otherwise read as outstanding
- *    forever. The API returns a computed `expired`, and it wins in the badge.
- *  - **Revoking after acceptance removes access.** The label is told that in the confirm
- *    step, because "revoke" on an accepted invitation is a different act from cancelling
- *    one that was never used.
- */
-
 import { useCallback, useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { Mail, Loader2, X, UserPlus, AlertTriangle } from "lucide-react";
 import { Card, CardHeader } from "@/components/dashboard/analytics-v2/primitives";
 import { INK, STATUS, formatGrantedAt } from "@/components/dashboard/analytics-v2/theme";
@@ -29,7 +14,6 @@ import {
 import type { ProfileSummary } from "@/lib/api/analytics-v2";
 
 function StatusBadge({ invitation }: { invitation: ArtistInvitation }) {
-  // `expired` beats `status`: a row is only flipped to expired lazily, server-side.
   const [label, color] = invitation.expired && invitation.status === "pending"
     ? ["Expired", INK.muted]
     : invitation.status === "accepted"
@@ -48,7 +32,13 @@ function StatusBadge({ invitation }: { invitation: ArtistInvitation }) {
   );
 }
 
-export function InvitePanel({ profiles }: { profiles: ProfileSummary[] }) {
+export function InvitePanel({
+  profiles,
+  onClose,
+}: {
+  profiles: ProfileSummary[];
+  onClose: () => void;
+}) {
   const [invitations, setInvitations] = useState<ArtistInvitation[]>([]);
   const [loading, setLoading] = useState(true);
   const [profileId, setProfileId] = useState<number | "">("");
@@ -56,17 +46,9 @@ export function InvitePanel({ profiles }: { profiles: ProfileSummary[] }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
-
-  // Only profiles the account OWNS can be invited to — a grant conveys sight, not the
-  // authority to hand that sight to someone else. The API enforces this; the form should
-  // not offer what the API will refuse.
   const ownProfiles = profiles.filter((p) => p.role === "owner");
-
   const [refreshKey, setRefreshKey] = useState(0);
   const load = useCallback(() => setRefreshKey((n) => n + 1), []);
-
-  // The first state change happens AFTER the await, never synchronously in the effect
-  // body, and the cancel flag stops a late response writing to an unmounted component.
   useEffect(() => {
     let cancelled = false;
 
@@ -116,12 +98,55 @@ export function InvitePanel({ profiles }: { profiles: ProfileSummary[] }) {
     setBusy(false);
   };
 
-  return (
+  /*
+   * Portalled to <body>. The label page's cards animate, and `position: fixed` resolves
+   * against the nearest transformed ancestor rather than the viewport — rendered in place
+   * the overlay gets clipped to a card instead of covering the screen.
+   */
+  const [host, setHost] = useState<HTMLElement | null>(null);
+
+  useEffect(() => {
+    setHost(document.body);
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    document.addEventListener("keydown", onKey);
+
+    return () => {
+      document.body.style.overflow = previous;
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [onClose]);
+
+  if (!host) return null;
+
+  return createPortal(
+    <div
+      className="fixed inset-0 z-[80] flex items-start justify-center overflow-y-auto px-3 py-6 sm:px-4 sm:py-10"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Artist access"
+    >
+      <div aria-hidden className="fixed inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative z-10 w-full max-w-[640px]">
     <Card index={4}>
       <div className="p-4 sm:p-5">
         <CardHeader
           title="Artist access"
           subtitle="Invite an artist to see their own performance data"
+          action={
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label="Close"
+              className="text-white/40 transition-colors hover:text-white focus-visible:outline-none"
+            >
+              <X className="h-[18px] w-[18px]" />
+            </button>
+          }
         />
 
         {ownProfiles.length === 0 ? (
@@ -129,9 +154,6 @@ export function InvitePanel({ profiles }: { profiles: ProfileSummary[] }) {
             You have no artist profiles to invite anyone to yet.
           </p>
         ) : (
-          /* Stacked until `md`. At `sm` the three controls side by side leave the
-             email field around 150px wide, which is narrower than the addresses
-             going into it — one row of full-width fields is the honest layout. */
           <div className="flex flex-col gap-2 md:flex-row">
             <select
               value={profileId}
@@ -204,10 +226,6 @@ export function InvitePanel({ profiles }: { profiles: ProfileSummary[] }) {
           ) : (
             <ul className="flex flex-col divide-y divide-white/[0.04]">
               {invitations.map((i) => (
-                /* Below `sm` the badge and the revoke control drop onto their own
-                   line rather than competing with the address for the same ~160px.
-                   Email and artist name both truncate — an address is exactly the
-                   kind of long unbroken string that otherwise widens the page. */
                 <li key={i.id} className="flex items-start gap-3 py-2.5">
                   <Mail
                     className="mt-1 h-3.5 w-3.5 shrink-0"
@@ -252,5 +270,8 @@ export function InvitePanel({ profiles }: { profiles: ProfileSummary[] }) {
         </div>
       </div>
     </Card>
+      </div>
+    </div>,
+    host
   );
 }

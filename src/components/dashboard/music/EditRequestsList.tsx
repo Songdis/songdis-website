@@ -41,7 +41,6 @@ function formatDate(value: string | null): string {
   });
 }
 
-/** Renders one changed value the same way the review modal does. */
 function DiffValue({ value }: { value: unknown }) {
   if (value === null || value === undefined || value === "") {
     return <span className="text-white/25">Empty</span>;
@@ -70,9 +69,7 @@ function DiffValue({ value }: { value: unknown }) {
 }
 
 interface EditRequestsListProps {
-  /** Called after a withdrawal so the release list can refresh its statuses. */
   onChanged?: () => void;
-  /** Reports counts up to the stat cards, so both read the same data. */
   onStats?: (stats: { total: number; pending: number; approved: number }) => void;
 }
 

@@ -16,15 +16,12 @@ interface Props {
   cosign: PublicCoSign;
 }
 
-/** "Tobi, Ada and Chidi" — Intl-free so it reads the same on every runtime. */
 function joinNames(names: string[]): string {
   if (names.length === 1) return names[0];
   return `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}`;
 }
 
 export default function CoSignCard({ artistName, cosign }: Props) {
-  // `{"enabled": false}` is the entire payload for an artist who has not set this up.
-  // Nothing is rendered — not a card, not an empty state, not a hint that it exists.
   if (!cosign.enabled) return null;
   return <CoSignCardBody artistName={artistName} cosign={cosign} />;
 }
@@ -44,12 +41,8 @@ function CoSignCardBody({
   const amountKobo = useMemo(() => parseNairaToKobo(amountText), [amountText]);
   const canOpen = amountKobo !== null && amountKobo > 0;
   const amountRef = useRef<HTMLInputElement | null>(null);
-
   const namedSupporters = cosign.recent.map((r) => r.sender_name);
 
-  // Arriving from the floating Co-sign bar (href="#cosign") should land on the amount
-  // field ready to type, not merely somewhere near the card. Selecting the default lets
-  // the fan overwrite it by typing instead of clearing it first.
   useEffect(() => {
     if (window.location.hash !== "#cosign") return;
     const focus = () => amountRef.current?.select();
@@ -66,8 +59,6 @@ function CoSignCardBody({
       </div>
 
       <div className="rounded-2xl border border-[var(--pk-line)] bg-[var(--pk-surface)] p-6 sm:p-7">
-        {/* Seal + count. The count is real or it is absent — a "0 co-signs" badge on a
-            brand-new artist is a worse first impression than no badge. */}
         {cosign.count > 0 && (
           <div className="mb-4 flex items-center gap-3">
             <div className="min-w-0">
@@ -76,13 +67,7 @@ function CoSignCardBody({
                   {cosign.count.toLocaleString("en-NG")}
                 </b>{" "}
                 {cosign.count === 1 ? "co-sign" : "co-signs"}
-                {/* The total raised is deliberately not shown in public. How many people
-                    backed an artist is social proof; how much money they hold is the
-                    artist's business, and putting a figure on a public page invites
-                    comparison and makes a small total read as a failure. The artist still
-                    sees it in their dashboard. */}
               </p>
-              {/* Real names only (CS4). No avatars exist, so none are faked. */}
               {namedSupporters.length > 0 && (
                 <p className="mt-0.5 truncate text-[12px] text-[var(--pk-muted-2)]">
                   {joinNames(namedSupporters.slice(0, 3))}
@@ -157,9 +142,6 @@ function CoSignCardBody({
           })}
         </div>
 
-        {/* No message field: with a static account, only the amount and (sometimes) the
-            sender's bank name reach us. See the file header. */}
-
         <button
           type="button"
           onClick={() => setOpen(true)}
@@ -187,15 +169,7 @@ function CoSignCardBody({
   );
 }
 
-/* ─── The transfer instructions ───────────────────────────────── */
 
-/**
- * Everything the fan needs to complete the transfer in their own bank app.
- *
- * The account number is the load-bearing string on this whole screen, so it is the
- * largest thing in the sheet, tracked wide enough to read digit by digit, and copyable
- * in one tap. Nothing else here competes with it.
- */
 function TransferSheet({
   artistName,
   cosign,
@@ -225,9 +199,6 @@ function TransferSheet({
       setCopied(which);
       window.setTimeout(() => setCopied(null), 2200);
     } catch {
-      // Clipboard blocked (insecure context, or an in-app browser). The number is
-      // already selectable text on screen, so there is nothing else useful to do —
-      // and a scary error would be worse than the silence.
     }
   }, []);
 
@@ -267,7 +238,6 @@ function TransferSheet({
           </button>
         </div>
 
-        {/* The account number — the reason this sheet exists. */}
         <div className="rounded-2xl border border-[var(--pk-line)] bg-black/35 p-5">
           <div className="mb-1 flex items-center gap-2 text-[10.5px] uppercase tracking-[0.14em] text-[var(--pk-muted-2)]">
             <Landmark className="h-3.5 w-3.5 text-[var(--pk-accent)]" strokeWidth={2} aria-hidden />
@@ -323,8 +293,6 @@ function TransferSheet({
           )}
         </dl>
 
-        {/* The amount is advisory. This sentence is the difference between an honest
-            instruction and a promise the static account cannot keep. */}
         <p className="mt-4 rounded-xl border border-[var(--pk-line)] bg-[var(--pk-surface)] px-4 py-3 text-[12px] leading-relaxed text-[var(--pk-muted)]">
           Send any amount you like — whatever arrives is credited to {artistName}. The
           figure above is only a suggestion, so there is nothing to match exactly.

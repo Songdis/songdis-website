@@ -1,18 +1,5 @@
 "use client";
 
-/**
- * Analytics v2 — Overview.
- *
- * Reading order is deliberate: the headline totals, then the shape of the range,
- * then where the streams came from. The coverage note for the platform mix sits
- * beside the chart, because the mix is exactly where a total and a breakdown can
- * disagree.
- *
- * The headline total is READ from the summary endpoint. It is never summed from
- * `by_platform` — feeds that can't contribute to a dimension would silently
- * shrink it.
- */
-
 import { Globe2, ListMusic, Music4, Radio } from "lucide-react";
 import { coverageGap, hasCoverageGap, platformLabel } from "@/lib/api/analytics-v2";
 import {
@@ -76,7 +63,6 @@ function OverviewContent() {
 
   return (
     <>
-      {/* ─── Headline ────────────────────────────────────────── */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         <StatTile
           index={0}
@@ -123,7 +109,6 @@ function OverviewContent() {
         />
       )}
 
-      {/* ─── Streams over time ───────────────────────────────── */}
       <Card index={4}>
         <div className="p-4 sm:p-5">
           <CardHeader
@@ -181,7 +166,6 @@ function OverviewContent() {
         </div>
       </Card>
 
-      {/* ─── Platform mix + coverage, side by side ───────────── */}
       <Card index={5}>
         <div className="p-4 sm:p-5">
           <CardHeader
@@ -211,7 +195,6 @@ function OverviewContent() {
                   />
                 </div>
 
-                {/* Coverage sits beside the chart, not under it. */}
                 <div className="order-1 lg:order-2">
                   <CoverageAside
                     coverage={s?.coverage}
@@ -272,7 +255,6 @@ function OverviewContent() {
         </div>
       </Card>
 
-      {/* ─── Engagement ──────────────────────────────────────── */}
       <Card index={6}>
         <div className="p-4 sm:p-5">
           <CardHeader

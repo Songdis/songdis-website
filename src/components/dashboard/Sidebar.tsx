@@ -9,20 +9,6 @@ import { clearUserCache } from "@/lib/hooks/useUser";
 import { useBilling } from "@/lib/hooks/useBilling";
 import { ANALYTICS_V2_ENABLED } from "@/lib/featureFlags";
 
-/**
- * The label roster.
- *
- * Two conditions, and both are load-bearing:
- *
- *  - the analytics v2 flag, because /dashboard/label 404s without it (its layout calls
- *    notFound()) and the page reads v2 endpoints for every number it shows. A link that
- *    leads to a 404 is worse than no link.
- *  - an unlimited artist allowance, because a roster of one is not a roster. This is the
- *    entitlement, so it covers Label subscribers and Label-tier contracts alike.
- *
- * Placed directly under Dashboard: for a label this is the screen they actually work
- * from, and burying it under Artist Tools would frame a whole account tier as a widget.
- */
 const ROSTER_NAV = { label: "Roster", href: "/dashboard/label", svgIcon: <RosterIcon /> };
 
 const MAIN_NAV = [
@@ -43,12 +29,6 @@ const AI_TOOLS = [
 ];
 
 const ARTIST_TOOLS = [
-  /*
-   * The artist's public page. It sits here rather than in Settings because it is
-   * PER ARTIST PROFILE — a label with twelve artists has twelve press kits and one
-   * Settings page — so it needs the header artist switcher, which account-level screens
-   * deliberately hide. Release Links is its closest sibling: also a public, shareable page.
-   */
   { label: "Press Kit", href: "/dashboard/press-kit", badge: "NEW", svgIcon: <PressKitIcon /> },
   { label: "Splitr", href: "/dashboard/splitr", icon: "/images/splitr.svg" },
   { label: "Amplify", href: "/dashboard/amplify", icon: "/images/megaphone.svg" },
@@ -365,7 +345,6 @@ function VideoIcon() {
 interface SidebarProps {
   onClose?: () => void;
   isMobile?: boolean;
-  /** Passed down from DashboardLayout so the whole shell locks together. */
   isLocked?: boolean;
   user?: { first_name: string; last_name: string; email: string; avatar_url?: string } | null;
 }
@@ -431,7 +410,6 @@ export default function Sidebar({ onClose, isMobile, user, isLocked = false }: S
 
       {/* Nav */}
       <nav className="flex-1 overflow-y-auto overflow-x-hidden px-2 flex flex-col gap-4">
-        {/* Main section: Dashboard, Release dropdown, then the rest */}
         <div>
           <p className="font-heading text-white/30 uppercase text-[10px] tracking-[0.25em] px-2.5 mb-1.5">Main</p>
           <ul className="flex flex-col gap-px">

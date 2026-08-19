@@ -29,14 +29,7 @@ import BioCard from "./BioCard";
 import CoSignCard from "./CoSignCard";
 import SpotlightRail from "./SpotlightRail";
 
-/**
- * The visitor-facing press kit, rendered verbatim from a `PublicPressKit`.
- *
- * Shared by the public route (`/k/[slug]/page.tsx`) and the dashboard's live
- * preview, so "what the artist reviews" is exactly "what a visitor sees". Site
- * chrome (Songdis nav, CTA, footer) stays on the route; this is hero + sections
- * + co-sign card only.
- */
+
 export default function PressKitView({ kit }: { kit: PublicPressKit }) {
   const { artist, kit: cfg, photos, spotlights, releases } = kit;
   const order = resolveOrder(kit);
@@ -296,12 +289,7 @@ export default function PressKitView({ kit }: { kit: PublicPressKit }) {
         </section>
       ),
 
-    /*
-     * Full press kit - the printable document at /k/<slug>/pdf.
-     *
-     * Deliberately NOT a co-sign surface: the PDF omits it entirely. A tip jar does not
-     * belong in a file that gets forwarded to bookers and journalists.
-     */
+ 
     kit: (
       <section key="kit" className="pt-10 sm:pt-12">
         <a
@@ -327,12 +315,6 @@ export default function PressKitView({ kit }: { kit: PublicPressKit }) {
     ),
     join: null,
 
-    /*
-     * Co-sign — the fan tip jar. Rendered wherever the artist put it in the order,
-     * never above the bio (the editor clamps that). The card itself returns null for an
-     * artist who has not enabled it, so an ordered-but-off co-sign section is a no-op
-     * rather than an empty box.
-     */
     cosign: <CoSignCard key="cosign" artistName={artist.name} cosign={kit.cosign} />,
   };
 
@@ -414,9 +396,6 @@ function resolveOrder(kit: PublicPressKit): PressKitSectionKey[] {
       : [...DEFAULT_SECTION_ORDER];
   const hidden = new Set(kit.kit.hidden_sections);
   const out = ordered.filter((k) => !hidden.has(k));
-  // A kit saved before `cosign` was a section carries no slot for it. Default it to the
-  // last position rather than letting the tip jar silently vanish — unless the artist
-  // has explicitly hidden it, which stays respected.
   if (!out.includes("cosign") && !hidden.has("cosign")) out.push("cosign");
   return out;
 }

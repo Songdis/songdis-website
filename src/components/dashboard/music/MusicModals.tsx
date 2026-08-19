@@ -3,10 +3,8 @@
 import { useState, useEffect } from "react";
 import Image from "next/image";
 import type { Release } from "../../../app/mock/music";
-import { STATUS_CONFIG } from "../../../app/mock/music";
 import { SuccessModal } from "@/components/auth/SuccessModal";
 
-/* ─── Shared modal shell ──────────────────────────────────────── */
 function ModalShell({
   children,
   onClose,
@@ -42,105 +40,6 @@ function ModalShell({
   );
 }
 
-/* ─── Release Detail Modal ────────────────────────────────────── */
-// export function ReleaseDetailModal({
-//   release,
-//   onClose,
-// }: {
-//   release: Release;
-//   onClose: () => void;
-// }) {
-//   const [playing, setPlaying] = useState(false);
-//   const status = STATUS_CONFIG[release.status];
-
-//   return (
-//     <ModalShell onClose={onClose}>
-//       <div className="p-6">
-//         {/* Header row */}
-//         <div className="flex gap-5 mb-6">
-//           <div className="relative w-32 h-32 rounded-xl overflow-hidden shrink-0">
-//             <Image src={release.cover} alt={release.title} fill className="object-cover" unoptimized />
-//           </div>
-//           <div className="flex flex-col justify-center gap-2">
-//             <p className="font-body text-white/50 text-xs">Release</p>
-//             <h2 className="font-heading text-white uppercase text-xl tracking-wide">{release.title}</h2>
-//             <p className="font-body text-white/60 text-sm">{release.artist}</p>
-//             <div className="flex items-center gap-2 mt-1">
-//               <span className="font-body text-xs rounded-full px-2.5 py-1" style={{ color: "#C30100", backgroundColor: "rgba(195,1,0,0.15)" }}>
-//                 {release.type.charAt(0).toUpperCase() + release.type.slice(1)}
-//               </span>
-//               <span
-//                 className="font-body text-xs rounded-full px-2.5 py-1 flex items-center gap-1.5"
-//                 style={{ color: status.color, backgroundColor: status.bg }}
-//               >
-//                 {release.status === "live" && <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />}
-//                 {status.label}
-//               </span>
-//             </div>
-//             <div className="flex items-center gap-4 mt-1 font-body text-white/40 text-xs">
-//               <span className="flex items-center gap-1"><CalendarIcon /> {release.releaseDate}</span>
-//               <span className="flex items-center gap-1"><MusicIcon /> {release.tracks?.length ?? 0} Track</span>
-//             </div>
-//             <p className="font-body text-white/30 text-xs">UPC: {release.upc ?? "—"}</p>
-//           </div>
-//         </div>
-
-//         {/* Audio player for first track */}
-//         {release.tracks?.[0] && (
-//           <div className="rounded-xl bg-[#0E0808] border border-white/[0.06] p-4 mb-5">
-//             <div className="flex items-center gap-3 mb-3">
-//               <div className="relative w-12 h-12 rounded-lg overflow-hidden shrink-0">
-//                 <Image src={release.cover} alt={release.tracks[0].title} fill className="object-cover" unoptimized />
-//               </div>
-//               <div>
-//                 <p className="font-heading text-white uppercase text-sm">{release.tracks?.[0]?.title}</p>
-//                 <p className="font-body text-white/50 text-xs">{release.tracks?.[0]?.artist}</p>
-//               </div>
-//             </div>
-//             {/* Waveform bar */}
-//             <div className="flex items-center gap-3">
-//               <button onClick={() => setPlaying(!playing)} className="w-8 h-8 rounded-full border border-white/20 flex items-center justify-center text-white/60 hover:text-white transition-colors shrink-0">
-//                 {playing ? <PauseIcon /> : <PlayIcon />}
-//               </button>
-//               <span className="font-body text-white/40 text-xs shrink-0">0:25 / {release.tracks?.[0]?.duration}</span>
-//               <div className="flex-1 h-1.5 bg-white/10 rounded-full">
-//                 <div className="h-full w-[27%] bg-[#C30100] rounded-full" />
-//               </div>
-//               <button className="text-white/30 hover:text-white/50 transition-colors shrink-0"><VolumeIcon /></button>
-//             </div>
-//           </div>
-//         )}
-
-//         {/* Track list */}
-//         <div className="flex items-center justify-between mb-3">
-//           <p className="font-body text-white text-sm font-medium">Track List</p>
-//           <button className="flex items-center gap-1.5 font-body text-xs border border-[#C30100]/50 text-white rounded-full px-3 py-1.5 hover:bg-[#C30100]/10 transition-colors">
-//             <PlayIcon /> Play All
-//           </button>
-//         </div>
-
-//         {(release.tracks ?? []).map((track) => (
-//           <div key={track.id} className="flex items-center gap-3 rounded-xl border border-white/[0.06] bg-[#0E0808] p-3">
-//             <button className="w-7 h-7 rounded-full border border-white/20 flex items-center justify-center text-white/60 hover:text-white transition-colors shrink-0">
-//               <PlayIcon />
-//             </button>
-//             <div className="flex-1 min-w-0">
-//               <p className="font-heading text-white uppercase text-xs">{track.title}</p>
-//               <p className="font-body text-white/40 text-[10px] mt-0.5 truncate">
-//                 {track.producers} · {track.writers} · {track.performers}
-//               </p>
-//             </div>
-//             <p className="font-body text-white/30 text-xs shrink-0">{track.isrc}</p>
-//             <button className="text-white/30 hover:text-white transition-colors shrink-0"><EditIcon /></button>
-//             <button className="text-[#C30100]/60 hover:text-[#C30100] transition-colors shrink-0"><TrashIcon /></button>
-//           </div>
-//         ))}
-//       </div>
-//     </ModalShell>
-//   );
-// }
-
-/* ─── Request Edit Modal ──────────────────────────────────────── */
 export function TakedownModal({
   release,
   onClose,
@@ -242,10 +141,8 @@ export function TakedownModal({
   );
 }
 
-/* ─── Re-export SuccessModal with music-specific props ────────── */
 export { SuccessModal };
 
-/* ─── Icons ───────────────────────────────────────────────────── */
 function CloseIcon() { return <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>; }
 function PlayIcon() { return <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>; }
 function PauseIcon() { return <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>; }

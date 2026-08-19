@@ -111,11 +111,6 @@ export default function NotificationPanel({ isOpen, onClose, onCountChange }: No
 
     function handleClick(e: MouseEvent) {
       const target = e.target as HTMLElement;
-
-      // Ignore the bell itself. `mousedown` fires before `click`, so without
-      // this the sequence was: mousedown closes the panel, then the bell's
-      // click toggles it straight back open — making it impossible to close
-      // by clicking the bell a second time.
       if (target.closest("[data-notification-toggle]")) return;
 
       if (panelRef.current && !panelRef.current.contains(target)) {

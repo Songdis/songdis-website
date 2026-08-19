@@ -61,20 +61,9 @@ export default function EarningsPage() {
     refreshBalance();
   };
 
-  /*
-   * Reported up by PayoutAccountCard rather than fetched again here, so the button and the
-   * card can never disagree — and so adding an account enables the button immediately
-   * instead of on the next page load.
-   */
+
   const [payoutStatus, setPayoutStatus] = useState<PayoutStatus | null>(null);
 
-  /**
-   * Why the Withdraw button is closed, or undefined if it is open.
-   *
-   * There is no point opening a form that cannot end in a payout: the server refuses a
-   * bank transfer with no saved account. An unknown status (the lookup failed) does not
-   * block — a network blip should not lock someone out of their own money.
-   */
   const payoutBlockReason = ((): string | undefined => {
     if (!payoutStatus || payoutStatus.account) return undefined;
 
@@ -82,7 +71,6 @@ export default function EarningsPage() {
       return "Your payout account is being reviewed. We will email you as soon as it is approved.";
     }
 
-    // Nowhere to send them — the card hides itself in this state, so do not point at it.
     if (!payoutStatus.provider_ready && !payoutStatus.identity_verified) {
       return "Identity checks are unavailable right now. Please try again shortly.";
     }
@@ -133,9 +121,7 @@ export default function EarningsPage() {
             </div>
           )}
 
-          {/* A dimmed button carries no reason on a phone, where there is no hover title.
-              Say it on the page instead, or the button just looks broken. Only one notice
-              at a time — a pause outranks a missing account, since it blocks either way. */}
+
           {!withdrawalsPaused && payoutBlockReason && (
             <div className="rounded-2xl border border-white/[0.08] bg-[#180F0F] p-4 sm:p-5 flex items-start gap-3">
               <span aria-hidden className="text-[#E5342F] shrink-0 mt-0.5">
@@ -202,7 +188,6 @@ export default function EarningsPage() {
           </ul>
         </div>
 
-        {/* Split Earnings — real API */}
         <div className="rounded-2xl border border-dashed border-[#C30100]/30 bg-[#180F0F] p-5">
           <div className="flex flex-wrap items-center justify-between mb-1 gap-2">
             <div className="flex items-center gap-2">

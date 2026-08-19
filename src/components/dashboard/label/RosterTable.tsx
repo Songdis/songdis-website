@@ -295,7 +295,6 @@ export function RosterTable({
         ))}
       </ul>
 
-      {/* Tablet and up: the dense table. Trend only once there is room for it. */}
       <div className="hidden overflow-x-auto pb-2 md:block">
         <table className="w-full min-w-[560px] border-collapse lg:min-w-[680px]">
           <thead>

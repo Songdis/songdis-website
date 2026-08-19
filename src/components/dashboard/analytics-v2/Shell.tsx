@@ -33,6 +33,7 @@ const TABS = [
 export function AnalyticsV2Shell({
   children,
   pageTitle = "Analytics",
+  pooled = false,
 }: {
   children: React.ReactNode;
   /**
@@ -41,21 +42,29 @@ export function AnalyticsV2Shell({
    * unable to tell from the header which screen they were on.
    */
   pageTitle?: string;
+  /**
+   * Always report the whole account, whatever profile is selected elsewhere.
+   *
+   * The roster is pooled by construction — `useRoster` scopes to every profile id — so a
+   * leftover selection from another screen would have the header claim one artist while
+   * the table below listed them all.
+   */
+  pooled?: boolean;
 }) {
   return (
     <DashboardLayout pageTitle={pageTitle}>
-      <ShellBody>{children}</ShellBody>
+      <ShellBody pooled={pooled}>{children}</ShellBody>
     </DashboardLayout>
   );
 }
 
-function ShellBody({ children }: { children: React.ReactNode }) {
+function ShellBody({ children, pooled }: { children: React.ReactNode; pooled: boolean }) {
   const pathname = usePathname();
   const { profiles, profilesLoading, profilesError, scope, activeProfile, isPooled } =
     useAnalyticsV2();
   const summary = useSummary();
 
-  const scopeLabel = isPooled
+  const scopeLabel = pooled || isPooled
     ? `All ${profiles.length} profiles`
     : activeProfile?.display_name ?? "";
 

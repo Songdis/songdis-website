@@ -11,21 +11,10 @@ import ShareButton from "./ShareButton";
 interface PressKitChromeProps {
   kit: PublicPressKit;
   children: ReactNode;
-  /**
-   * Renders an "Edit" button in the nav and omits the fixed mobile booking bar.
-   * Set when the page is being shown inside the editor's preview.
-   */
   onEdit?: () => void;
-  /** The public URL to share. Defaults to the current page — only pass this in the dashboard, where the current page is the editor, not the kit. */
   shareUrl?: string;
 }
 
-/**
- * The Songdis chrome that wraps a press kit: the top nav overlay, the
- * CTA/footer block and the mobile booking bar. Shared by the public route and the
- * dashboard's live preview so the preview is exactly the public page — the only
- * difference is an "Edit" button in the nav when `onEdit` is set.
- */
 export default function PressKitChrome({
   kit,
   children,
@@ -36,9 +25,6 @@ export default function PressKitChrome({
   const bookingEmail =
     cfg.contacts.bookings ?? cfg.contacts.management ?? cfg.contacts.press;
 
-  // Mirrors CoSignCard's own guard: a kit with co-sign off renders no card, so the bar
-  // must not offer a button that scrolls to nothing. Also respects the section being
-  // hidden — the anchor would exist but the fan chose not to see it.
   const cosignEnabled =
     kit.cosign.enabled && !cfg.hidden_sections.includes("cosign");
 
@@ -135,10 +121,6 @@ export default function PressKitChrome({
         </footer>
       </div>
 
-      {/* The floating bar. Co-sign leads when it is enabled — it is the action a fan can
-          complete on the spot, where booking is a promoter's job — and booking keeps the
-          same bar as a compact secondary rather than being displaced by it. With co-sign
-          off this is byte-for-byte the bar that shipped before. */}
       {(bookingEmail || cosignEnabled) && !onEdit && (
         <div className="fixed inset-x-0 bottom-0 z-30 flex items-center gap-2.5 bg-[linear-gradient(180deg,transparent,var(--pk-bg)_34%)] px-5 pb-[calc(14px+env(safe-area-inset-bottom))] pt-6 lg:hidden">
           {cosignEnabled && (

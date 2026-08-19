@@ -41,7 +41,6 @@ function PitchPortalHero({
         Get your music<br />featured
       </h2>
 
-      {/* Platform cards mock — same fan/stack treatment as the Submitted modal */}
       <div className="relative h-40 mb-6 sm:mb-8 flex items-center justify-center scale-75 sm:scale-100">
         {/* Back card: TIDAL */}
         <div
@@ -57,7 +56,6 @@ function PitchPortalHero({
           </div>
         </div>
 
-        {/* Middle card: Spotify */}
         <div
           className="absolute w-56 rounded-xl bg-[#0E1410] border border-green-400/[0.15] p-4 text-left shadow-lg"
           style={{ transform: "translate(-24px, -6px) rotate(-5deg)", zIndex: 2 }}
@@ -71,7 +69,6 @@ function PitchPortalHero({
           </div>
         </div>
 
-        {/* Front card: Apple Music, with real thumbnails */}
         <div
           className="absolute w-52 rounded-xl bg-[#150808] border border-white/[0.08] p-3 text-left shadow-2xl"
           style={{ transform: "translate(20px, 8px) rotate(3deg)", zIndex: 3 }}
@@ -460,8 +457,7 @@ export default function AmplifyPage() {
     }
   }, [releases, selectedUploadId]);
 
-  // Entitlement is checked at the point of action rather than on arrival.
-  // The server enforces it too, so this only saves a wasted round trip.
+
   const goToAvailable = () => {
     if (!isGrowthPlan) { setShowUpgrade(true); return; }
     setHeroVisible(false);
@@ -484,15 +480,10 @@ export default function AmplifyPage() {
     >
       <div className="flex flex-col gap-5">
 
-        {/* The landing page is shown to everyone, including artists who would
-            need to upgrade. Locking the whole page meant a Basic artist could
-            not even see what the Pitch Portal is — the upgrade prompt now waits
-            until they act on it. */}
         {heroVisible && (
           <PitchPortalHero onSubmitClick={goToAvailable} onApprovedClick={goToApproved} />
         )}
 
-        {/* Tab content — no tab bar, no release selector */}
         {!heroVisible && (
           <div className="rounded-2xl border border-dashed border-[#C30100]/30 bg-[#180F0F] p-5">
 
