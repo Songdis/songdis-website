@@ -342,15 +342,6 @@ export default function UploadModal({
         isPreviouslyReleased: Boolean(v.is_previously_released),
         originalReleaseDate: v.original_release_date ? String(v.original_release_date).slice(0, 10) : "",
 
-        /*
-         * Contributors and the clip start must be loaded, not left at their empty
-         * defaults. The edit request sends both, so an unhydrated form submits "no
-         * contributors, clip at 0:00" as though the artist had asked for it — the reviewer
-         * sees "BhadBoyfresh → —" and approving it deletes them.
-         *
-         * The stored shape is the flat [{name, role, type}] that formatContributorsForBackend
-         * produces; this is its inverse.
-         */
         contributors: asList(v.contributors).reduce<UploadState["contributors"]>(
           (acc, raw, i) => {
             const c = (raw ?? {}) as Record<string, unknown>;
@@ -522,7 +513,7 @@ export default function UploadModal({
     setFieldErrors({});
     if (state.releaseType === "single") {
       update({ trackTitle: state.releaseTitle, artistDetails: state.primaryArtist });
-      const writer: Contributor = { id: `writer_auto_${Date.now()}`, name: state.primaryArtist, role: "Songwriter", type: "writer" };
+      const writer: Contributor = { id: `writer_auto_${Date.now()}`, name: "", role: "Songwriter", type: "writer" };
       const performer: Contributor = { id: `performer_auto_${Date.now()}`, name: state.primaryArtist, role: "Lead Vocals", type: "performer" };
       update({ contributors: { writers: [writer], producers: [], performers: [performer] } });
     }
@@ -616,20 +607,6 @@ export default function UploadModal({
     social_media_timestamp: normaliseTimestamp(state.tiktokTimestamp),
     composer: state.contributors.writers.map((w) => w.name).join(", ") || state.primaryArtist,
     contributors: formatContributorsForBackend(state.contributors),
-
-    /*
-     * Deliberately NOT sent: lyrics_language, producers, featured_artists,
-     * songwriter_splits, credits, genres_moods, catalog_number, stereo_ai_use.
-     *
-     * The backend accepts all of them, but this modal has no input for any of them, and a
-     * field with no input carries no artist intent. It would go as empty — or for
-     * lyrics_language, as whatever metadata_language happens to be — read as a deliberate
-     * change against what the release already holds, and wipe it on approval.
-     *
-     * The bar for adding one here is that the edit form must BOTH show it and hydrate it.
-     * Sending a field the loader leaves at its default is how "contributors" briefly
-     * turned into a request to delete every contributor.
-     */
   }), [state, formatContributorsForBackend]);
 
 
@@ -763,13 +740,13 @@ export default function UploadModal({
       const base = {
         release_title: state.releaseTitle, metadata_language: state.metaLanguage,
         primary_artist: state.primaryArtist, primary_artist_id: null,
-        composer: state.contributors.writers.map((w) => w.name).join(", ") || state.primaryArtist,
+        composer: state.contributors.writers.map((w) => w.name).filter(Boolean).join(", "),
         album_art_url: state.artworkUrl, album_art_key: state.artworkKey,
         album_art_sizes: state.artworkSizes ? JSON.stringify(state.artworkSizes) : null,
         cover_art_ai_use: normaliseCoverArtAiUse(state.coverArtAiUse),
-        label: state.label || "Independent",
-        c_line: `© ${state.cLine} ${state.primaryArtist}`,
-        p_line: `℗ ${state.pLine} ${state.primaryArtist}`,
+        label: state.label || "Songdis Ltd",
+        c_line: `© ${state.cLine} ${state.primaryArtist}, Distributed by Songdis`,
+        p_line: `℗ ${state.pLine} ${state.primaryArtist}, Distributed by Songdis`,
         explicit_content: state.explicitContent === "Yes",
         primary_genre: state.genre, secondary_genre: state.subGenre,
         genre: state.genre, subgenre: state.subGenre, recorded_year: state.recordedYear,
