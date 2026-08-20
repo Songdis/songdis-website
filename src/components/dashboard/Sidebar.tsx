@@ -31,6 +31,7 @@ const AI_TOOLS = [
 const ARTIST_TOOLS = [
   { label: "Press Kit", href: "/dashboard/press-kit", badge: "NEW", svgIcon: <PressKitIcon /> },
   { label: "Splitr", href: "/dashboard/splitr", icon: "/images/splitr.svg" },
+  { label: "Publishing", href: "/dashboard/publishing", badge: "NEW", icon: "/images/splitr.svg" },
   { label: "Amplify", href: "/dashboard/amplify", icon: "/images/megaphone.svg" },
   { label: "Release Links", href: "/dashboard/release-links", icon: "/images/link.svg" },
   { label: "Playlist Portal", href: "/dashboard/playlist-portal", icon: "/images/playlist-broken.svg" },
