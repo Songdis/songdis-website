@@ -231,17 +231,29 @@ export function useSplitEarnings() {
   /** The API totals these itself; -1 means it did not say. */
   const [serverTotal, setServerTotal] = useState(-1);
   const [isLoading, setIsLoading] = useState(true);
+  /*
+   * A failed request used to be indistinguishable from "you have no splits": the old code
+   * only assigned on success, so a 500 left an empty list and a silent, confident-looking
+   * empty screen. The error is kept so the UI can say which of the two happened.
+   */
+  const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setIsLoading(true);
     const res = await getMyEarnings();
-    if (!res.error) {
+
+    if (res.error) {
+      setError(res.error);
+      setEarnings([]);
+    } else {
+      setError(null);
       setEarnings(unwrapList<SplitEarnings>(res.data));
 
       const envelope = res.data as Record<string, unknown> | null;
       const total = Number(envelope?.total_earnings);
       setServerTotal(Number.isFinite(total) ? total : -1);
     }
+
     setIsLoading(false);
   }, []);
 
@@ -257,5 +269,5 @@ export function useSplitEarnings() {
       ? serverTotal
       : earnings.reduce((sum, e) => sum + (Number(e.total_earnings) || 0), 0);
   const pending = earnings.filter((e) => e.status === "pending");
-  return { earnings, pending, totalEarnings, isLoading, refresh: load };
+  return { earnings, pending, totalEarnings, isLoading, error, refresh: load };
 }

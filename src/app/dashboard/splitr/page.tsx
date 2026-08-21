@@ -294,7 +294,7 @@ export default function SplitrPage() {
   const [activeSplit, setActiveSplit] = useState<NormalisedSplit | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
   const { splits, isLoading, stats, refresh, remove } = useSplits();
-  const { earnings, totalEarnings, refresh: refreshEarnings } = useSplitEarnings();
+  const { earnings, totalEarnings, error: earningsError, refresh: refreshEarnings } = useSplitEarnings();
   const { create, isLoading: createLoading } = useCreateSplit();
   const { update, isLoading: updateLoading } = useUpdateSplit();
   const { releases } = useMusic();
@@ -425,19 +425,40 @@ export default function SplitrPage() {
             someone who accepted an invitation signed in and found nothing waiting. A
             pending one is actionable right here: the invitation email is not always still
             to hand. */}
-        {earnings.length > 0 && (
-          <div className="rounded-2xl border border-dashed border-[#C30100]/30 bg-[#180F0F] p-5">
-            <p className="font-body text-white text-sm font-medium mb-1">Shared with you</p>
-            <p className="font-body text-white/40 text-xs mb-4">
-              Royalty shares other artists have given you.
+        <div className="rounded-2xl border border-dashed border-[#C30100]/30 bg-[#180F0F] p-5">
+          <p className="font-body text-white text-sm font-medium mb-1">Shared with you</p>
+          <p className="font-body text-white/40 text-xs mb-4">
+            Royalty shares other artists have given you.
+          </p>
+
+          {/* Shown even when empty, on purpose. Someone who was told a split is waiting
+              needs to see that we looked and found nothing — an absent section reads as
+              a broken page, and a failed request must not masquerade as "none". */}
+          {earningsError ? (
+            <div className="rounded-xl border border-[#C30100]/25 bg-[#C30100]/[0.06] px-4 py-3">
+              <p className="font-body text-white/75 text-xs leading-relaxed">
+                We could not load the splits shared with you. {earningsError}
+              </p>
+              <button
+                onClick={refreshEarnings}
+                className="mt-2 font-body text-[11px] text-white/50 underline hover:text-white"
+              >
+                Try again
+              </button>
+            </div>
+          ) : earnings.length === 0 ? (
+            <p className="font-body text-white/35 text-xs py-3">
+              Nothing yet. When another artist gives you a share of a release, it appears
+              here — signed in with the email the invitation was sent to.
             </p>
+          ) : (
             <div className="flex flex-col gap-2.5">
               {earnings.map((row) => (
                 <ReceivedSplit key={row.recipient_id} row={row} onChanged={refreshEarnings} />
               ))}
             </div>
-          </div>
-        )}
+          )}
+        </div>
 
         {/* Active Splits */}
         <div className="rounded-2xl border border-dashed border-[#C30100]/30 bg-[#180F0F] p-5">
@@ -613,7 +634,12 @@ function ReceivedSplit({ row, onChanged }: { row: SplitEarnings; onChanged: () =
         </div>
         <div className="min-w-0 flex-1">
           <p className="font-body text-white text-sm truncate">{row.release_title}</p>
-          <p className="font-body text-white/40 text-xs truncate">{row.primary_artist}</p>
+          <p className="font-body text-white/40 text-xs truncate">
+            {row.primary_artist}
+            {row.release_available === false && (
+              <span className="text-amber-400/80"> · release taken down</span>
+            )}
+          </p>
         </div>
         <div className="text-right shrink-0">
           <p className="font-body text-white text-sm tabular-nums">{row.percentage}%</p>
