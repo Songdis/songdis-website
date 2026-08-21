@@ -34,16 +34,17 @@ function SplitAgreementForm({ mode, split, musicUploadOptions, onClose, onSubmit
     split?.musicUploadId ?? musicUploadOptions[0]?.id ?? 0
   );
   const [splitName, setSplitName] = useState(split?.splitName ?? "");
+
   const [collaborators, setCollaborators] = useState(
     split?.collaborators.filter((c) => !c.isYou).map((c) => ({
       email: c.email,
       fullName: c.name,
-      percentage: c.split,
-    })) ?? [{ email: "", fullName: "", percentage: 0 }]
+      percentage: String(c.split),
+    })) ?? [{ email: "", fullName: "", percentage: "" }]
   );
 
   const addCollaborator = () =>
-    setCollaborators((prev) => [...prev, { email: "", fullName: "", percentage: 0 }]);
+    setCollaborators((prev) => [...prev, { email: "", fullName: "", percentage: "" }]);
 
   const updateCollab = (i: number, field: string, value: string | number) =>
     setCollaborators((prev) => prev.map((c, idx) => idx === i ? { ...c, [field]: value } : c));
@@ -52,7 +53,10 @@ function SplitAgreementForm({ mode, split, musicUploadOptions, onClose, onSubmit
     onSubmit({
       musicUploadId: selectedUploadId,
       splitName: (splitName || musicUploadOptions.find(m => m.id === selectedUploadId)?.title) ?? "Split Agreement",
-      collaborators,
+      collaborators: collaborators.map((c) => ({
+        ...c,
+        percentage: parseFloat(c.percentage) || 0,
+      })),
     });
   };
 
@@ -134,11 +138,16 @@ function SplitAgreementForm({ mode, split, musicUploadOptions, onClose, onSubmit
                 <div className="flex flex-col gap-1.5">
                   <label className="font-body text-white/70 text-xs">Split Percentage (%)</label>
                   <input
-                    type="number"
-                    min={0}
-                    max={100}
+                    type="text"
+                    inputMode="decimal"
+                    placeholder="e.g 50"
                     value={collab.percentage}
-                    onChange={(e) => updateCollab(i, "percentage", parseFloat(e.target.value) || 0)}
+                    onChange={(e) => {
+
+                      const next = e.target.value.replace(/[^0-9.]/g, "");
+                      if ((next.match(/\./g)?.length ?? 0) > 1) return;
+                      updateCollab(i, "percentage", next);
+                    }}
                     className={inputCls}
                   />
                 </div>

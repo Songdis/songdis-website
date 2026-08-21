@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import AuthLayout from "@/components/auth/AuthLayout";
 import {
   AuthInput,
@@ -13,8 +13,14 @@ import {
 import { useSignIn, useGoogleSignIn } from "@/lib/hooks/useAuth";
 import { GoogleIcon } from "@/components/auth/GoogleIcon";
 
-export default function SignInPage() {
+function SignInInner() {
   const router = useRouter();
+  const params = useSearchParams();
+
+  const redirect = params.get("redirect");
+  const destination = redirect && redirect.startsWith("/") && !redirect.startsWith("//")
+    ? redirect
+    : "/dashboard";
   const { mutate, isLoading, error } = useSignIn();
   const { isLoading: googleLoading, trigger: googleSignIn } = useGoogleSignIn();
 
@@ -37,7 +43,7 @@ export default function SignInPage() {
     }
 
     mutate({ email, password }, () => {
-      router.push("/dashboard");
+      router.push(destination);
     });
   };
 
@@ -124,5 +130,13 @@ export default function SignInPage() {
         </AuthButton>
       </form>
     </AuthLayout>
+  );
+}
+
+export default function SignInPage() {
+  return (
+    <Suspense fallback={null}>
+      <SignInInner />
+    </Suspense>
   );
 }

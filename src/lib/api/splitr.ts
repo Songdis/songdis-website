@@ -1,24 +1,5 @@
-/**
- * lib/api/splitr.ts
- *
- * Endpoint mapping (from Postman collection):
- *   POST /splits/create
- *   GET  /splits
- *   GET  /splits/{id}
- *   PUT  /splits/{id}
- *   DELETE /splits/{id}
- *   POST /splits/{id}/lock
- *   POST /splits/{id}/recipients
- *   PUT  /splits/{id}/recipients/{recipientId}
- *   DELETE /splits/{id}/recipients/{recipientId}
- *   POST /splits/{id}/recipients/{recipientId}/resend
- *   GET  /splits/my-earnings
- *   GET  /splits/my-earnings/{splitId}
- */
-
 import { request } from "./core";
 
-/* ─── Types ───────────────────────────────────────────────────── */
 
 export interface SplitRecipient {
   id: number;
@@ -90,7 +71,6 @@ export interface SplitListParams {
   search?: string;
 }
 
-/* ─── API functions ───────────────────────────────────────────── */
 
 export async function createSplit(payload: CreateSplitPayload) {
   return request<Split>(
@@ -180,4 +160,45 @@ export async function getMyEarnings() {
 
 export async function getSplitEarnings(splitId: number | string) {
   return request<SplitEarnings>(`/splits/my-earnings/${splitId}`, { method: "GET" }, true);
+}
+
+
+export interface SplitInvitation {
+  recipient_name: string;
+  email: string;
+  percentage: number;
+  status: "pending" | "accepted" | "declined";
+  has_account: boolean;
+  release: {
+    track_title: string;
+    primary_artist: string;
+    album_art_url: string | null;
+  };
+  invited_by: { name: string };
+  invited_at: string;
+}
+
+export interface AcceptInvitationResult {
+  recipient: unknown;
+  token: string | null;
+  user: { id: number; email: string; first_name: string } | null;
+}
+
+export async function viewInvitation(token: string) {
+  return request<SplitInvitation>(`/splits/invitations/${token}`, { method: "GET" }, true);
+}
+
+export async function acceptInvitation(
+  token: string,
+  password?: { password: string; password_confirmation: string }
+) {
+  return request<AcceptInvitationResult>(
+    `/splits/invitations/${token}/accept`,
+    { method: "POST", ...(password ? { body: JSON.stringify(password) } : {}) },
+    true
+  );
+}
+
+export async function declineInvitation(token: string) {
+  return request<unknown>(`/splits/invitations/${token}/decline`, { method: "POST" }, true);
 }
