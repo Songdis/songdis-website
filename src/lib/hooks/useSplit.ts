@@ -17,13 +17,23 @@ import {
 } from "../api/splitr";
 import { useToast } from "@/components/ui/Toast";
 
+/**
+ * Pull a list out of whatever envelope the API used.
+ *
+ * `splits` is here because /splits/my-earnings answers
+ * `data: { splits: [...], total_earnings, total_available }`. Without that key this
+ * returned an empty array for every recipient, so a split someone accepted was never
+ * shown to them — the request succeeded and the list was silently dropped.
+ */
 function unwrapList<T>(raw: unknown): T[] {
   if (Array.isArray(raw)) return raw as T[];
   if (raw && typeof raw === "object") {
     const obj = raw as Record<string, unknown>;
+    if (Array.isArray(obj.splits)) return obj.splits as T[];
     if (Array.isArray(obj.data)) return obj.data as T[];
     if (obj.data && typeof obj.data === "object") {
       const inner = obj.data as Record<string, unknown>;
+      if (Array.isArray(inner.splits)) return inner.splits as T[];
       if (Array.isArray(inner.data)) return inner.data as T[];
     }
   }
@@ -218,6 +228,8 @@ export function useRecipients(splitId: string) {
 
 export function useSplitEarnings() {
   const [earnings, setEarnings] = useState<SplitEarnings[]>([]);
+  /** The API totals these itself; -1 means it did not say. */
+  const [serverTotal, setServerTotal] = useState(-1);
   const [isLoading, setIsLoading] = useState(true);
 
   const load = useCallback(async () => {
@@ -225,13 +237,25 @@ export function useSplitEarnings() {
     const res = await getMyEarnings();
     if (!res.error) {
       setEarnings(unwrapList<SplitEarnings>(res.data));
+
+      const envelope = res.data as Record<string, unknown> | null;
+      const total = Number(envelope?.total_earnings);
+      setServerTotal(Number.isFinite(total) ? total : -1);
     }
     setIsLoading(false);
   }, []);
 
   useEffect(() => { load(); }, [load]);
 
-  const totalEarnings = earnings.reduce((sum, e) => sum + (Number(e.total_earnings) || 0), 0);
+  /*
+   * `total_earnings` is the recipient's own share of a release. The old code summed
+   * `your_earnings`, which the API does not return, so this read 0 for everyone.
+   * The server already totals it, so that figure wins; summing is only the fallback.
+   */
+  const totalEarnings =
+    serverTotal >= 0
+      ? serverTotal
+      : earnings.reduce((sum, e) => sum + (Number(e.total_earnings) || 0), 0);
   const pending = earnings.filter((e) => e.status === "pending");
   return { earnings, pending, totalEarnings, isLoading, refresh: load };
 }
