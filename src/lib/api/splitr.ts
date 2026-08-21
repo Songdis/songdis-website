@@ -55,12 +55,18 @@ export interface AddRecipientPayload {
   notes?: string;
 }
 
+
 export interface SplitEarnings {
   split_id: number;
-  split_name?: string;
-  total_earnings?: number;
-  your_earnings?: number;
-  your_percentage?: number;
+  recipient_id: number;
+  release_title: string;
+  primary_artist: string;
+  album_art_url: string | null;
+  percentage: number;
+  total_earnings: number;
+  available_balance: number;
+  status: "pending" | "accepted" | "declined";
+  accepted_at: string | null;
   [key: string]: unknown;
 }
 
@@ -201,4 +207,16 @@ export async function acceptInvitation(
 
 export async function declineInvitation(token: string) {
   return request<unknown>(`/splits/invitations/${token}/decline`, { method: "POST" }, true);
+}
+
+
+export async function respondToMyInvitation(
+  recipientId: number | string,
+  action: "accept" | "decline"
+) {
+  return request<unknown>(
+    `/splits/my-invitations/${recipientId}/respond`,
+    { method: "POST", body: JSON.stringify({ action }) },
+    true
+  );
 }

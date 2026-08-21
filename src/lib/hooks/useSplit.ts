@@ -231,7 +231,7 @@ export function useSplitEarnings() {
 
   useEffect(() => { load(); }, [load]);
 
-  const totalEarnings = earnings.reduce((sum, e) => sum + (e.your_earnings ?? 0), 0);
-
-  return { earnings, totalEarnings, isLoading, refresh: load };
+  const totalEarnings = earnings.reduce((sum, e) => sum + (Number(e.total_earnings) || 0), 0);
+  const pending = earnings.filter((e) => e.status === "pending");
+  return { earnings, pending, totalEarnings, isLoading, refresh: load };
 }

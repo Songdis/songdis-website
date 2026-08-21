@@ -12,7 +12,7 @@ import {
   useSplitEarnings,
   type NormalisedSplit,
 } from "@/lib/hooks/useSplit";
-import { updateRecipient, addRecipient } from "@/lib/api/splitr";
+import { updateRecipient, addRecipient, respondToMyInvitation, type SplitEarnings } from "@/lib/api/splitr";
 import { useMusic } from "@/lib/hooks/useMusic";
 import { useUser } from "@/lib/hooks/useUser";
 
@@ -294,7 +294,7 @@ export default function SplitrPage() {
   const [activeSplit, setActiveSplit] = useState<NormalisedSplit | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
   const { splits, isLoading, stats, refresh, remove } = useSplits();
-  const { earnings, totalEarnings } = useSplitEarnings();
+  const { earnings, totalEarnings, refresh: refreshEarnings } = useSplitEarnings();
   const { create, isLoading: createLoading } = useCreateSplit();
   const { update, isLoading: updateLoading } = useUpdateSplit();
   const { releases } = useMusic();
@@ -419,6 +419,25 @@ export default function SplitrPage() {
             </div>
           </div>
         </div>
+
+        {/* Shared with you — splits OTHER people gave this account.
+            These were already being fetched for the earnings total but never rendered, so
+            someone who accepted an invitation signed in and found nothing waiting. A
+            pending one is actionable right here: the invitation email is not always still
+            to hand. */}
+        {earnings.length > 0 && (
+          <div className="rounded-2xl border border-dashed border-[#C30100]/30 bg-[#180F0F] p-5">
+            <p className="font-body text-white text-sm font-medium mb-1">Shared with you</p>
+            <p className="font-body text-white/40 text-xs mb-4">
+              Royalty shares other artists have given you.
+            </p>
+            <div className="flex flex-col gap-2.5">
+              {earnings.map((row) => (
+                <ReceivedSplit key={row.recipient_id} row={row} onChanged={refreshEarnings} />
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Active Splits */}
         <div className="rounded-2xl border border-dashed border-[#C30100]/30 bg-[#180F0F] p-5">
@@ -556,3 +575,82 @@ function ChevronIcon() { return <svg className="absolute right-3 top-1/2 -transl
 function EditIcon() { return <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>; }
 function TrashIcon() { return <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/></svg>; }
 function TrashLargeIcon() { return <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="#C30100" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg>; }
+
+/** One split someone else gave you. Pending rows can be answered without the email. */
+function ReceivedSplit({ row, onChanged }: { row: SplitEarnings; onChanged: () => void }) {
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+
+  const respond = async (action: "accept" | "decline") => {
+    setBusy(true);
+    setErr(null);
+    const res = await respondToMyInvitation(row.recipient_id, action);
+    setBusy(false);
+    if (res.error) {
+      setErr(res.error);
+      return;
+    }
+    onChanged();
+  };
+
+  const tone =
+    row.status === "accepted"
+      ? "border-green-500/25 bg-green-500/[0.08] text-green-300"
+      : row.status === "declined"
+        ? "border-white/10 bg-white/[0.04] text-white/45"
+        : "border-amber-500/30 bg-amber-500/[0.08] text-amber-300";
+
+  const label =
+    row.status === "accepted" ? "Accepted" : row.status === "declined" ? "Declined" : "Awaiting you";
+
+  return (
+    <div className="rounded-xl border border-white/[0.06] bg-[#140C0C] p-3.5">
+      <div className="flex items-center gap-3">
+        <div className="relative w-11 h-11 rounded-lg overflow-hidden shrink-0 bg-white/[0.05]">
+          {row.album_art_url && (
+            <Image src={row.album_art_url} alt="" fill className="object-cover" unoptimized />
+          )}
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="font-body text-white text-sm truncate">{row.release_title}</p>
+          <p className="font-body text-white/40 text-xs truncate">{row.primary_artist}</p>
+        </div>
+        <div className="text-right shrink-0">
+          <p className="font-body text-white text-sm tabular-nums">{row.percentage}%</p>
+          <p className="font-body text-white/40 text-[11px] tabular-nums">
+            ${(Number(row.total_earnings) || 0).toFixed(2)}
+          </p>
+        </div>
+      </div>
+
+      <div className="mt-2.5 flex items-center justify-between gap-3">
+        <span className={`inline-flex items-center rounded-full border px-2.5 py-1 font-body text-[11px] ${tone}`}>
+          {label}
+        </span>
+
+        {row.status === "pending" && (
+          <div className="flex gap-2">
+            <button
+              onClick={() => respond("decline")}
+              disabled={busy}
+              className="min-h-[36px] rounded-full border border-white/12 px-3.5 font-heading text-[10px] uppercase tracking-widest text-white/60 transition-colors hover:border-white/30 hover:text-white disabled:opacity-40"
+            >
+              Decline
+            </button>
+            <button
+              onClick={() => respond("accept")}
+              disabled={busy}
+              className="min-h-[36px] rounded-full bg-[#C30100] px-4 font-heading text-[10px] uppercase tracking-widest text-white transition-colors hover:bg-[#a80000] disabled:opacity-40"
+            >
+              {busy ? "…" : "Accept"}
+            </button>
+          </div>
+        )}
+      </div>
+
+      {err && (
+        <p className="mt-2 font-body text-[11px] text-[#ff6b68]">{err}</p>
+      )}
+    </div>
+  );
+}
