@@ -3,6 +3,7 @@
 import { Suspense, useEffect, useState, useRef, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
+import { trackSubscribe } from "@/lib/analytics/meta";
 
 type Status = "loading" | "success" | "processing" | "error";
 
@@ -13,6 +14,9 @@ function CallbackContent() {
   const [message, setMessage] = useState("");
   const pollRef = useRef<NodeJS.Timeout | null>(null);
   const attemptsRef = useRef(0);
+  // This page polls every 3s and can also be re-entered from the payment provider, so the
+  // conversion is latched — Meta must not be told about the same subscription twice.
+  const trackedRef = useRef(false);
   const MAX_ATTEMPTS = 20;
 
   const verifySubscription = useCallback(async () => {
@@ -22,6 +26,13 @@ function CallbackContent() {
       const res = await getBillingStatus();
       if (res.data && !res.error) {
         if (res.data.is_active) {
+          // The moment the subscription is confirmed active by the API — not when the
+          // provider redirected back, which happens before the payment has settled.
+          if (!trackedRef.current) {
+            trackedRef.current = true;
+            trackSubscribe(res.data.plan?.name, res.data.interval);
+          }
+
           setStatus("success");
           setMessage("Your subscription is now active!");
           if (pollRef.current) clearInterval(pollRef.current);

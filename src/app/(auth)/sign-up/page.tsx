@@ -11,6 +11,7 @@ import {
   FormError,
 } from "@/components/auth/AuthPrimitives";
 import { useSignUp, useGoogleSignIn } from "@/lib/hooks/useAuth";
+import { trackSignUp } from "@/lib/analytics/meta";
 import { GoogleIcon } from "@/components/auth/GoogleIcon";
 
 interface FieldErrors {
@@ -101,6 +102,10 @@ export default function SignUpPage() {
         referralCode: fields.referralCode || undefined,
       },
       () => {
+        // Fired here, inside the success callback, so a failed sign-up never counts as a
+        // conversion. trackSignUp cannot throw — see lib/analytics/meta.
+        trackSignUp();
+
         router.push(
           `/verify-email?email=${encodeURIComponent(fields.email)}&flow=signup`
         );
