@@ -16,6 +16,9 @@ const MAIN_NAV = [
   { label: "Earnings", href: "/dashboard/earnings", icon: "/images/money.svg" },
   { label: "Analytics", href: "/dashboard/analytics", icon: "/images/analytics-dashboard.svg" },
   { label: "Royalty Report", href: "/dashboard/royalties", icon: "/images/document.svg" },
+  // Main nav, not Artist Tools: publishing is a second income stream, not a utility that
+  // sits beside Splitr and Release Links. It belongs next to Earnings and Royalties.
+  { label: "Publishing", href: "/dashboard/publishing", badge: "NEW", svgIcon: <PublishingIcon /> },
 ];
 
 const RELEASE_CHILDREN: { label: string; href: string; icon?: string; svgIcon?: React.ReactNode; badge?: string }[] = [
@@ -31,7 +34,6 @@ const AI_TOOLS = [
 const ARTIST_TOOLS = [
   { label: "Press Kit", href: "/dashboard/press-kit", badge: "NEW", svgIcon: <PressKitIcon /> },
   { label: "Splitr", href: "/dashboard/splitr", icon: "/images/splitr.svg" },
-  { label: "Publishing", href: "/dashboard/publishing", badge: "NEW", icon: "/images/splitr.svg" },
   { label: "Amplify", href: "/dashboard/amplify", icon: "/images/megaphone.svg" },
   { label: "Release Links", href: "/dashboard/release-links", icon: "/images/link.svg" },
   { label: "Playlist Portal", href: "/dashboard/playlist-portal", icon: "/images/playlist-broken.svg" },
@@ -314,6 +316,25 @@ function ReleaseIcon() {
     </svg>
   );
 }
+/**
+ * Publishing.
+ *
+ * A quill over a stave — the SONG as written, which is exactly what this feature collects
+ * on, as distinct from the recording. Previously this reused splitr.svg, so two unrelated
+ * features were indistinguishable in the sidebar.
+ */
+function PublishingIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      {/* stave */}
+      <path d="M3 6h8M3 10h6M3 14h5" />
+      {/* quill */}
+      <path d="M21 3c-4.5 1-8 4.5-9 9l-1.5 4 4-1.5c4.5-1 8-4.5 9-9z" />
+      <path d="M14.5 9.5 9 15" />
+    </svg>
+  );
+}
+
 function PressKitIcon() {
   return (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">

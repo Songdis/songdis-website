@@ -30,14 +30,16 @@ const YEARS = ["2023", "2024", "2025"];
 export default function PublishingIntro({ onStart }: { onStart: () => void }) {
   return (
     <div className="pb-8">
-      <div className="grid gap-6 lg:grid-cols-[1fr_360px] lg:items-start lg:gap-8">
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_380px] lg:items-start lg:gap-10">
         {/* ── The pitch ────────────────────────────────────────────── */}
         <div className="min-w-0">
           <span className="inline-flex items-center rounded-full border border-amber-400/40 px-3 py-1 font-heading text-[10px] uppercase tracking-widest text-amber-300">
             For songwriters
           </span>
 
-          <h1 className="mt-4 font-heading text-2xl uppercase leading-[1.15] text-white sm:text-3xl lg:text-4xl">
+          {/* max-w in ch so the line length stays readable as the column grows — nulshock
+              is a wide face and a full-width line of it is hard to scan. */}
+          <h1 className="mt-4 max-w-[16ch] font-heading text-[26px] uppercase leading-[1.1] text-white sm:text-4xl lg:text-[44px] lg:leading-[1.05]">
             There is money in your name you never collected
           </h1>
 
@@ -74,7 +76,7 @@ export default function PublishingIntro({ onStart }: { onStart: () => void }) {
           {/* The core idea, in one line and then shown rather than explained. */}
           <p className="mt-7 font-body text-sm text-white/60">Every play makes two cheques.</p>
 
-          <div className="mt-3 grid grid-cols-2 gap-3">
+          <div className="mt-3 grid grid-cols-2 gap-3 lg:gap-4">
             <div className="rounded-xl border border-green-500/25 bg-green-500/[0.04] p-4">
               <p className="font-heading text-[10px] uppercase tracking-widest text-white/40">
                 The recording
@@ -101,7 +103,7 @@ export default function PublishingIntro({ onStart }: { onStart: () => void }) {
             <span className="font-semibold text-white">We go and get it.</span>
           </p>
 
-          <div className="mt-4 grid grid-cols-3 gap-3">
+          <div className="mt-4 grid grid-cols-3 gap-3 lg:gap-4">
             {[
               ["5", "ways it earns"],
               ["100+", "territories"],
@@ -117,9 +119,9 @@ export default function PublishingIntro({ onStart }: { onStart: () => void }) {
             ))}
           </div>
 
-          <ul className="mt-7 divide-y divide-white/[0.06] border-y border-white/[0.06]">
+          <ul className="mt-7 grid divide-y divide-white/[0.06] border-y border-white/[0.06] sm:grid-cols-2 sm:gap-x-6 sm:divide-y-0 sm:border-y-0">
             {EARNINGS.map(({ icon: Icon, title, body }) => (
-              <li key={title} className="flex items-start gap-3 py-3.5">
+              <li key={title} className="flex items-start gap-3 border-b border-white/[0.06] py-3.5 sm:border-b-0">
                 <Icon size={15} className="mt-0.5 shrink-0 text-[#C30100]" aria-hidden />
                 <p className="font-body text-xs leading-relaxed text-white/55">
                   <span className="font-semibold text-white">{title}.</span> {body}

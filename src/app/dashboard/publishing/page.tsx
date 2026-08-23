@@ -201,7 +201,17 @@ export default function PublishingPage() {
 
   return (
     <DashboardLayout pageTitle="Publishing">
-      <div className="mx-auto w-full max-w-[720px] px-1 pb-24 sm:px-0">
+      {/*
+        720px suits the form flow — a single column of questions reads badly any wider.
+        The intro is a two-column pitch and was being crushed into that same width, which
+        left the headline about 330px wide and wrapping onto five lines. It gets its own
+        measure instead of forcing every screen to share one.
+      */}
+      <div
+        className={`mx-auto w-full px-1 pb-24 sm:px-0 ${
+          mode.kind === "intro" ? "max-w-[1120px]" : "max-w-[720px]"
+        }`}
+      >
         {banner && (
           <div className="mb-4 rounded-xl border border-green-500/25 bg-green-500/[0.07] px-4 py-3">
             <p className="font-body text-sm text-green-300">{banner}</p>
