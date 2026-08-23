@@ -27,7 +27,14 @@ const EARNINGS = [
 /** The three years an artist can still back-claim, plus today. */
 const YEARS = ["2023", "2024", "2025"];
 
-export default function PublishingIntro({ onStart }: { onStart: () => void }) {
+export default function PublishingIntro({
+  onStart,
+  sharePercent,
+}: {
+  onStart: () => void;
+  /** Songdis's cut of what is collected. Shown plainly — see the note by the price. */
+  sharePercent?: number;
+}) {
   return (
     <div className="pb-8">
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_380px] lg:items-start lg:gap-10">
@@ -145,6 +152,20 @@ export default function PublishingIntro({ onStart }: { onStart: () => void }) {
               <p className="mt-2 font-body text-[11px] leading-relaxed text-white/45">
                 Not per release. Everything you have written, and everything next.
               </p>
+
+              {/*
+                The commission, stated before payment rather than discovered on the first
+                statement. It is charged on money COLLECTED, so it costs nothing until the
+                artist is actually paid — saying that plainly is more reassuring than
+                leaving it out and being asked about it later.
+              */}
+              {typeof sharePercent === "number" && sharePercent > 0 && (
+                <p className="mt-3 border-t border-white/10 pt-3 font-body text-[11px] leading-relaxed text-white/45">
+                  Songdis keeps{" "}
+                  <span className="font-semibold text-white/75">{sharePercent}%</span> of the
+                  writer royalties we collect for you. Nothing is taken until you are paid.
+                </p>
+              )}
             </div>
 
             {/* Invites, does not charge. Payment comes later, once the artist has said

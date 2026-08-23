@@ -11,14 +11,22 @@ import { ANALYTICS_V2_ENABLED } from "@/lib/featureFlags";
 
 const ROSTER_NAV = { label: "Roster", href: "/dashboard/label", svgIcon: <RosterIcon /> };
 
+/*
+ * NOTE: this array is not rendered in order.
+ *
+ * MAIN_NAV[0] is rendered on its own, then Roster and the Release dropdown are injected,
+ * then MAIN_NAV.slice(1) follows. So index 1 is what appears DIRECTLY BELOW Release —
+ * which is where Publishing belongs: you release the recording, then you collect on the
+ * song. Anything reordered here has to be read against the render block below.
+ */
 const MAIN_NAV = [
   { label: "Dashboard", href: "/dashboard", icon: "/images/home.svg" },
+  // Sits under Release. Main nav rather than Artist Tools because publishing is a second
+  // income stream, not a utility beside Splitr and Release Links.
+  { label: "Publishing", href: "/dashboard/publishing", badge: "NEW", svgIcon: <PublishingIcon /> },
   { label: "Earnings", href: "/dashboard/earnings", icon: "/images/money.svg" },
   { label: "Analytics", href: "/dashboard/analytics", icon: "/images/analytics-dashboard.svg" },
   { label: "Royalty Report", href: "/dashboard/royalties", icon: "/images/document.svg" },
-  // Main nav, not Artist Tools: publishing is a second income stream, not a utility that
-  // sits beside Splitr and Release Links. It belongs next to Earnings and Royalties.
-  { label: "Publishing", href: "/dashboard/publishing", badge: "NEW", svgIcon: <PublishingIcon /> },
 ];
 
 const RELEASE_CHILDREN: { label: string; href: string; icon?: string; svgIcon?: React.ReactNode; badge?: string }[] = [

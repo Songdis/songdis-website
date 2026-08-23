@@ -76,6 +76,13 @@ export interface PublishingOverview {
   entitled: boolean;
   /** False when the publisher credentials are missing from the environment. */
   configured: boolean;
+  /**
+   * Songdis's commission on collected writer royalties, as a percent.
+   *
+   * Comes from the same config the split job sends to the publisher, so what an artist is
+   * told and what is filed at the PRO cannot drift apart.
+   */
+  publisher_share_percent?: number;
   affiliations: string[];
   writers: PublishingWriter[];
   help_requests: PublishingHelpRequest[];

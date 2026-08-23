@@ -229,7 +229,10 @@ export default function PublishingPage() {
         ) : !overview ? null : !overview.entitled ? (
           <UpgradeNotice />
         ) : mode.kind === "intro" ? (
-          <PublishingIntro onStart={() => setMode({ kind: "list" })} />
+          <PublishingIntro
+            onStart={() => setMode({ kind: "list" })}
+            sharePercent={overview.publisher_share_percent}
+          />
         ) : mode.kind === "list" ? (
           <>
             <div className="mb-4 inline-flex w-full rounded-full border border-white/[0.07] bg-[#0E0808] p-1">
