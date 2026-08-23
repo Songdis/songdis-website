@@ -94,7 +94,7 @@ export default function IpiGuide({
           onClick={onDoItForMe}
           className="flex min-h-[56px] w-full items-center justify-center gap-2 rounded-full border border-white/20 px-5 text-center font-heading text-xs uppercase leading-tight tracking-widest text-white transition-colors hover:border-white/40"
         >
-          This is too much — do it for me
+          This is too much,do it for me
           <ArrowRight size={13} className="shrink-0" aria-hidden />
         </button>
       </div>
