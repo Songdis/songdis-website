@@ -73,16 +73,33 @@ function daysAgo(n: number): string {
   return toIsoDate(d);
 }
 
-export type RangePreset = "7d" | "28d" | "90d" | "12m" | "custom";
+export type RangePreset = "7d" | "28d" | "90d" | "12m" | "all" | "custom";
 
 
-export const DEFAULT_RANGE_PRESET: RangePreset = "12m";
+/**
+ * Opens on everything, not the last year.
+ *
+ * A 12-month window silently hides catalogue: an artist whose releases predate it sees a
+ * dashboard that looks empty, and the legacy Aug 2025 – Mar 2026 streams fall outside it
+ * entirely as the year rolls forward. Showing the whole history first, and letting them
+ * narrow, means the numbers on screen match the numbers they know.
+ */
+export const DEFAULT_RANGE_PRESET: RangePreset = "all";
+
+/**
+ * How far back "all time" reaches.
+ *
+ * Songdis has no streams before this, so it is the whole archive without asking the API
+ * for an unbounded range that would defeat the response cache and scan every partition.
+ */
+export const ANALYTICS_EPOCH = "2024-01-01";
 
 export const RANGE_PRESETS: Array<{ value: RangePreset; label: string }> = [
   { value: "7d", label: "7 days" },
   { value: "28d", label: "28 days" },
   { value: "90d", label: "90 days" },
   { value: "12m", label: "12 months" },
+  { value: "all", label: "All time" },
   { value: "custom", label: "Custom" },
 ];
 
@@ -104,6 +121,8 @@ export function rangeForPreset(preset: RangePreset): DateRange {
       d.setDate(d.getDate() + 1);
       return { from: toIsoDate(d), to };
     }
+    case "all":
+      return { from: ANALYTICS_EPOCH, to };
     case "28d":
     case "custom":
     default:

@@ -10,7 +10,7 @@ import {
   useTimeseries,
 } from "@/lib/hooks/useAnalyticsV2";
 import { AnalyticsV2Shell } from "@/components/dashboard/analytics-v2/Shell";
-import { CoverageNotes } from "@/components/dashboard/analytics-v2/CoveragePanel";
+import { CoverageNotes, PeriodTotalNote } from "@/components/dashboard/analytics-v2/CoveragePanel";
 import { HourOfDayBars, TimeseriesArea } from "@/components/dashboard/analytics-v2/charts";
 import {
   Card,
@@ -90,6 +90,7 @@ function TrendsContent() {
 
               <div className="mt-3">
                 <CoverageNotes coverage={series.data.coverage} dimension="platform" />
+                <PeriodTotalNote periodTotals={series.data.period_totals} />
               </div>
 
               <SuppressionNote count={series.data.suppressed?.length ?? 0} />

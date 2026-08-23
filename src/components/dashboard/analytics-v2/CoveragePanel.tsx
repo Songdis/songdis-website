@@ -1,40 +1,5 @@
 "use client";
 
-/**
- * Coverage panels — CURRENTLY HIDDEN FROM ARTISTS by product decision.
- *
- * ── Why they are off ────────────────────────────────────────────────────────
- *
- * The original rule (REDESIGN §8.7) was that a coverage gap renders NEXT TO the
- * chart it qualifies, never as a footnote, because a breakdown's rows can sum to
- * less than the headline total whenever a feed cannot contribute to a dimension.
- *
- * In practice the notes read as a wall of partner names and caveats on every
- * chart — "Spotify (aggregated), Apple Music, Amazon Music… delivered nothing for
- * part of this range" — which is engineering vocabulary, not something an artist
- * can act on. Obed asked for it removed from the artist-facing dashboard.
- *
- * ── What this costs, so it is a decision and not an accident ────────────────
- *
- * A breakdown can now sum to less than the headline total with nothing on screen
- * explaining why. That is the exact confusion §8.7 existed to prevent, and it is
- * the thing artists notice and query. If breakdown-versus-total questions start
- * arriving, this is the first place to look.
- *
- * ── How to bring it back ────────────────────────────────────────────────────
- *
- * Each component still receives real coverage data and the logic below is intact
- * and correct — only the render is short-circuited, in ONE place per component.
- * Delete the early return to restore it. The API keeps sending `coverage`, so
- * nothing server-side needs to change.
- *
- * Preferred if it returns: fewer words, plainer language, and only where a gap
- * actually changes what the artist should conclude.
- */
-
-/**
- * Single switch for the three panels below. Flip to `true` to show them again.
- */
 const SHOW_COVERAGE_NOTES = false;
 
 import { CircleSlash, Clock, Info, MinusCircle } from "lucide-react";
@@ -44,8 +9,37 @@ import {
   hasCoverageGap,
   platformLabel,
   type Coverage,
+  type PeriodTotal,
 } from "@/lib/api/analytics-v2";
 import { INK, STATUS } from "./theme";
+
+
+export function PeriodTotalNote({
+  periodTotals,
+  className = "",
+}: {
+  periodTotals: PeriodTotal[] | null | undefined;
+  className?: string;
+}) {
+  if (!periodTotals || periodTotals.length === 0) return null;
+
+  const streams = periodTotals.reduce((sum, p) => sum + (p.streams ?? 0), 0);
+
+  if (streams <= 0) return null;
+
+  return (
+    <p
+      className={`font-body text-white/45 text-[11px] flex items-start gap-1.5 ${className}`}
+    >
+      <Info size={12} className="mt-0.5 shrink-0" style={{ color: STATUS.warning }} aria-hidden />
+      <span>
+        <span className="text-white/70">{streams.toLocaleString()}</span> streams from an
+        earlier period are counted in your total but not shown here — the daily dates
+        weren&rsquo;t recorded for them.
+      </span>
+    </p>
+  );
+}
 
 function PlatformList({ keys }: { keys: string[] }) {
   return <span className="text-white/70">{keys.map(platformLabel).join(", ")}</span>;
@@ -110,11 +104,7 @@ export function CoverageNotes({
   );
 }
 
-/**
- * The bordered sidebar form, for charts that get a two-column layout.
- * `total` and `shown` make the gap concrete: the artist sees the arithmetic
- * rather than being told to trust it.
- */
+
 export function CoverageAside({
   coverage,
   dimension,
@@ -152,10 +142,8 @@ export function CoverageAside({
   );
 }
 
-/**
- * The full dimension x platform matrix, for the Breakdowns page. Availability is
- * shown as a glyph plus a text cell state, never colour alone.
- */
+
+
 export function CoverageMatrix({ coverage }: { coverage: Coverage | null | undefined }) {
   if (!SHOW_COVERAGE_NOTES) return null;
 

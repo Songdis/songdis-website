@@ -1,31 +1,6 @@
-/**
- * lib/api/analytics-v2.ts
- *
- * Typed client for the Analytics v2 read API, built against
- * `docs/analytics-openapi.yaml` — not against guesses.
- *
- * Endpoint map (BASE_URL already ends in /api, so paths start /v2/...):
- *   GET /v2/analytics/artists                          — switchable profiles
- *   GET /v2/analytics/artists/{artist}/summary         — headline totals
- *   GET /v2/analytics/artists/{artist}/timeseries      — bucketed series
- *   GET /v2/analytics/artists/{artist}/breakdown       — one dimension
- *   GET /v2/analytics/artists/{artist}/tracks          — paged track list
- *   GET /v2/analytics/artists/{artist}/tracks/{track}  — track detail
- *   GET /v2/analytics/artists/{artist}/hourly          — 24 hour-of-day buckets
- *   GET /v2/analytics/artists/{artist}/engagement      — rates, skips, saves
- *   GET /v2/analytics/artists/{artist}/coverage        — dimension x platform matrix
- *
- * Every request is scoped to an artist_profile_id. Pooled ("all profiles") mode
- * sends the canonical-sorted id list in `artist_profile_ids` — canonical order
- * matters because the server's response-cache key is built from it (REDESIGN
- * §11.1), so `a,b,c` and `a,c,b` must hit the same key.
- */
-
 import { request, type ApiResponse } from "./core";
 
-/* ─── Feeds & dimensions ──────────────────────────────────────── */
 
-/** Feed keys, exactly as the API names them. */
 export const PLATFORMS = [
   "spotify_event",
   "spotify_aggregated",
@@ -46,16 +21,14 @@ export const PLATFORM_LABELS: Record<string, string> = {
   deezer: "Deezer",
   pandora: "Pandora",
   youtube_art_tracks: "YouTube Art Tracks",
+  legacy_period_total: "Earlier period",
 };
 
 export function platformLabel(key: string): string {
   return PLATFORM_LABELS[key] ?? key.replace(/_/g, " ");
 }
 
-/**
- * In-grain dimensions live in the fact grain, so they are exact and
- * AND-combinable as filters (REDESIGN §8.2).
- */
+
 export const IN_GRAIN_DIMENSIONS = [
   "country",
   "source",
@@ -66,11 +39,7 @@ export const IN_GRAIN_DIMENSIONS = [
 
 export type InGrainDimension = (typeof IN_GRAIN_DIMENSIONS)[number];
 
-/**
- * Outside-grain dimensions are folded per-dimension at ingest, so they are
- * groupable ONLY — never an AND-filter, and never combined with an in-grain
- * filter or a track scope (IMPLEMENTATION §D.2).
- */
+
 export const OUTSIDE_GRAIN_DIMENSIONS = [
   "device_family",
   "device_model",
@@ -89,7 +58,6 @@ export const OUTSIDE_GRAIN_DIMENSIONS = [
 
 export type OutsideGrainDimension = (typeof OUTSIDE_GRAIN_DIMENSIONS)[number];
 
-/** Every dimension the breakdown endpoint accepts. */
 export type Dimension = "platform" | InGrainDimension | OutsideGrainDimension;
 
 export const DIMENSION_LABELS: Record<string, string> = {
@@ -160,7 +128,6 @@ export const METRIC_LABELS: Record<Metric, string> = {
   saves: "Saves",
 };
 
-/** Metrics expressed as a 0..1 rate — formatted as a percentage, not a count. */
 export const RATE_METRICS: ReadonlySet<string> = new Set([
   "completed_rate",
   "shuffle_rate",
@@ -172,7 +139,6 @@ export const RATE_METRICS: ReadonlySet<string> = new Set([
 export type TrackSort = "streams" | "title" | "completed_rate" | "tracks_streamed";
 export type SortOrder = "asc" | "desc";
 
-/* ─── Response types (from the OpenAPI schemas) ───────────────── */
 
 export interface ProfileSummary {
   id: number;
@@ -182,7 +148,6 @@ export interface ProfileSummary {
   granted_at: string;
 }
 
-/** One (dimension x platform) cell of the coverage matrix. */
 export interface CoverageCell {
   available: boolean;
   counts_toward_totals: boolean;
@@ -199,13 +164,11 @@ export interface Coverage {
   dimensions: CoverageDimension[];
 }
 
-/** One artist's row on the label roster (L5). */
 export interface RosterArtist {
   artist_profile_id: number;
   name: string | null;
   image_url: string | null;
   streams: number;
-  /** Of the account total. Shares may sum to slightly under 1 — see `Roster`. */
   share: number;
   trend: Array<{ date: string; streams: number | null }>;
   top_platform: { key: string; label: string; streams: number } | null;
@@ -213,10 +176,7 @@ export interface RosterArtist {
 }
 
 export interface Roster {
-  /**
-   * From the fact table across every granted profile — never the sum of `artists`.
-   * A shortfall against that sum is honest, not an error.
-   */
+
   totals: { streams: number };
   artists: RosterArtist[];
   coverage?: Coverage | null;
@@ -248,11 +208,17 @@ export interface Summary {
 
 export interface TimeseriesPoint {
   date: string;
-  /** null where the cell was suppressed — never render this as zero. */
   value: number | null;
-  /** Present only for metric=streams. */
   by_platform?: Record<string, number>;
   provisional: boolean;
+}
+
+
+export interface PeriodTotal {
+  feed: string;
+  label: string;
+  streams: number;
+  pinned_to: string;
 }
 
 export interface Timeseries {
@@ -260,6 +226,7 @@ export interface Timeseries {
   metric: string;
   points: TimeseriesPoint[];
   coverage: Coverage;
+  period_totals?: PeriodTotal[];
   provisional: boolean;
   suppressed: string[];
 }
@@ -267,7 +234,6 @@ export interface Timeseries {
 export interface BreakdownItem {
   key: string;
   label: string;
-  /** null when suppressed by k-anonymity — render as suppressed, never as 0. */
   value: number | null;
   share: number | null;
   tracks: number;
@@ -279,13 +245,11 @@ export interface BreakdownItem {
 export interface Breakdown {
   dimension: string;
   metric: string;
-  /** Read from the headline rollup. Items may sum to LESS than this. */
   total: number;
   items: BreakdownItem[];
   last_rebuilt_at: string | null;
   coverage: Coverage;
   provisional: boolean;
-  /** Keys of the cells nulled by k-anonymity. */
   suppressed: string[];
 }
 
@@ -339,37 +303,25 @@ export interface Engagement {
   suppressed: string[];
 }
 
-/* ─── Scope & filters ─────────────────────────────────────────── */
-
-/**
- * Which profile(s) a request is scoped to.
- *
- * `pooledIds` non-empty = "All profiles" mode. The path still carries a single
- * artist id (the API requires it); the pool travels in `artist_profile_ids`.
- */
 export interface AnalyticsScope {
   artistId: number;
   pooledIds?: number[];
 }
 
-/** Pooled scope over the given profiles, in canonical (ascending) order. */
 export function pooledScope(ids: number[]): AnalyticsScope | null {
   const sorted = canonicalIds(ids);
   if (sorted.length === 0) return null;
   return { artistId: sorted[0], pooledIds: sorted };
 }
 
-/** Single-profile scope. */
 export function singleScope(id: number): AnalyticsScope {
   return { artistId: id };
 }
 
-/** Deduped, ascending — the canonical order the server's cache key uses. */
 export function canonicalIds(ids: number[]): number[] {
   return Array.from(new Set(ids)).sort((a, b) => a - b);
 }
 
-/** The filter contract shared by every endpoint (REDESIGN §8.2). */
 export interface AnalyticsFilters {
   from?: string;
   to?: string;
@@ -409,31 +361,13 @@ export interface TrackDetailParams extends AnalyticsFilters {
   granularity?: Granularity;
 }
 
-/* ─── Query builder ───────────────────────────────────────────── */
 
 export type QueryValue = string | number | boolean | undefined | null | string[] | number[];
 
-/**
- * The param bag scopedParams assembles.
- *
- * Public entry points are generic over `T extends object` rather than taking
- * this type directly: an interface (AnalyticsFilters, BreakdownParams, …) does
- * not satisfy `Record<string, unknown>` in TypeScript — only type aliases and
- * object literals get an implicit index signature — so a generic is what lets
- * the filter interfaces be passed straight through.
- */
+
 export type QueryParams = Record<string, unknown>;
 
-/**
- * Build a normalised query string.
- *
- * Keys are emitted in sorted order and array values sorted within a key, so the
- * same logical request always produces byte-identical output. That is what lets
- * the client cache key line up with the server's `sha1(normalised query)`
- * (REDESIGN §11.1) instead of drifting on argument order.
- *
- * Arrays use Laravel's repeated `key[]=` form, per §8.2.
- */
+
 export function buildQuery<T extends object>(params: T): string {
   const qs = new URLSearchParams();
   const bag = params as QueryParams;
@@ -463,7 +397,6 @@ export function buildQuery<T extends object>(params: T): string {
   return out ? `?${out}` : "";
 }
 
-/** Filters + the pooled-scope param, as a flat param bag. */
 function scopedParams(
   scope: AnalyticsScope,
   filters: AnalyticsFilters = {},
@@ -482,7 +415,6 @@ function scopedParams(
     ...extra,
   };
 
-  // Pooling is a comma-separated list in canonical order — NOT a repeated key.
   if (scope.pooledIds && scope.pooledIds.length > 1) {
     params.artist_profile_ids = canonicalIds(scope.pooledIds).join(",");
   }
@@ -490,10 +422,7 @@ function scopedParams(
   return params;
 }
 
-/**
- * The scope segment of a cache key: a single id, or the canonical-sorted id
- * list. Mirrors the server's `{scope}` (REDESIGN §11.1).
- */
+
 export function scopeKey(scope: AnalyticsScope): string {
   if (scope.pooledIds && scope.pooledIds.length > 1) {
     return canonicalIds(scope.pooledIds).join(",");
@@ -501,13 +430,7 @@ export function scopeKey(scope: AnalyticsScope): string {
   return String(scope.artistId);
 }
 
-/**
- * A client cache key aligned with the server's key structure:
- * `analytics:v2:{scope}:{endpoint}{normalised query}`.
- *
- * We keep the query readable rather than hashing it — the alignment that
- * matters is that identical logical requests normalise to one key.
- */
+
 export function cacheKey<T extends object>(
   scope: AnalyticsScope,
   endpoint: string,
@@ -516,18 +439,7 @@ export function cacheKey<T extends object>(
   return `analytics:v2:${scopeKey(scope)}:${endpoint}${buildQuery(params)}`;
 }
 
-/* ─── Unsupported cross-tabs (pre-empt the 422) ───────────────── */
 
-/**
- * The three combinations the API 422s (IMPLEMENTATION §D.2). Checking them
- * client-side lets the UI disable the control and explain why *before* a round
- * trip; the server remains the authority and its `errors` map is still shown.
- *
- * Returns a Laravel-shaped field-error map, or null when the combination is
- * legal. `platform[]` and the date range stay legal alongside an outside-grain
- * breakdown — the fold table carries feed_id and stream_date. `track_ids[]`
- * does not.
- */
 export function validateBreakdown(
   dimension: Dimension,
   filters: AnalyticsFilters
@@ -538,7 +450,6 @@ export function validateBreakdown(
   const hasTrackScope = (filters.track_ids?.length ?? 0) > 0;
 
   if (isOutsideGrain(dimension)) {
-    // Case 2: outside-grain breakdown + any in-grain filter.
     if (activeInGrain.length > 0) {
       const offender = activeInGrain[0];
       return {
@@ -554,7 +465,6 @@ export function validateBreakdown(
         ],
       };
     }
-    // Case 2 (track variant): the fold table has no track_id.
     if (hasTrackScope) {
       return {
         dimension: [
@@ -567,7 +477,6 @@ export function validateBreakdown(
     }
   }
 
-  // Case 3: a platform breakdown scoped to specific tracks.
   if (dimension === "platform" && hasTrackScope) {
     return {
       dimension: ["A platform breakdown cannot be combined with a track selection."],
@@ -578,7 +487,6 @@ export function validateBreakdown(
   return null;
 }
 
-/** A 422 the client raised itself, shaped like the server's envelope. */
 function unprocessable<T>(errors: Record<string, string[]>): ApiResponse<T> {
   return {
     data: null,
@@ -589,7 +497,6 @@ function unprocessable<T>(errors: Record<string, string[]>): ApiResponse<T> {
   };
 }
 
-/* ─── API functions ───────────────────────────────────────────── */
 
 const ROOT = "/v2/analytics";
 
@@ -597,29 +504,12 @@ function artistPath(scope: AnalyticsScope, suffix = ""): string {
   return `${ROOT}/artists/${scope.artistId}${suffix}`;
 }
 
-/** The profiles this account can switch to (live grants only). */
 export async function getProfiles() {
   return request<ProfileSummary[]>(`${ROOT}/artists`, { method: "GET" }, true);
 }
 
-/**
- * One row per artist on the roster (Label design §8, L5).
- *
- * Distinct from a pooled request, which flattens every artist into ONE aggregate.
- * This keeps them separate — a label needs to see who is doing what, not a single
- * merged number.
- *
- * `totals.streams` is computed server-side from the fact table, NOT by summing the
- * rows below it. The two can legitimately differ: a feed that cannot contribute to
- * a per-artist attribution still counts toward the account total. Do not "fix" a
- * shortfall in the UI by summing the rows — that is the under-reporting bug the
- * whole design exists to avoid.
- */
+
 export async function getRoster(scope: AnalyticsScope, filters: AnalyticsFilters = {}) {
-  // scopedParams() omits `artist_profile_ids` for a single id, because every other
-  // endpoint carries the id in its PATH. This one does not — the roster has no single
-  // artist — so the ids must always be explicit or EnsureArtistAccess sees an empty
-  // request and 403s. That would have broken exactly the label with one artist.
   const query = {
     ...scopedParams(scope, filters),
     artist_profile_ids: canonicalIds(scope.pooledIds ?? [scope.artistId]).join(","),
@@ -722,19 +612,10 @@ export async function getCoverage(
   );
 }
 
-/* ─── Coverage helpers ────────────────────────────────────────── */
 
-/**
- * The platforms that cannot contribute to a dimension, and those that could but
- * delivered nothing for the range. This is what renders NEXT TO the chart — the
- * artist sees the gap where they are looking, never in a footnote (§8.7).
- */
 export interface CoverageGap {
-  /** Feeds whose data model has no such column. */
   unavailable: string[];
-  /** Feeds that carry the dimension but returned nothing for this range. */
   incomplete: string[];
-  /** Feeds that contribute but do not count toward totals. */
   excludedFromTotals: string[];
 }
 
