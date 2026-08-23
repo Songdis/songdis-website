@@ -1,12 +1,5 @@
 import { request } from "./core";
 
-/**
- * Publishing administration.
- *
- * A songwriter can only be registered with an IPI, which a PRO issues on affiliation —
- * nothing here creates one. So the API has two entry points, not one: register a writer,
- * or record that the artist needs help getting affiliated.
- */
 
 export type WriterStatus = "pending" | "registered" | "failed";
 
@@ -45,7 +38,6 @@ export type SplitStatus =
 export interface SplitWriter {
   ipi: string;
   name: string | null;
-  /** Percent, not a fraction — 70 means 70%. */
   share: number;
   position: number;
 }
@@ -72,22 +64,13 @@ export interface SplitPayload {
 }
 
 export interface PublishingOverview {
-  /** False on Basic — the UI shows the upgrade prompt rather than the form. */
   entitled: boolean;
-  /** False when the publisher credentials are missing from the environment. */
   configured: boolean;
-  /**
-   * Songdis's commission on collected writer royalties, as a percent.
-   *
-   * Comes from the same config the split job sends to the publisher, so what an artist is
-   * told and what is filed at the PRO cannot drift apart.
-   */
   publisher_share_percent?: number;
   affiliations: string[];
   writers: PublishingWriter[];
   help_requests: PublishingHelpRequest[];
   splits: PublishingSplit[];
-  /** Artist profiles already paid for. Anything not here must pay before registering. */
   paid_profile_ids?: number[];
 }
 
@@ -113,10 +96,7 @@ export async function getPublishingOverview() {
   return request<PublishingOverview>("/publishing", { method: "GET" }, true);
 }
 
-/**
- * Returns 202, not 201: the remote workflow takes about fifteen seconds and runs on a
- * queue, so the writer comes back `pending` and settles to `registered` or `failed`.
- */
+
 export async function createWriter(payload: WriterPayload) {
   return request<PublishingWriter>(
     "/publishing/writers",
@@ -133,7 +113,6 @@ export async function createHelpRequest(payload: HelpRequestPayload) {
   );
 }
 
-/** The PROs relevant to this catalogue, with enough context to pick the right one. */
 export const AFFILIATION_HINTS: Record<string, string> = {
   ASCAP: "United States",
   BMI: "United States",
@@ -150,10 +129,7 @@ export const AFFILIATION_HINTS: Record<string, string> = {
   OTHER: "Somewhere else",
 };
 
-/**
- * Submitting a split runs three remote calls on a queue, so this returns 202 with a
- * `draft` row. It settles through created / assigned to registered, or stops at failed.
- */
+
 export async function createSplit(payload: SplitPayload) {
   return request<PublishingSplit>(
     "/publishing/splits",
@@ -162,7 +138,6 @@ export async function createSplit(payload: SplitPayload) {
   );
 }
 
-/** Resumes from whatever step it stopped at — never restarts from the top. */
 export async function retrySplit(id: number) {
   return request<PublishingSplit>(`/publishing/splits/${id}/retry`, { method: "POST" }, true);
 }
@@ -188,15 +163,6 @@ export const SPLIT_LABEL: Record<SplitStatus, string> = {
   failed: "Needs attention",
 };
 
-/* ── Buying publishing ────────────────────────────────────────────
- * Two one-time products, both per artist profile:
- *   access  ₦70,000  register the songwriter with the publisher
- *   session ₦50,000  we obtain the IPI for an artist who has no PRO
- *
- * Every call returns a checkout URL. Payment is confirmed by the Bachs webhook — never
- * by the browser coming back — so the page polls `getCheckoutStatus` on return.
- */
-
 export interface CheckoutStart {
   checkout_url: string | null;
   reference: string;
@@ -206,9 +172,7 @@ export interface CheckoutStart {
 }
 
 export interface SessionSlot {
-  /** UTC instant. Send this back verbatim; never re-derive it in the browser. */
   slot_at: string;
-  /** Already formatted in West Africa Time by the API. */
   label_time: string;
   label_day: string;
 }
