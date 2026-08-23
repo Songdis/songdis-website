@@ -80,6 +80,8 @@ export interface PublishingOverview {
   writers: PublishingWriter[];
   help_requests: PublishingHelpRequest[];
   splits: PublishingSplit[];
+  /** Artist profiles already paid for. Anything not here must pay before registering. */
+  paid_profile_ids?: number[];
 }
 
 export interface WriterPayload {
@@ -178,3 +180,90 @@ export const SPLIT_LABEL: Record<SplitStatus, string> = {
   registered: "Registered",
   failed: "Needs attention",
 };
+
+/* ── Buying publishing ────────────────────────────────────────────
+ * Two one-time products, both per artist profile:
+ *   access  ₦70,000  register the songwriter with the publisher
+ *   session ₦50,000  we obtain the IPI for an artist who has no PRO
+ *
+ * Every call returns a checkout URL. Payment is confirmed by the Bachs webhook — never
+ * by the browser coming back — so the page polls `getCheckoutStatus` on return.
+ */
+
+export interface CheckoutStart {
+  checkout_url: string | null;
+  reference: string;
+  amount: number;
+  currency: string;
+  slot_at?: string;
+}
+
+export interface SessionSlot {
+  /** UTC instant. Send this back verbatim; never re-derive it in the browser. */
+  slot_at: string;
+  /** Already formatted in West Africa Time by the API. */
+  label_time: string;
+  label_day: string;
+}
+
+export type SessionStatus =
+  | "pending_payment"
+  | "booked"
+  | "completed"
+  | "cancelled"
+  | "slot_lost";
+
+export interface BookedSession {
+  id: number;
+  artist_profile_id: number;
+  status: SessionStatus;
+  slot_at: string;
+  label_time: string | null;
+  label_day: string | null;
+  label_full: string | null;
+  meeting_url: string | null;
+  amount: number;
+  currency: string;
+  paid_at: string | null;
+}
+
+export interface CheckoutStatus {
+  paid_profile_ids: number[];
+  sessions: BookedSession[];
+}
+
+export async function startAccessCheckout(artistProfileId: number) {
+  return request<CheckoutStart>(
+    "/publishing/checkout/access",
+    { method: "POST", body: JSON.stringify({ artist_profile_id: artistProfileId }) },
+    true
+  );
+}
+
+export async function getSessionSlots() {
+  return request<{ timezone: string; slots: SessionSlot[] }>(
+    "/publishing/checkout/slots",
+    { method: "GET" },
+    true
+  );
+}
+
+export async function startSessionCheckout(artistProfileId: number, slotAt: string) {
+  return request<CheckoutStart>(
+    "/publishing/checkout/session",
+    {
+      method: "POST",
+      body: JSON.stringify({ artist_profile_id: artistProfileId, slot_at: slotAt }),
+    },
+    true
+  );
+}
+
+export async function getCheckoutStatus() {
+  return request<CheckoutStatus>("/publishing/checkout/status", { method: "GET" }, true);
+}
+
+/** Naira, the only currency publishing is sold in. */
+export function formatNaira(amount: number): string {
+  return "₦" + amount.toLocaleString("en-NG", { maximumFractionDigits: 0 });
+}

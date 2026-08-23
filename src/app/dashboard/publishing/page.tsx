@@ -20,8 +20,15 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import DashboardLayout from "@/components/dashboard/DashboardLayout";
 import { getProfile, type ArtistProfile } from "@/lib/api/auth";
+import AccessCheckout from "@/components/dashboard/publishing/AccessCheckout";
+import IpiGuide from "@/components/dashboard/publishing/IpiGuide";
+import PublishingIntro from "@/components/dashboard/publishing/PublishingIntro";
+import SessionBooked from "@/components/dashboard/publishing/SessionBooked";
+import SessionBooking from "@/components/dashboard/publishing/SessionBooking";
 import SplitsPanel from "@/components/dashboard/publishing/SplitsPanel";
 import {
+  getCheckoutStatus,
+  type BookedSession,
   AFFILIATION_HINTS,
   SPLIT_IN_FLIGHT,
   createHelpRequest,
@@ -31,20 +38,46 @@ import {
   type PublishingWriter,
 } from "@/lib/api/publishing";
 
-type Mode = { kind: "list" } | { kind: "ask"; profileId: number } | { kind: "form"; profileId: number } | { kind: "help"; profileId: number };
+type Mode =
+  | { kind: "intro" }
+  | { kind: "guide"; profileId: number }
+  | { kind: "booking"; profileId: number }
+  | { kind: "booked"; session: BookedSession }
+  | { kind: "pay"; profileId: number }
+  | { kind: "list" } | { kind: "ask"; profileId: number } | { kind: "form"; profileId: number } | { kind: "help"; profileId: number };
 
 export default function PublishingPage() {
   const [overview, setOverview] = useState<PublishingOverview | null>(null);
   const [profiles, setProfiles] = useState<ArtistProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [mode, setMode] = useState<Mode>({ kind: "list" });
+  /*
+   * Opens on the pitch, not the product. An artist arriving here has usually never heard
+   * of a writer share or an IPI — leading with the form asks them to fill in something
+   * they do not know they need. The intro explains why the money exists first, and the
+   * moment they have seen the price it hands off to the artist list.
+   *
+   * Anyone who has already registered a songwriter skips it — see the effect below.
+   */
+  const [mode, setMode] = useState<Mode>({ kind: "intro" });
   const [banner, setBanner] = useState<string | null>(null);
   const [tab, setTab] = useState<"writers" | "splits">("writers");
+  /** Artists already paid for. Anything not in here goes through checkout first. */
+  const [paidIds, setPaidIds] = useState<number[]>([]);
+  const [sessions, setSessions] = useState<BookedSession[]>([]);
 
   const load = useCallback(async () => {
     setLoading(true);
-    const [ov, pf] = await Promise.all([getPublishingOverview(), getProfile()]);
+    const [ov, pf, st] = await Promise.all([
+      getPublishingOverview(),
+      getProfile(),
+      getCheckoutStatus(),
+    ]);
+
+    if (!st.error && st.data) {
+      setPaidIds(st.data.paid_profile_ids ?? []);
+      setSessions(st.data.sessions ?? []);
+    }
 
     if (ov.error) setError(ov.error);
     else if (ov.data) setError(null), setOverview(ov.data);
@@ -67,6 +100,72 @@ export default function PublishingPage() {
   useEffect(() => {
     void load();
   }, [load]);
+
+  /*
+   * Coming back from the payment page.
+   *
+   * The browser returns the instant the provider is done, while the webhook that actually
+   * grants access is a separate call a second or two behind. So arrival is treated as
+   * "check again shortly", never as proof of payment — polling stops as soon as the state
+   * changes, or after a few tries so a cancelled payment does not spin forever.
+   */
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const paid = new URLSearchParams(window.location.search).get("paid");
+
+    if (!paid || paid === "cancelled") return;
+
+    let tries = 0;
+
+    const t = setInterval(() => {
+      tries += 1;
+      void load();
+
+      if (tries >= 6) clearInterval(t);
+    }, 2500);
+
+    return () => clearInterval(t);
+  }, [load]);
+
+  /*
+   * Show the confirmation once a session payment has actually landed.
+   *
+   * Driven by the sessions list rather than the redirect, because the redirect only means
+   * the provider finished — the booking is real when the webhook says so. Fires once, and
+   * only for a booking made in the last few minutes, so revisiting the page later does not
+   * throw an old confirmation back at someone.
+   */
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (new URLSearchParams(window.location.search).get("paid") !== "session") return;
+
+    const fresh = sessions.find(
+      (x) =>
+        x.status === "booked" &&
+        x.paid_at !== null &&
+        Date.now() - new Date(x.paid_at).getTime() < 15 * 60_000,
+    );
+
+    if (fresh) {
+      setMode((m) => (m.kind === "booked" ? m : { kind: "booked", session: fresh }));
+    }
+  }, [sessions]);
+
+  /*
+   * The pitch is for people who have not started. Once a writer or a split exists, it is
+   * noise between them and their data, so the page opens on the list instead. Only ever
+   * moves the landing state — never interrupts someone mid-flow.
+   */
+  useEffect(() => {
+    if (!overview) return;
+
+    const started = overview.writers.length > 0 || overview.splits.length > 0;
+
+    if (started) {
+      setMode((m) => (m.kind === "intro" ? { kind: "list" } : m));
+    }
+  }, [overview]);
 
   const writerFor = useCallback(
     (profileId: number): PublishingWriter | undefined =>
@@ -119,6 +218,8 @@ export default function PublishingPage() {
           <Skeleton />
         ) : !overview ? null : !overview.entitled ? (
           <UpgradeNotice />
+        ) : mode.kind === "intro" ? (
+          <PublishingIntro onStart={() => setMode({ kind: "list" })} />
         ) : mode.kind === "list" ? (
           <>
             <div className="mb-4 inline-flex w-full rounded-full border border-white/[0.07] bg-[#0E0808] p-1">
@@ -156,9 +257,41 @@ export default function PublishingPage() {
         ) : mode.kind === "ask" ? (
           <ProQuestion
             artist={profileName(mode.profileId)}
-            onYes={() => setMode({ kind: "form", profileId: mode.profileId })}
-            onNo={() => setMode({ kind: "help", profileId: mode.profileId })}
+            /* Paid artists skip checkout — the fee is once per artist, not per attempt. */
+            onYes={() =>
+              setMode(
+                paidIds.includes(mode.profileId)
+                  ? { kind: "form", profileId: mode.profileId }
+                  : { kind: "pay", profileId: mode.profileId },
+              )
+            }
+            onNo={() => setMode({ kind: "guide", profileId: mode.profileId })}
             onBack={() => setMode({ kind: "list" })}
+          />
+        ) : mode.kind === "guide" ? (
+          <IpiGuide
+            onHaveIpi={() =>
+              setMode(
+                paidIds.includes(mode.profileId)
+                  ? { kind: "form", profileId: mode.profileId }
+                  : { kind: "pay", profileId: mode.profileId },
+              )
+            }
+            onDoItForMe={() => setMode({ kind: "booking", profileId: mode.profileId })}
+            onBack={() => setMode({ kind: "ask", profileId: mode.profileId })}
+          />
+        ) : mode.kind === "booking" ? (
+          <SessionBooking
+            artistProfileId={mode.profileId}
+            onBack={() => setMode({ kind: "guide", profileId: mode.profileId })}
+          />
+        ) : mode.kind === "booked" ? (
+          <SessionBooked session={mode.session} onDone={() => setMode({ kind: "list" })} />
+        ) : mode.kind === "pay" ? (
+          <AccessCheckout
+            artist={profileName(mode.profileId)}
+            artistProfileId={mode.profileId}
+            onBack={() => setMode({ kind: "ask", profileId: mode.profileId })}
           />
         ) : mode.kind === "form" ? (
           <WriterForm
@@ -312,6 +445,22 @@ function WriterList({
 }
 
 /** The question that decides everything else. */
+/** Three segments: this question, then payment, then the writer's details. */
+function StepBar({ active }: { active: number }) {
+  return (
+    <div className="mt-4 flex gap-1.5" aria-hidden>
+      {[0, 1, 2].map((i) => (
+        <span
+          key={i}
+          className={`h-[3px] flex-1 rounded-full transition-colors ${
+            i <= active ? "bg-[#C30100]" : "bg-white/12"
+          }`}
+        />
+      ))}
+    </div>
+  );
+}
+
 function ProQuestion({
   artist,
   onYes,
@@ -324,29 +473,35 @@ function ProQuestion({
   onBack: () => void;
 }) {
   return (
-    <div className="rounded-2xl border border-white/[0.07] bg-[#140C0C] p-5 sm:p-6">
+    <div className="mx-auto max-w-[520px] rounded-2xl border border-white/[0.07] bg-[#140C0C] p-5 sm:p-6">
       <BackLink onClick={onBack} />
-      <h2 className="mt-3 font-heading text-lg uppercase leading-tight tracking-wide text-white">
+      <StepBar active={0} />
+
+      <h2 className="mt-5 font-heading text-xl uppercase leading-[1.2] tracking-wide text-white sm:text-2xl">
         Is {artist} registered with a PRO?
       </h2>
-      <p className="mt-2 font-body text-sm leading-relaxed text-white/55">
-        A PRO — a performing rights organisation like ASCAP, BMI, PRS or COSON — collects
-        songwriting royalties. When you join one, they issue you an <b className="text-white/80">IPI
-        number</b>. We need that number to register you as a songwriter.
+
+      {/* Names the local PRO as well as the international ones — most artists reading this
+          are in Nigeria, and a list of only US and UK bodies reads as "not for me". */}
+      <p className="mt-3 font-body text-sm leading-relaxed text-white/55">
+        A PRO — a performing rights organisation like PRS, ASCAP, BMI, or the national PRO
+        here in Nigeria — collects songwriting royalties. When you join one, they issue you
+        an <b className="text-white/85">IPI number</b>. We need that number to register you
+        as a songwriter.
       </p>
 
-      <div className="mt-5 space-y-2.5">
+      <div className="mt-6 space-y-2.5">
         <button
           onClick={onYes}
-          className="flex min-h-[52px] w-full items-center justify-center rounded-full bg-[#C30100] px-5 font-heading text-xs uppercase tracking-widest text-white transition-colors hover:bg-[#a80000]"
+          className="flex min-h-[56px] w-full items-center justify-center rounded-full bg-[#C30100] px-5 font-heading text-xs uppercase tracking-widest text-white transition-colors hover:bg-[#a80000]"
         >
           Yes — I have my IPI
         </button>
         <button
           onClick={onNo}
-          className="flex min-h-[52px] w-full items-center justify-center rounded-full border border-white/15 px-5 font-heading text-xs uppercase tracking-widest text-white transition-colors hover:border-white/35"
+          className="flex min-h-[56px] w-full items-center justify-center rounded-full border border-white/20 px-5 font-heading text-xs uppercase tracking-widest text-white transition-colors hover:border-white/40"
         >
-          No, or I'm not sure
+          Not yet — help me get one
         </button>
       </div>
     </div>
