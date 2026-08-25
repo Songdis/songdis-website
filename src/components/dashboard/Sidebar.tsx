@@ -25,7 +25,24 @@ const MAIN_NAV = [
   // income stream, not a utility beside Splitr and Release Links.
   { label: "Publishing", href: "/dashboard/publishing", badge: "NEW", svgIcon: <PublishingIcon /> },
   { label: "Earnings", href: "/dashboard/earnings", icon: "/images/money.svg" },
-  { label: "Analytics", href: "/dashboard/analytics", icon: "/images/analytics-dashboard.svg" },
+  /*
+   * Analytics points at v2 once the flag is on, and falls back to v1 otherwise.
+   *
+   * It is not a hard switch on purpose: dashboard/analytics-v2/layout.tsx calls notFound()
+   * when NEXT_PUBLIC_ANALYTICS_V2 is unset, so hardcoding the v2 href would give every
+   * artist a 404 on any build where that variable is missing. Reading the same flag the
+   * route guards itself with means the link can never point somewhere that 404s.
+   *
+   * matchPrefix because v2 has sub-routes (tracks, trends, breakdowns) and the item would
+   * otherwise un-highlight as soon as the artist opened one of its tabs.
+   */
+  {
+    label: "Analytics",
+    href: ANALYTICS_V2_ENABLED ? "/dashboard/analytics-v2" : "/dashboard/analytics",
+    badge: ANALYTICS_V2_ENABLED ? "BETA" : undefined,
+    matchPrefix: ANALYTICS_V2_ENABLED,
+    icon: "/images/analytics-dashboard.svg",
+  },
   { label: "Royalty Report", href: "/dashboard/royalties", icon: "/images/document.svg" },
 ];
 
@@ -58,12 +75,19 @@ function NavItem({
   collapsed,
   isLocked,
 }: {
-  item: { label: string; href: string; icon?: string; highlight?: boolean; badge?: string; svgIcon?: React.ReactNode };
+  item: { label: string; href: string; icon?: string; highlight?: boolean; badge?: string; svgIcon?: React.ReactNode; matchPrefix?: boolean };
   pathname: string;
   collapsed: boolean;
   isLocked?: boolean;
 }) {
-  const active = pathname === item.href;
+  /*
+   * Exact match by default. Opt-in prefix matching for items whose route has children, so
+   * the item stays lit while the artist is inside one of its tabs. Left off by default
+   * because "/dashboard" is a prefix of every other route and would light up permanently.
+   */
+  const active =
+    pathname === item.href ||
+    (item.matchPrefix === true && pathname.startsWith(`${item.href}/`));
   const blocked = isLocked && item.href !== "/dashboard" && item.href !== "/dashboard/settings";
 
   return (
@@ -143,7 +167,7 @@ function NavSection({
   isLocked,
 }: {
   label: string;
-  items: { label: string; href: string; icon?: string; highlight?: boolean; badge?: string; svgIcon?: React.ReactNode }[];
+  items: { label: string; href: string; icon?: string; highlight?: boolean; badge?: string; svgIcon?: React.ReactNode; matchPrefix?: boolean }[];
   pathname: string;
   collapsed: boolean;
   isLocked?: boolean;
