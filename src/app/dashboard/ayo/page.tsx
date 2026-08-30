@@ -296,8 +296,22 @@ function ChatTab({ initialMessage }: { initialMessage?: string }) {
     }
   };
 
+  /*
+   * h-full, not a 100vh calculation.
+   *
+   * This was h-[calc(100vh-240px)] with a min-height, which guessed at the height of the
+   * chrome above it. The guess was wrong: this sits inside DashboardLayout's <main>, which
+   * is already shorter than the viewport (header above, its own pb-6/pb-8 below), so the
+   * panel came out taller than the space it had. <main> then grew a scrollbar of its own on
+   * top of the message list's — the two stacked bars down the right of the Ayo page. The
+   * min-height made it worse on short windows.
+   *
+   * <main> is flex-1 inside an h-screen overflow-hidden column, so its height is definite
+   * and h-full resolves against the real space rather than an estimate. min-h-0 lets the
+   * message list shrink instead of pushing the composer off the bottom.
+   */
   return (
-    <div className="flex flex-col h-[calc(100vh-240px)] sm:h-[calc(100vh-280px)] min-h-[400px] sm:min-h-[500px]">
+    <div className="flex flex-col h-full min-h-0">
       {/* Messages */}
       <div className="flex-1 overflow-y-auto flex flex-col gap-5 pr-2 pb-4">
         {messages.map((m) =>

@@ -31,6 +31,54 @@ body {
   overflow-x: hidden;
 }
 
+/*
+ * Scrollbars.
+ *
+ * Nothing here was styled before, so every scroll container fell back to the OS default.
+ * That looks fine on macOS, which draws overlay scrollbars that sit ON TOP of content and
+ * fade out when idle — which is why this never looked broken there. Windows draws classic
+ * scrollbars that are always visible and occupy real layout width, so the same page picks
+ * up a light-grey 15px band beside every scrollable area, and the dashboard nests several.
+ *
+ * These rules make them thin, dark and quiet in both browsers. The thumb is barely visible
+ * at rest and brightens on hover, so it stays discoverable without competing with content.
+ * A transparent track is what stops the pale band: the default track is a solid light
+ * colour that reads as a stripe against a #140c0c page.
+ *
+ * They are NOT hidden. Hiding a scrollbar on Windows removes the only cue that an area
+ * scrolls at all — on macOS the bar reappears on scroll, on Windows it would never return.
+ */
+
+/* Firefox, and the cross-browser standard. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.16) transparent;
+}
+
+/* Chromium — Chrome and Edge, i.e. the Windows case this is really for. */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: rgba(255, 255, 255, 0.16);
+  border-radius: 999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(255, 255, 255, 0.3);
+}
+
+/* The square where a vertical and horizontal bar meet; grey by default. */
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
 @layer utilities {
   .font-heading {
     font-family: "Nulshock", sans-serif;

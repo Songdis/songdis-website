@@ -151,11 +151,12 @@ export default function AyoChatWidget() {
           timestamp: new Date(),
         }]);
       } else {
-        const data = res.data as { reply: string };
+        const data = res.data as { reply: string; truncated?: boolean };
         setMessages((prev) => [...prev, {
           id: `ayo-${Date.now()}`,
           role: "ayo",
           content: data.reply,
+          chips: data.truncated ? ["Finish that thought"] : undefined,
           timestamp: new Date(),
         }]);
       }

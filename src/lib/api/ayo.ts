@@ -22,6 +22,13 @@ export interface ChatMessage {
 export interface ChatResponse {
   reply: string;
   usage?: Record<string, unknown>;
+  /**
+   * True when the model ran out of room and the reply stops mid-sentence.
+   *
+   * Sent so a severed answer can be told apart from a finished one - without it a half
+   * sentence arrives looking exactly like a complete reply.
+   */
+  truncated?: boolean;
 }
 
 export interface ArtSuggestionsPayload {

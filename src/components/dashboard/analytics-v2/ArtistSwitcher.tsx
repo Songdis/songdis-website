@@ -1,18 +1,5 @@
 "use client";
 
-/**
- * The artist switcher — a persistent control in the dashboard header for
- * accounts that hold more than one artist profile.
- *
- * Switching is a context change, never a reload and never a remount: `select()`
- * fades the view out, swaps the scope, and every hook re-keys and refetches. The
- * charts keep their DOM the whole time, which is what makes it feel like the
- * same page turning rather than a new page arriving.
- *
- * The control renders only when the flag is on AND the account holds more than
- * one profile — a single-profile artist has nothing to switch between and
- * shouldn't pay for the chrome.
- */
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
@@ -27,13 +14,9 @@ const ROLE_LABELS: Record<string, string> = {
   viewer: "Viewer",
 };
 
-/** Profiles beyond this and the overlay grows a search field. */
 const SEARCH_THRESHOLD = 6;
 
-/**
- * Display order for the switcher list. Owned profiles first — on a label roster the
- * first question is "which of these are mine?", and `role` is what answers it.
- */
+
 const GROUPS: Array<{ key: string; label: string; roles: Array<"owner" | "manager" | "viewer"> }> = [
   { key: "owned", label: "Your artists", roles: ["owner"] },
   { key: "managed", label: "Managed", roles: ["manager", "viewer"] },
@@ -107,13 +90,11 @@ function RoleChip({ role }: { role: string }) {
   );
 }
 
-/* ─── The header control ──────────────────────────────────────── */
 
 export function ArtistSwitcher() {
   const ctx = useAnalyticsV2Optional();
   const [open, setOpen] = useState(false);
 
-  // Not inside the provider, flag off, or nothing to switch between.
   if (!ctx || !ctx.enabled) return null;
   if (ctx.profilesLoading && ctx.profiles.length === 0) {
     return <div className="av2-shimmer h-9 w-32 rounded-full hidden sm:block" />;
@@ -158,7 +139,6 @@ export function ArtistSwitcher() {
   );
 }
 
-/* ─── The overlay ─────────────────────────────────────────────── */
 
 function SwitcherOverlay({ onClose }: { onClose: () => void }) {
   const ctx = useAnalyticsV2Optional();
@@ -170,7 +150,6 @@ function SwitcherOverlay({ onClose }: { onClose: () => void }) {
       if (e.key === "Escape") onClose();
     };
     document.addEventListener("keydown", onKey);
-    // Scroll-lock while the overlay owns the screen.
     const previous = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     return () => {
