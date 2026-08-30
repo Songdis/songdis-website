@@ -258,7 +258,17 @@ function ChatTab({ initialMessage }: { initialMessage?: string }) {
 
     try {
       const history: ChatMessage[] = messages
-        .filter((m) => m.id !== "initial")
+        /*
+         * Drop the greeting, and drop anything with no text.
+         *
+         * The API validates messages.*.content as required, so a single empty message
+         * anywhere in the history fails the whole request with "The messages.N.content
+         * field is required" — the conversation then stays broken for every subsequent
+         * turn, because the empty message is still sitting in state. An empty assistant
+         * bubble should never be created (see the reply handling below), but this makes a
+         * conversation that already has one recoverable rather than permanently stuck.
+         */
+        .filter((m) => m.id !== "initial" && m.content.trim() !== "")
         .map((m) => ({
           role: m.role === "ayo" ? ("assistant" as const) : ("user" as const),
           content: m.content,
@@ -276,11 +286,22 @@ function ChatTab({ initialMessage }: { initialMessage?: string }) {
           timestamp: new Date(),
         }]);
       } else {
-        const data = res.data as { reply: string };
+        const data = res.data as { reply: string; truncated?: boolean };
+        const reply = (data.reply ?? "").trim();
+
         setMessages((prev) => [...prev, {
           id: `ayo-${Date.now()}`,
           role: "ayo",
-          content: data.reply,
+          /*
+           * Never store an empty bubble. An empty reply would render as a blank box and,
+           * worse, be sent back in the next request's history where the API rejects it as
+           * a missing field — breaking every following turn, not just this one.
+           */
+          content: reply !== ""
+            ? reply
+            : "Sorry, I didn't manage to put that into words. Try asking again.",
+          // Truncated replies stop mid-sentence; the chip re-asks in one tap.
+          chips: data.truncated && reply !== "" ? ["Finish that thought"] : undefined,
           timestamp: new Date(),
         }]);
       }

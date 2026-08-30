@@ -134,7 +134,9 @@ export default function AyoChatWidget() {
 
     try {
       const history: ChatMessage[] = messages
-        .filter((m) => m.id !== "initial")
+        // Also drops empty messages — the API rejects them and one stuck in state would
+        // break every later turn. See the note on the Ayo page, same reasoning.
+        .filter((m) => m.id !== "initial" && m.content.trim() !== "")
         .map((m) => ({
           role: m.role === "ayo" ? ("assistant" as const) : ("user" as const),
           content: m.content,
@@ -152,11 +154,17 @@ export default function AyoChatWidget() {
         }]);
       } else {
         const data = res.data as { reply: string; truncated?: boolean };
+        const reply = (data.reply ?? "").trim();
+
         setMessages((prev) => [...prev, {
           id: `ayo-${Date.now()}`,
           role: "ayo",
-          content: data.reply,
-          chips: data.truncated ? ["Finish that thought"] : undefined,
+          // Never an empty bubble: it renders blank, and the API rejects it in the next
+          // request's history, which would break every following turn.
+          content: reply !== ""
+            ? reply
+            : "Sorry, I didn't manage to put that into words. Try asking again.",
+          chips: data.truncated && reply !== "" ? ["Finish that thought"] : undefined,
           timestamp: new Date(),
         }]);
       }
