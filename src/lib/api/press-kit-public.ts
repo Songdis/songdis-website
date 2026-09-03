@@ -115,12 +115,21 @@ export interface PressKitSpotlight {
   description: string | null;
 }
 
+/**
+ * `spotify_url` marks a release the artist put out elsewhere.
+ *
+ * It decides where the tile links. /k/{slug}/r/{id} resolves a music_uploads id, and these
+ * ids come from a different table — they do not merely 404, they COLLIDE with real uploads
+ * and would render an unrelated release. A row with a spotify_url links out to Spotify
+ * instead of into the site.
+ */
 export interface PressKitFeaturedRelease {
   id: number;
   title: string;
   cover: string | null;
   released_on: string | null;
   type: string | null;
+  spotify_url: string | null;
 }
 
 export interface PressKitOtherRelease {
@@ -128,6 +137,7 @@ export interface PressKitOtherRelease {
   title: string;
   cover: string | null;
   year: string | null;
+  spotify_url: string | null;
 }
 
 export interface PressKitReleases {
@@ -341,6 +351,7 @@ function normalisePressKit(raw: unknown): PublicPressKit | null {
           cover: url(f.cover),
           released_on: str(f.released_on),
           type: str(f.type),
+          spotify_url: url(f.spotify_url),
         }
       : null;
 
@@ -349,7 +360,7 @@ function normalisePressKit(raw: unknown): PublicPressKit | null {
     const id = num(o.id);
     const title = str(o.title);
     if (id === null || !title) return [];
-    return [{ id, title, cover: url(o.cover), year: str(o.year) }];
+    return [{ id, title, cover: url(o.cover), year: str(o.year), spotify_url: url(o.spotify_url) }];
   });
 
   return {

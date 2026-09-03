@@ -7,6 +7,7 @@ import {
   Eye,
   EyeOff,
   ImagePlus,
+  Link2,
   Loader2,
   Plus,
   Quote as QuoteIcon,
@@ -51,11 +52,6 @@ function SectionFrame({
   hidden: boolean;
   onMove: (key: SectionKey, direction: -1 | 1) => void;
   onToggle: (key: SectionKey) => void;
-  /**
-   * Extra reasons a move is unavailable, on top of being at the end of the list — the
-   * co-sign block cannot be lifted above the bio, so its up arrow is greyed out (and
-   * the bio's down arrow, for the same reason) rather than left looking clickable.
-   */
   disableUp?: boolean;
   disableDown?: boolean;
   children: React.ReactNode;
@@ -216,7 +212,6 @@ export function HeroEditor({ kit }: { kit: UsePressKit }) {
   );
 }
 
-/* ─── The ordered list ────────────────────────────────────────── */
 
 export function EditorSections({
   kit,
@@ -282,7 +277,7 @@ function SectionBody({
     case "bio":
       return <BioBody kit={kit} />;
     case "listen":
-      return <ListenBody state={kit.draft} />;
+      return <ListenBody kit={kit} />;
     case "press":
       return <PressBody kit={kit} />;
     case "photos":
@@ -315,7 +310,6 @@ function SectionBody({
   }
 }
 
-/* ─── At a glance ─────────────────────────────────────────────── */
 
 function GlanceBody({ kit }: { kit: UsePressKit }) {
   const facts = kit.draft.kit.facts;
@@ -349,7 +343,6 @@ function GlanceBody({ kit }: { kit: UsePressKit }) {
   );
 }
 
-/* ─── Bio ─────────────────────────────────────────────────────── */
 
 function BioBody({ kit }: { kit: UsePressKit }) {
   return (
@@ -367,51 +360,136 @@ function BioBody({ kit }: { kit: UsePressKit }) {
   );
 }
 
-/* ─── Listen ──────────────────────────────────────────────────── */
 
-function ListenBody({ state }: { state: PressKitEditorState }) {
-  if (state.releases.length === 0) {
-    return (
-      <Notice>
-        Nothing live yet. This block fills itself from releases that have gone live on
-        the stores — pending and rejected uploads never appear on a public page.
-      </Notice>
-    );
-  }
+function ListenBody({ kit }: { kit: UsePressKit }) {
+  const [url, setUrl] = useState("");
+  const releases = kit.draft.releases;
+  const added = releases.filter((r) => r.source === "spotify");
+
+  const submit = async () => {
+    if (!url.trim() || kit.releases.adding) return;
+    const ok = await kit.addRelease(url);
+    if (ok) setUrl("");
+  };
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 gap-2.5">
-        {state.releases.slice(0, 12).map((release) => (
-          <div key={release.id} className="min-w-0">
-            <div className="aspect-square rounded-lg overflow-hidden bg-white/[0.04] border border-white/[0.06]">
-              {release.cover && (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={release.cover}
-                  alt=""
-                  className="w-full h-full object-cover"
-                  loading="lazy"
-                />
-              )}
-            </div>
-            <p className="font-body text-white/75 text-[11px] mt-1.5 truncate">
-              {release.title}
-            </p>
-            {release.year && (
-              <p className="font-body text-white/30 text-[10px]">{release.year}</p>
-            )}
+      {releases.length === 0 ? (
+        <Notice>
+          Nothing here yet. Releases you put out through Songdis appear automatically once
+          they are live on the stores — add anything you released elsewhere below.
+        </Notice>
+      ) : (
+        <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 gap-2.5">
+          {releases.slice(0, 12).map((release) => {
+            const removing =
+              release.source === "spotify" && kit.releases.removing.includes(release.id);
+
+            return (
+              <div key={`${release.source}:${release.id}`} className="min-w-0 group/rel relative">
+                <div
+                  className={[
+                    "aspect-square rounded-lg overflow-hidden bg-white/[0.04] border border-white/[0.06] transition-opacity",
+                    removing ? "opacity-30" : "",
+                  ].join(" ")}
+                >
+                  {release.cover && (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={release.cover}
+                      alt=""
+                      className="w-full h-full object-cover"
+                      loading="lazy"
+                    />
+                  )}
+                </div>
+
+                {release.source === "spotify" && (
+                  <button
+                    type="button"
+                    onClick={() => void kit.removeRelease(release.id)}
+                    disabled={removing}
+                    aria-label={`Remove ${release.title}`}
+                    className="absolute top-1 right-1 w-6 h-6 rounded-full bg-black/70 border border-white/15 flex items-center justify-center text-white/70 opacity-0 group-hover/rel:opacity-100 focus-visible:opacity-100 hover:text-white hover:border-white/30 transition-opacity disabled:cursor-not-allowed"
+                  >
+                    {removing ? (
+                      <Loader2 size={11} className="animate-spin" aria-hidden />
+                    ) : (
+                      <Trash2 size={11} aria-hidden />
+                    )}
+                  </button>
+                )}
+
+                <p className="font-body text-white/75 text-[11px] mt-1.5 truncate">
+                  {release.title}
+                </p>
+                <div className="flex items-center gap-1.5">
+                  {release.year && (
+                    <p className="font-body text-white/30 text-[10px]">{release.year}</p>
+                  )}
+                  {release.source === "spotify" && (
+                    <p className="font-body text-white/25 text-[10px]">· Added</p>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      <div className="flex flex-col gap-2 pt-1">
+        <div className="flex items-center gap-2 flex-wrap">
+          <div className="relative flex-1 min-w-[220px]">
+            <Link2
+              size={13}
+              aria-hidden
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-white/30"
+            />
+            <input
+              type="url"
+              inputMode="url"
+              value={url}
+              onChange={(e) => setUrl(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  void submit();
+                }
+              }}
+              disabled={kit.releases.adding}
+              placeholder="Paste a Spotify song or album link"
+              className="w-full bg-white/[0.04] border border-white/[0.08] rounded-lg pl-8 pr-3 py-2 font-body text-[13px] text-white placeholder:text-white/25 focus:outline-none focus:border-white/25 disabled:opacity-50"
+            />
           </div>
-        ))}
+
+          <SecondaryButton onClick={() => void submit()} disabled={kit.releases.adding || !url.trim()}>
+            {kit.releases.adding ? (
+              <Loader2 size={13} className="animate-spin" aria-hidden />
+            ) : (
+              <Plus size={13} aria-hidden />
+            )}
+            {kit.releases.adding ? "Adding…" : "Add release"}
+          </SecondaryButton>
+        </div>
+
+        <p className="font-body text-white/30 text-[11px]">
+          For music you released elsewhere. Songdis releases appear on their own once live.
+          {added.length > 0 && ` ${added.length} added so far.`} Saved straight away — no
+          need to press save.
+        </p>
       </div>
-      <p className="font-body text-white/30 text-[11px]">
-        Automatic — the newest release is featured. Nothing to edit here.
-      </p>
+
+      {kit.releases.failure && (
+        <FailureNotice
+          title="That release was not added"
+          error={kit.releases.failure.error}
+          errors={kit.releases.failure.errors}
+        />
+      )}
     </div>
   );
 }
 
-/* ─── Press & accolades ───────────────────────────────────────── */
 
 function PressBody({ kit }: { kit: UsePressKit }) {
   const { quotes, placements } = kit.draft.kit;
@@ -551,7 +629,6 @@ function PressBody({ kit }: { kit: UsePressKit }) {
   );
 }
 
-/* ─── Press photos ────────────────────────────────────────────── */
 
 function PhotosBody({ kit }: { kit: UsePressKit }) {
   return (
@@ -595,7 +672,6 @@ function PhotosBody({ kit }: { kit: UsePressKit }) {
   );
 }
 
-/* ─── Live & spotlights ───────────────────────────────────────── */
 
 function SpotlightsBody({ kit }: { kit: UsePressKit }) {
   const [pending, setPending] = useState<File | null>(null);
@@ -737,7 +813,6 @@ function SpotlightTile({
   );
 }
 
-/* ─── Contact ─────────────────────────────────────────────────── */
 
 function ContactBody({ kit }: { kit: UsePressKit }) {
   const contacts = kit.draft.kit.contacts;
@@ -777,7 +852,6 @@ function ContactBody({ kit }: { kit: UsePressKit }) {
   );
 }
 
-/* ─── Media grid ──────────────────────────────────────────────── */
 
 function MediaGrid({
   items,

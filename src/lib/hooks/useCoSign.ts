@@ -1,27 +1,5 @@
 "use client";
 
-/**
- * lib/hooks/useCoSign.ts
- *
- * All the co-sign state one artist profile needs, in one hook: opt-in status, the
- * balance, the inbound ledger, payout history, and the payout destination.
- *
- * ── The one awkward thing, handled here rather than at every call site ──────
- *
- * `POST /co-sign/{id}/enable` puts its real explanation at `cosign.message`, not at a
- * top-level `message`/`error`. `core.ts#request()` keeps `errors` on a failure but
- * discards the body, so a 422 issuance failure would otherwise surface as the generic
- * "Something went wrong." — which, on a form that just asked for a BVN, is the worst
- * possible thing to say.
- *
- * So: a 422 WITH an `errors` map is ordinary validation and renders per field; a 422
- * WITHOUT one is an issuance failure, and the hook re-reads `GET /co-sign/{id}` to get
- * the reason. `CoSignIssuanceService` persists it to `failure_reason` before returning,
- * so it is genuinely there. A 503 is Maplerad being switched off entirely — nothing was
- * written, nothing was sent, and that is worth saying plainly instead of quoting a
- * partner's error.
- */
-
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import {
@@ -171,7 +149,6 @@ export function useCoSign(profileId: number): UseCoSign {
 
   const reload = useCallback(() => setNonce((n) => n + 1), []);
 
-  /* ─── Opt in ────────────────────────────────────────────────── */
 
   const enable = useCallback(
     async (details: CoSignEnableRequest): Promise<boolean> => {
@@ -180,9 +157,7 @@ export function useCoSign(profileId: number): UseCoSign {
 
       const res = await enableCoSign(profileId, details);
 
-      // 503 — `MAPLERAD_ENABLED` is off. The service checks the switch before writing
-      // anything, so there is no half-created customer to explain and no partner error
-      // worth quoting.
+   
       if (res.status === 503) {
         if (alive.current) {
           setEnableFailure({
@@ -198,8 +173,6 @@ export function useCoSign(profileId: number): UseCoSign {
       }
 
       if (!res.data) {
-        // A validation failure names its fields; an issuance failure does not, and its
-        // reason lives on the record rather than in this response.
         let failure: CoSignFailure = {
           error: res.error,
           errors: res.errors ?? null,

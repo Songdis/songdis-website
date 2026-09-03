@@ -210,6 +210,18 @@ export interface PressKitReleaseRef {
   title: string;
   cover: string | null;
   year: string | null;
+  /**
+   * Which table the id came from.
+   *
+   * Not cosmetic — Songdis releases and added ones have independent id sequences and WILL
+   * collide, so `id` alone is not a unique key for a merged list and is not enough to
+   * address a row for deletion. Key on `${source}:${id}`.
+   */
+  source: "songdis" | "spotify";
+  /** Present only on added releases; where the public page links them. */
+  spotify_url: string | null;
+  /** Full date where known. Kept alongside `year` so the list can re-sort locally. */
+  released_on: string | null;
 }
 
 export interface PressKitEditorState {
@@ -411,9 +423,43 @@ function normaliseReleases(raw: unknown): PressKitReleaseRef[] {
         title: str(obj.title) ?? str(obj.release_title) ?? "Untitled",
         cover: str(obj.cover) ?? str(obj.album_art_url),
         year: str(obj.year) ?? (released ? released.slice(0, 4) : null),
-      };
+        // Defaults to songdis so older responses, and any caller that has not been
+        // redeployed yet, keep behaving exactly as before.
+        source: str(obj.source) === "spotify" ? "spotify" : "songdis",
+        spotify_url: str(obj.spotify_url),
+        released_on: released,
+      } satisfies PressKitReleaseRef;
     })
     .filter((r) => r.id > 0);
+}
+
+/**
+ * Newest first, undated last.
+ *
+ * Mirrors PressKitController::mergeReleases so a release added in the editor lands in the
+ * same slot it will occupy after a reload — otherwise the tile jumps position the next time
+ * the kit loads, which reads as a bug.
+ *
+ * Undated sorts last rather than first: Spotify gives year-only precision for older
+ * catalogue, and that is exactly the material that should not displace a recent single.
+ */
+export function sortReleases(rows: PressKitReleaseRef[]): PressKitReleaseRef[] {
+  return [...rows].sort((a, b) => {
+    const da = a.released_on ?? a.year ?? null;
+    const db = b.released_on ?? b.year ?? null;
+    if (da === db) return 0;
+    if (da === null) return 1;
+    if (db === null) return -1;
+    return db.localeCompare(da);
+  });
+}
+
+/** Reads the single release returned by POST /external-releases. */
+export function normaliseAddedRelease(raw: unknown): PressKitReleaseRef | null {
+  const box = asRecord(raw);
+  const row = box.data !== undefined ? box.data : raw;
+  const [parsed] = normaliseReleases([row]);
+  return parsed ?? null;
 }
 
 
@@ -534,6 +580,32 @@ export async function publishPressKit(profileId: number): Promise<ApiResponse<un
 
 export async function unpublishPressKit(profileId: number): Promise<ApiResponse<unknown>> {
   return request<unknown>(`${ROOT}/${profileId}/unpublish`, { method: "POST" }, true);
+}
+
+/**
+ * Add a release the artist put out somewhere other than Songdis.
+ *
+ * Takes a Spotify album or song link. A song link resolves to the release it belongs to,
+ * because a press kit lists releases — and the song link is what artists have to hand.
+ *
+ * Errors arrive as field errors under `spotify_url`, so read `errors`, not `error` — see
+ * the note on `core.ts`. The messages are specific ("that is your artist page", "you
+ * released that through Songdis") and are worth showing verbatim.
+ */
+export async function addExternalRelease(
+  profileId: number,
+  spotifyUrl: string
+): Promise<ApiResponse<unknown>> {
+  return request<unknown>(
+    `${ROOT}/${profileId}/external-releases`,
+    { method: "POST", body: JSON.stringify({ spotify_url: spotifyUrl }) },
+    true
+  );
+}
+
+/** Removes only added releases. Songdis releases are not removable from the press kit. */
+export async function removeExternalRelease(id: number): Promise<ApiResponse<unknown>> {
+  return request<unknown>(`${ROOT}/external-releases/${id}`, { method: "DELETE" }, true);
 }
 
 export interface MediaUpload {

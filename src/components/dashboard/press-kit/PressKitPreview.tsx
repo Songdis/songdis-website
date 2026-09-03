@@ -71,8 +71,9 @@ function buildPreviewPressKit(
             id: first.id,
             title: first.title,
             cover: first.cover,
-            released_on: null,
+            released_on: first.released_on,
             type: null,
+            spotify_url: first.spotify_url,
           }
         : null,
       others: draft.releases.slice(1).map((r) => ({
@@ -80,6 +81,7 @@ function buildPreviewPressKit(
         title: r.title,
         cover: r.cover,
         year: r.year,
+        spotify_url: r.spotify_url,
       })),
     },
     cosign: published?.cosign ?? CO_SIGN_DISABLED,

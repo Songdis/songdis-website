@@ -107,8 +107,16 @@ export default function PressKitView({ kit }: { kit: PublicPressKit }) {
         <SectionLabel>Listen</SectionLabel>
 
         {featured && (
-          <Link
-            href={`/k/${artist.slug}/r/${featured.id}`}
+          /*
+           * A release with a spotify_url was not distributed through Songdis, so there is no
+           * /k/{slug}/r/{id} page for it — and that route resolves a music_uploads id, which
+           * WOULD collide with this row's id and render an unrelated release. Those link out
+           * to Spotify instead.
+           */
+          <ReleaseLink
+            artistSlug={artist.slug}
+            id={featured.id}
+            spotifyUrl={featured.spotify_url}
             className="group relative mb-4 block overflow-hidden rounded-2xl bg-[linear-gradient(135deg,var(--pk-tint),var(--pk-bg-deep))] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--pk-accent)] sm:rounded-3xl"
           >
             <div className="relative aspect-[10/7] w-full sm:aspect-[16/8] lg:aspect-[16/7]">
@@ -150,15 +158,19 @@ export default function PressKitView({ kit }: { kit: PublicPressKit }) {
                 />
               </span>
             </div>
-          </Link>
+          </ReleaseLink>
         )}
 
         {releases.others.length > 0 && (
           <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 sm:gap-4 lg:grid-cols-6">
             {releases.others.map((r) => (
-              <Link
-                key={r.id}
-                href={`/k/${artist.slug}/r/${r.id}`}
+              <ReleaseLink
+                // Keyed on the link target, not the id: Songdis and added releases have
+                // independent id sequences and can collide, which would drop a tile.
+                key={r.spotify_url ?? `songdis:${r.id}`}
+                artistSlug={artist.slug}
+                id={r.id}
+                spotifyUrl={r.spotify_url}
                 className="group focus-visible:outline-none"
               >
                 <span className="block aspect-square overflow-hidden rounded-xl bg-[linear-gradient(135deg,var(--pk-tint),var(--pk-bg-deep))] ring-1 ring-[var(--pk-line)] transition group-hover:ring-[var(--pk-accent)]">
@@ -181,7 +193,7 @@ export default function PressKitView({ kit }: { kit: PublicPressKit }) {
                     {releaseYear(r.year)}
                   </span>
                 )}
-              </Link>
+              </ReleaseLink>
             ))}
           </div>
         )}
@@ -398,6 +410,47 @@ function resolveOrder(kit: PublicPressKit): PressKitSectionKey[] {
   const out = ordered.filter((k) => !hidden.has(k));
   if (!out.includes("cosign") && !hidden.has("cosign")) out.push("cosign");
   return out;
+}
+
+/**
+ * One release tile's link.
+ *
+ * Songdis releases go to their detail page on this site. Releases the artist added from a
+ * Spotify link have no such page — and /k/{slug}/r/{id} resolves a music_uploads id, so
+ * pointing an added release there would not 404 but COLLIDE, rendering an unrelated
+ * release. Those open Spotify in a new tab instead.
+ */
+function ReleaseLink({
+  artistSlug,
+  id,
+  spotifyUrl,
+  className,
+  children,
+}: {
+  artistSlug: string | null;
+  id: number;
+  spotifyUrl: string | null;
+  className?: string;
+  children: ReactNode;
+}) {
+  if (spotifyUrl) {
+    return (
+      <a
+        href={spotifyUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        className={className}
+      >
+        {children}
+      </a>
+    );
+  }
+
+  return (
+    <Link href={`/k/${artistSlug}/r/${id}`} className={className}>
+      {children}
+    </Link>
+  );
 }
 
 function SectionLabel({

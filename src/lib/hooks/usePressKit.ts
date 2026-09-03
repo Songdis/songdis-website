@@ -23,6 +23,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
+  addExternalRelease,
   blankPressKit,
   classifySlugError,
   deletePressKitMedia,
@@ -30,8 +31,11 @@ import {
   inspectSlug,
   normalisePressKit,
   publishPressKit,
+  normaliseAddedRelease,
   readMediaUrlFromResponse,
   readSlugFromResponse,
+  removeExternalRelease,
+  sortReleases,
   sectionOrderAllows,
   unpublishPressKit,
   updatePressKit,
@@ -42,6 +46,7 @@ import {
   type PressKitEditorState,
   type PressKitMediaItem,
   type PressKitRecord,
+  type PressKitReleaseRef,
   type PressKitTheme,
   type PressKitUpdate,
   type SectionKey,
@@ -90,6 +95,13 @@ export interface SlugState {
 }
 
 /* ─── Media state ─────────────────────────────────────────────── */
+
+/** Mirrors MediaState: the editor dims a row mid-request rather than letting it vanish. */
+export interface ReleaseState {
+  adding: boolean;
+  removing: number[];
+  failure: PressKitFailure | null;
+}
 
 export interface MediaState {
   /** Which media ids are mid-delete, so their tiles can dim rather than vanish. */
@@ -143,6 +155,11 @@ export interface UsePressKit {
   removeCover: () => void;
   coverFailure: PressKitFailure | null;
 
+  /* Releases the artist put out elsewhere, added from a Spotify link */
+  releases: ReleaseState;
+  addRelease: (spotifyUrl: string) => Promise<boolean>;
+  removeRelease: (id: number) => Promise<boolean>;
+
   /* Address */
   slug: SlugState;
   checkSlug: (value: string) => SlugState;
@@ -168,6 +185,12 @@ export function usePressKit(profileId: number | null, artistName = ""): UsePress
   const [media, setMedia] = useState<MediaState>({
     removing: [],
     uploading: false,
+    failure: null,
+  });
+
+  const [releases, setReleases] = useState<ReleaseState>({
+    adding: false,
+    removing: [],
     failure: null,
   });
   const [coverFailure, setCoverFailure] = useState<PressKitFailure | null>(null);
@@ -513,6 +536,76 @@ export function usePressKit(profileId: number | null, artistName = ""): UsePress
     [applyMedia]
   );
 
+  /**
+   * Add a release the artist put out somewhere other than Songdis.
+   *
+   * The response carries the created row, but it is merged into the list here by re-sorting
+   * locally rather than reloading the whole kit: a reload would discard unsaved edits in
+   * every other section, which is a bad trade for one new tile.
+   */
+  const addRelease = useCallback(
+    async (spotifyUrl: string): Promise<boolean> => {
+      if (profileId === null) return false;
+
+      const url = spotifyUrl.trim();
+      if (url === "") return false;
+
+      setReleases((r) => ({ ...r, adding: true, failure: null }));
+
+      const res = await addExternalRelease(profileId, url);
+
+      if (res.error) {
+        setReleases((r) => ({
+          ...r,
+          adding: false,
+          failure: failure(res.error, res.errors, res.status),
+        }));
+        return false;
+      }
+
+      const added = normaliseAddedRelease(res.data);
+
+      if (added !== null) {
+        applyMedia((st) => ({
+          ...st,
+          releases: sortReleases([...st.releases, added]),
+        }));
+      }
+
+      setReleases((r) => ({ ...r, adding: false }));
+      return true;
+    },
+    [profileId, applyMedia]
+  );
+
+  const removeRelease = useCallback(
+    async (id: number): Promise<boolean> => {
+      if (id <= 0) return false;
+      setReleases((r) => ({ ...r, removing: [...r.removing, id], failure: null }));
+
+      const res = await removeExternalRelease(id);
+
+      if (res.error) {
+        setReleases((r) => ({
+          ...r,
+          removing: r.removing.filter((x) => x !== id),
+          failure: failure(res.error, res.errors, res.status),
+        }));
+        return false;
+      }
+
+      applyMedia((st) => ({
+        ...st,
+        // Matched on source AS WELL AS id: a Songdis release can carry the same id, and
+        // filtering on id alone would silently drop it from the list.
+        releases: st.releases.filter((r) => !(r.source === "spotify" && r.id === id)),
+      }));
+      setReleases((r) => ({ ...r, removing: r.removing.filter((x) => x !== id) }));
+      return true;
+    },
+    [applyMedia]
+  );
+
   const replaceCover = useCallback(
     async (file: File): Promise<boolean> => {
       if (profileId === null) return false;
@@ -611,6 +704,10 @@ export function usePressKit(profileId: number | null, artistName = ""): UsePress
   );
 
   return {
+    releases,
+    addRelease,
+    removeRelease,
+
     saved,
     draft,
     isLoading,
