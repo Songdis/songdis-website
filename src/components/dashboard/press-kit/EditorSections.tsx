@@ -224,7 +224,6 @@ export function EditorSections({
 }) {
   const order = kit.draft.kit.section_order;
 
-  /** Would a swap with the neighbour end in a legal order? Mirrors the hook's clamp. */
   const canMove = (key: SectionKey, direction: -1 | 1): boolean => {
     const from = order.indexOf(key);
     const to = from + direction;

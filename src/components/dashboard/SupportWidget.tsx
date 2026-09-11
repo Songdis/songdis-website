@@ -15,6 +15,7 @@
 
 import { useEffect, useRef } from "react";
 import { getSupportIdentity } from "@/lib/api/support";
+import { markSupportReady } from "@/lib/support/controller";
 
 /**
  * The widget is a third-party global. Typed loosely and only where used, because the exact
@@ -90,6 +91,28 @@ export default function SupportWidget() {
 
           try {
             ready(() => {
+              /*
+               * Hide the widget's own floating bubble.
+               *
+               * Support is a sidebar item next to everything else, not a button hovering
+               * over the page — it was overlapping Ayo, and two competing bubbles in one
+               * corner is how both get ignored. Several hide shapes are attempted because
+               * the accepted one varies by widget version; a CSS rule backs them up, since
+               * a launcher that will not hide is worse than one that never loaded.
+               */
+              try {
+                const desk = window.ZohoDeskAsap as
+                  | { invoke?: (action: string, ...args: unknown[]) => void }
+                  | undefined;
+
+                desk?.invoke?.("hide", "app.launcher");
+                desk?.invoke?.("hide", "launcher");
+              } catch {
+                /* fall through to the CSS rule */
+              }
+
+              markSupportReady();
+
               // Current ASAP.
               try {
                 const desk = window.ZohoDeskAsap as

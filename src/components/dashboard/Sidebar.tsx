@@ -8,6 +8,18 @@ import { removeToken } from "@/lib/api/auth";
 import { clearUserCache } from "@/lib/hooks/useUser";
 import { useBilling } from "@/lib/hooks/useBilling";
 import { ANALYTICS_V2_ENABLED } from "@/lib/featureFlags";
+import { isSupportReady, onSupportReady, openSupport } from "@/lib/support/controller";
+
+function SupportIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"
+      strokeLinecap="round" strokeLinejoin="round" className="w-full h-full">
+      <circle cx="12" cy="12" r="9" />
+      <path d="M9.2 9.2a2.9 2.9 0 0 1 5.6 1c0 1.9-2.8 2.4-2.8 4" />
+      <path d="M12 17.5h.01" />
+    </svg>
+  );
+}
 
 const ROSTER_NAV = { label: "Roster", href: "/dashboard/label", svgIcon: <RosterIcon /> };
 
@@ -418,6 +430,18 @@ export default function Sidebar({ onClose, isMobile, user, isLocked = false }: S
   const router = useRouter();
   const [collapsed, setCollapsed] = useState(false);
 
+  /*
+   * Whether the help desk actually loaded.
+   *
+   * The widget's own floating bubble is hidden so support can live here instead, which means
+   * this button is the only way in — and a button that silently does nothing is worse than
+   * no button. It appears only once the widget has signalled it is ready, so an environment
+   * without Zoho configured simply has no Support item.
+   */
+  const [supportReady, setSupportReady] = useState(isSupportReady());
+
+  useEffect(() => onSupportReady(setSupportReady), []);
+
   const handleLogout = () => {
     removeToken();
     clearUserCache();
@@ -484,6 +508,30 @@ export default function Sidebar({ onClose, isMobile, user, isLocked = false }: S
 
       {/* Bottom */}
       <div className={["px-2 pb-4 flex flex-col gap-2.5", collapsed ? "items-center" : ""].join(" ")}>
+        {supportReady && (
+          <div className="relative group/support w-full">
+            <button
+              onClick={openSupport}
+              className={[
+                "flex items-center gap-2 px-2.5 py-2 rounded-lg text-white/60 hover:text-white hover:bg-white/[0.05] transition-colors w-full",
+                collapsed ? "justify-center" : "",
+              ].join(" ")}
+            >
+              <span className="shrink-0 w-4 h-4 relative opacity-40 group-hover/support:opacity-70 transition-opacity">
+                <SupportIcon />
+              </span>
+              {!collapsed && <span className="font-body text-[13px]">Support</span>}
+            </button>
+            {collapsed && (
+              <div className="pointer-events-none absolute left-full top-1/2 -translate-y-1/2 ml-3 z-50 opacity-0 group-hover/support:opacity-100 transition-opacity duration-150">
+                <span className="block whitespace-nowrap bg-[#1A0808] border border-white/[0.08] text-white font-body text-xs rounded-lg px-3 py-2 shadow-xl">
+                  Support
+                </span>
+              </div>
+            )}
+          </div>
+        )}
+
         <div className="relative group/logout w-full">
           <button
             onClick={handleLogout}
