@@ -7,6 +7,7 @@ import UploadModal from "@/components/dashboard/upload/UploadModal";
 import NotificationPanel from "@/components/dashboard/notifications/NotificationPanel";
 import SubscriptionBanner from "@/components/dashboard/SubscriptionBanner";
 import AyoChatWidget from "@/components/dashboard/ayo/AyoChatWidget";
+import SupportWidget from "@/components/dashboard/SupportWidget";
 import { useUser } from "@/lib/hooks/useUser";
 import { useBilling } from "@/lib/hooks/useBilling";
 import { getUnreadCount } from "@/lib/api/notifications";
@@ -239,6 +240,13 @@ export default function DashboardLayout({ children, customCta, showWelcome = fal
 
       {!isLocked && <UploadModal isOpen={uploadOpen} onClose={() => setUploadOpen(false)} />}
       {!isLocked && pathname !== "/dashboard/ayo" && <AyoChatWidget />}
+
+      {/*
+        Mounted for locked accounts too, unlike the others.
+        A lapsed subscription is one of the things people most need to talk to someone about,
+        and locking them out of support is how a billing question becomes a chargeback.
+      */}
+      <SupportWidget />
     </div>
   );
 }
