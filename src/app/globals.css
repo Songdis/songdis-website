@@ -58,13 +58,26 @@ body {
  * hide call varies by ASAP version and a bubble that refuses to go away is worse than one
  * that never appeared.
  *
- * Prefix selectors rather than exact ids: Zoho namespaces these consistently but does not
- * promise the full id. The panel itself is untouched — only the launcher is hidden.
+ * These selectors come from the live DOM, not from guessing. Inspected on songdis.com, the
+ * launcher is a 60x60 fixed <button> whose id starts "zohohc-asap-" and whose class starts
+ * "zd-launcher-". The first attempt here targeted "zohohc-asap-web-launcher" on both id and
+ * class; neither matched (the class is in a different namespace entirely), so the bubble
+ * was never hidden.
+ *
+ * Scoped to `button` deliberately. That is the launcher and nothing else: when the panel is
+ * closed it is not in the DOM as a fixed element at all, so a button-only rule cannot reach
+ * it — and the sidebar's Support item, which opens that panel, keeps working. Ayo's own
+ * button carries plain Tailwind classes and matches neither prefix.
+ *
+ * visibility / opacity / pointer-events alongside display, because Zoho may set display
+ * inline; any one of these on its own is enough to take the bubble off the screen.
  */
-[id^="zohohc-asap-web-launcher"],
-[class^="zohohc-asap-web-launcher"],
-[id^="zohodesk-asap-web-launcher"] {
+button[id^="zohohc-asap"],
+button[class*="zd-launcher"] {
   display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
 }
 
 /* Firefox, and the cross-browser standard. */

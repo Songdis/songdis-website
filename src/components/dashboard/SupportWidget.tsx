@@ -142,6 +142,41 @@ export default function SupportWidget() {
             /* fall through to the CSS rule */
           }
 
+          /*
+           * Belt to the stylesheet's braces.
+           *
+           * globals.css hides the launcher with `!important`, but an inline style carrying
+           * `!important` beats any stylesheet rule — so if Zoho writes the launcher's
+           * display inline, only another inline declaration can win. That is set here on
+           * the element directly, using the same live-DOM selectors as the CSS.
+           *
+           * The observer re-applies it if Zoho re-renders the launcher after load, which
+           * widgets commonly do on route changes or once their config arrives. It watches
+           * insertions only and coalesces bursts into one pass per frame, so React's own
+           * re-renders elsewhere on the page cost next to nothing.
+           */
+          const LAUNCHER = 'button[id^="zohohc-asap"], button[class*="zd-launcher"]';
+
+          const hideLauncher = () => {
+            document.querySelectorAll<HTMLElement>(LAUNCHER).forEach((el) => {
+              el.style.setProperty("display", "none", "important");
+              el.style.setProperty("visibility", "hidden", "important");
+              el.style.setProperty("pointer-events", "none", "important");
+            });
+          };
+
+          hideLauncher();
+
+          let queued = false;
+          new MutationObserver(() => {
+            if (queued) return;
+            queued = true;
+            requestAnimationFrame(() => {
+              queued = false;
+              hideLauncher();
+            });
+          }).observe(document.body, { childList: true, subtree: true });
+
           markSupportReady();
 
           // Current ASAP.
