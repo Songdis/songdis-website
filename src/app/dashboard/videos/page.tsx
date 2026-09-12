@@ -214,7 +214,29 @@ export default function VideosPage() {
       if (res.error) {
         toastError("Submission failed", res.error);
       } else {
-        toastSuccess("Video submitted!", "Your video has been submitted for distribution.");
+        /*
+         * Send them to pay.
+         *
+         * The API has always returned payment_url here and this handler always ignored it,
+         * so nobody ever reached the payment page. The submission was created as unpaid,
+         * the list endpoint filtered unpaid rows out, and the artist saw "No videos yet"
+         * straight after being told it had been submitted for distribution.
+         */
+        const paymentUrl = res.data?.payment_url;
+
+        if (paymentUrl) {
+          toastSuccess("Details saved", "Taking you to payment to finish your submission.");
+          setForm(EMPTY_FORM); setStep(1); setAcknowledged(false);
+          window.location.href = paymentUrl;
+          return;
+        }
+
+        // No payment link came back. Say so plainly rather than claiming success — the
+        // submission exists but is not paid for, and it will show as awaiting payment.
+        toastError(
+          "Payment could not be started",
+          "Your details were saved. Open the submission to try the payment again.",
+        );
         setForm(EMPTY_FORM); setStep(1); setAcknowledged(false); setView("list");
       }
     } catch {
@@ -226,7 +248,13 @@ export default function VideosPage() {
 
   return (
     <DashboardLayout>
-      <div className="p-8 max-h-[90vh] overflow-y-auto">
+      {/*
+        Responsive padding, and no scroll container of its own.
+        p-8 is 32px a side on a 412px phone, which is most of the width gone before any
+        content. max-h-[90vh] + overflow-y-auto also made this a second scrolling area
+        inside <main>, which already scrolls — two nested scrollbars on one page.
+      */}
+      <div className="p-4 sm:p-6 lg:p-8">
         {view === "list" && (
           <VideosList
             videos={videos} stats={stats} loading={listLoading}
@@ -260,16 +288,22 @@ function VideosList({ videos, stats, loading, isGrowthPlan, onStartNew }: {
           <h1 className="font-heading text-white uppercase text-xl tracking-wide">Videos</h1>
           <p className="font-body text-white/50 text-sm mt-1">Distribute and track your music videos</p>
         </div>
+        {/*
+          Full width on mobile, natural width from sm up.
+          These sat inside a flex-col at phone widths, so they shrank to fit their label and
+          the text wrapped mid-phrase — which is what made the CTA look broken rather than
+          deliberate. min-h-[48px] keeps them a comfortable tap target.
+        */}
         {isGrowthPlan ? (
           <button onClick={onStartNew}
-            className="font-heading text-white uppercase text-xs tracking-widest bg-[#C30100] hover:bg-[#C30100]/80 rounded-full px-5 py-3 transition-colors flex items-center justify-center gap-2">
+            className="w-full sm:w-auto min-h-[48px] font-heading text-white uppercase text-xs tracking-widest bg-[#C30100] hover:bg-[#C30100]/80 rounded-full px-5 py-3 transition-colors flex items-center justify-center gap-2">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
             Submit New Video
           </button>
         ) : (
           <Link href="/dashboard/settings?tab=subscription"
-            className="font-heading text-white uppercase text-xs tracking-widest bg-[#C30100]/20 border border-[#C30100]/40 hover:bg-[#C30100]/40 rounded-full px-5 py-3 transition-colors flex items-center justify-center gap-2">
-            Upgrade to Growth to submit videos
+            className="w-full sm:w-auto min-h-[48px] text-center font-heading text-white uppercase text-xs tracking-widest bg-[#C30100]/20 border border-[#C30100]/40 hover:bg-[#C30100]/40 rounded-full px-5 py-3 transition-colors flex items-center justify-center gap-2">
+            Upgrade to Growth
           </Link>
         )}
       </div>
@@ -282,32 +316,39 @@ function VideosList({ videos, stats, loading, isGrowthPlan, onStartNew }: {
           { label: "Live", value: stats.live, color: "text-green-400" },
           { label: "Total Plays", value: stats.total_plays.toLocaleString(), color: "text-[#C30100]" },
         ].map((s) => (
-          <div key={s.label} className="bg-[#1A0808] border border-white/[0.07] rounded-xl p-4">
-            <p className="font-body text-white/40 text-xs mb-1">{s.label}</p>
+          <div key={s.label} className="bg-[#1A0808] border border-white/[0.07] rounded-xl p-3 sm:p-4">
+            {/* [11px] on phones: "Total Videos" and "Total Plays" wrapped to two lines at
+                text-xs in a half-width card, making the four tiles different heights. */}
+            <p className="font-body text-white/40 text-[11px] sm:text-xs mb-1 truncate">{s.label}</p>
             {loading ? (
               <div className="h-6 w-12 bg-white/5 rounded animate-pulse" />
             ) : (
-              <p className={["font-heading text-lg", s.color ?? "text-white"].join(" ")}>{s.value}</p>
+              <p className={["font-heading text-base sm:text-lg", s.color ?? "text-white"].join(" ")}>{s.value}</p>
             )}
           </div>
         ))}
       </div>
 
       {/* Empty state */}
+      {/*
+        p-12 is 48px a side, which on a 412px phone left the copy in a narrow column and
+        pushed the button most of a screen down. The buttons also go full width here, for
+        the same reason as the header CTA.
+      */}
       {!loading && videos.length === 0 && (
-        <div className="bg-[#1A0808] border border-white/[0.07] rounded-2xl p-12 text-center">
-          <div className="w-16 h-16 rounded-2xl bg-[#C30100]/10 flex items-center justify-center mx-auto mb-4">
+        <div className="bg-[#1A0808] border border-white/[0.07] rounded-2xl p-6 sm:p-10 lg:p-12 text-center">
+          <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-[#C30100]/10 flex items-center justify-center mx-auto mb-4">
             <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#C30100" strokeWidth="1.5"><rect x="2" y="4" width="15" height="16" rx="2"/><polygon points="22 7 17 12 22 17"/></svg>
           </div>
           <h3 className="font-heading text-white uppercase text-sm tracking-widest mb-2">No videos yet</h3>
           <p className="font-body text-white/40 text-sm max-w-sm mx-auto mb-6">Submit your first music video for distribution across major platforms.</p>
           {isGrowthPlan ? (
-            <button onClick={onStartNew} className="font-heading text-white uppercase text-xs tracking-widest bg-[#C30100] hover:bg-[#C30100]/80 rounded-full px-6 py-3 transition-colors">
+            <button onClick={onStartNew} className="w-full sm:w-auto min-h-[48px] font-heading text-white uppercase text-xs tracking-widest bg-[#C30100] hover:bg-[#C30100]/80 rounded-full px-6 py-3 transition-colors">
               Submit your first video
             </button>
           ) : (
-            <Link href="/dashboard/settings?tab=subscription" className="font-heading text-white uppercase text-xs tracking-widest bg-[#C30100]/20 border border-[#C30100]/40 hover:bg-[#C30100]/40 rounded-full px-6 py-3 transition-colors inline-block">
-              Upgrade to Growth to submit videos
+            <Link href="/dashboard/settings?tab=subscription" className="w-full sm:w-auto min-h-[48px] font-heading text-white uppercase text-xs tracking-widest bg-[#C30100]/20 border border-[#C30100]/40 hover:bg-[#C30100]/40 rounded-full px-6 py-3 transition-colors inline-flex items-center justify-center">
+              Upgrade to Growth
             </Link>
           )}
         </div>
@@ -330,10 +371,28 @@ function VideosList({ videos, stats, loading, isGrowthPlan, onStartNew }: {
               <div className="p-3 flex flex-col gap-1.5">
                 <div className="flex items-center justify-between gap-2">
                   <p className="font-body text-white text-sm font-medium truncate">{v.video_title}</p>
-                  <span className={["text-[10px] font-heading tracking-wider px-2 py-0.5 rounded-full uppercase shrink-0", STATUS_COLORS[v.status] ?? "bg-white/10 text-white/50"].join(" ")}>
-                    {v.status.replace("_", " ")}
-                  </span>
+                  {/*
+                    An unpaid submission shows as awaiting payment, not as its status.
+                    Its status column reads "pending", which would tell the artist their
+                    video is being reviewed when in fact nothing happens until it is paid
+                    for — the misunderstanding behind ticket #SGD768.
+                  */}
+                  {v.payment_status && v.payment_status !== "paid" ? (
+                    <span className="text-[10px] font-heading tracking-wider px-2 py-0.5 rounded-full uppercase shrink-0 bg-amber-500/15 text-amber-400">
+                      {v.payment_status === "failed" ? "Payment failed" : "Awaiting payment"}
+                    </span>
+                  ) : (
+                    <span className={["text-[10px] font-heading tracking-wider px-2 py-0.5 rounded-full uppercase shrink-0", STATUS_COLORS[v.status] ?? "bg-white/10 text-white/50"].join(" ")}>
+                      {v.status.replace("_", " ")}
+                    </span>
+                  )}
                 </div>
+
+                {v.payment_status && v.payment_status !== "paid" && (
+                  <p className="font-body text-amber-400/70 text-[11px] leading-relaxed">
+                    This video has not been paid for yet, so it has not gone for distribution.
+                  </p>
+                )}
                 <p className="font-body text-white/40 text-xs">{v.release_artist} · {typeName(v.video_type)}</p>
                 {v.platforms.length > 0 && (
                   <p className="font-body text-white/25 text-[10px] truncate">{v.platforms.join(", ")}</p>

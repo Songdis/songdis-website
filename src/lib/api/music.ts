@@ -626,6 +626,15 @@ export interface VideoRecord {
   release_title?: string;
   release_artist?: string;
   created_at: string;
+  /**
+   * 'paid' | 'unpaid' | 'failed'.
+   *
+   * Unpaid rows are returned now. They used to be filtered out server-side, which meant a
+   * submission whose payment never completed vanished after the app said it succeeded.
+   */
+  payment_status?: string;
+  /** Needed to re-check a payment whose webhook never arrived. */
+  payment_reference?: string | null;
 }
 
 export async function fetchVideos() {
