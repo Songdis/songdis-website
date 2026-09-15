@@ -42,7 +42,15 @@ function SignInInner() {
       return;
     }
 
-    mutate({ email, password }, () => {
+    mutate({ email, password }, (data) => {
+      // A partner has no artist dashboard to land on — every screen there calls endpoints
+      // their token is deliberately blocked from, so `destination` would only produce a
+      // wall of 403s. A deep link that is already inside the portal is still honoured.
+      if (data?.user?.partner_id) {
+        router.push(destination.startsWith("/partner") ? destination : "/partner");
+        return;
+      }
+
       router.push(destination);
     });
   };

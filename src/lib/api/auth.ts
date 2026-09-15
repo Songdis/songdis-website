@@ -40,6 +40,13 @@ export interface AuthUser {
   account_type?: string;
   created_at?: string;
   avatar_url?: string;
+  /**
+   * Set only on partner-portal logins. It is the partner discriminator rather than
+   * `account_type`, which already carries plan tiers ('basic', 'growth', …) as well as
+   * 'admin' — so a partner is identified by this being non-null, never by a magic string
+   * in account_type.
+   */
+  partner_id?: number | null;
 }
 
 export interface AuthSuccessResponse {
