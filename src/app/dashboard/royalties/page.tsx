@@ -302,11 +302,16 @@ export default function RoyaltyReportPage() {
             ) : topEarningReleases.map((release, i) => (
               <div
                 key={release.id}
-                className={["flex flex-wrap sm:grid sm:grid-cols-5 gap-2 sm:gap-3 items-center py-4",
+                className={["flex flex-col sm:grid sm:grid-cols-5 gap-2 sm:gap-3 sm:items-center py-4",
                   i < topEarningReleases.length - 1 ? "border-b border-white/[0.05]" : ""].join(" ")}
               >
-                {/* Rank + cover + title */}
-                <div className="col-span-2 flex items-center gap-3">
+                {/*
+                  Rank + cover + title. min-w-0 on BOTH levels is what lets `truncate` work: without
+                  it the block sizes to its content, so a long collab artist line ran past the card
+                  edge and, under the old flex-wrap, pushed the numbers onto a line of their own
+                  while short rows kept them inline — every row a different shape.
+                */}
+                <div className="sm:col-span-2 flex items-center gap-3 min-w-0">
                   <span className="font-heading text-[#C30100] text-sm font-bold w-5 shrink-0 text-center">{release.rank}</span>
                   {/* Cover art */}
                   <div className="relative w-9 h-9 rounded-lg overflow-hidden shrink-0 bg-[#0E0808]">
@@ -320,14 +325,25 @@ export default function RoyaltyReportPage() {
                       </div>
                     )}
                   </div>
-                  <div className="min-w-0">
+                  <div className="min-w-0 flex-1">
                     <p className="font-body text-white text-sm truncate">{release.title}</p>
                     <p className="font-body text-white/40 text-xs truncate">{release.artist}</p>
                   </div>
                 </div>
-                <p className="font-body text-white/80 text-sm text-right font-medium">{release.earnings}</p>
-                <p className="font-body text-white/60 text-sm text-right">{release.streams}</p>
-                <p className="font-body text-white/60 text-sm text-right">{release.territories}</p>
+                {/*
+                  Phone: one stats line under every row, indented past the rank, each number labelled
+                  because the column headers are hidden at this width. sm+: `contents` dissolves the
+                  wrapper so the three values drop back into the grid columns under their headers.
+                */}
+                <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1 pl-8 sm:contents">
+                  <p className="font-body text-white/80 text-sm sm:text-right font-medium">{release.earnings}</p>
+                  <p className="font-body text-white/60 text-sm sm:text-right">
+                    {release.streams}<span className="sm:hidden text-white/30 text-xs"> streams</span>
+                  </p>
+                  <p className="font-body text-white/60 text-sm sm:text-right">
+                    {release.territories}<span className="sm:hidden text-white/30 text-xs"> territories</span>
+                  </p>
+                </div>
               </div>
             ))}
           </div>
@@ -361,20 +377,25 @@ export default function RoyaltyReportPage() {
             ) : revenueByTerritory.map((t, i) => (
               <div
                 key={t.id}
-                className={["flex flex-wrap sm:grid sm:grid-cols-4 gap-2 sm:gap-4 items-center py-4",
+                className={["flex flex-col sm:grid sm:grid-cols-4 gap-2 sm:gap-4 sm:items-center py-4",
                   i < revenueByTerritory.length - 1 ? "border-b border-white/[0.05]" : ""].join(" ")}
               >
-                <div className="col-span-2 flex items-center gap-3">
+                <div className="sm:col-span-2 flex items-center gap-3 min-w-0">
                   <div className="w-9 h-9 rounded-full bg-[#C30100]/20 border border-[#C30100]/40 flex items-center justify-center shrink-0">
                     <span className="font-heading text-[#C30100] text-sm font-bold">{t.rank}</span>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-base">{t.flag}</span>
-                    <p className="font-body text-white text-sm">{t.country}</p>
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="text-base shrink-0">{t.flag}</span>
+                    <p className="font-body text-white text-sm truncate">{t.country}</p>
                   </div>
                 </div>
-                <p className="font-body text-white/80 text-sm text-right font-medium">{t.earnings}</p>
-                <p className="font-body text-white/60 text-sm text-right">{t.streams}</p>
+                {/* Same phone treatment as Top Earning Releases: labelled, one line, `contents` at sm+. */}
+                <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1 pl-12 sm:contents">
+                  <p className="font-body text-white/80 text-sm sm:text-right font-medium">{t.earnings}</p>
+                  <p className="font-body text-white/60 text-sm sm:text-right">
+                    {t.streams}<span className="sm:hidden text-white/30 text-xs"> streams</span>
+                  </p>
+                </div>
               </div>
             ))}
           </div>
