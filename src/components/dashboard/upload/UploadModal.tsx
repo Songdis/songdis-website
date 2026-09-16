@@ -462,6 +462,7 @@ export default function UploadModal({
   }, [isOpen]);
 
   const draftIdRef = useRef<number | undefined>(undefined);
+  const idempotencyKeyRef = useRef<string | undefined>(undefined);
 
   const update = useCallback((patch: Partial<UploadState>) => {
     if (patch.draftId !== undefined) draftIdRef.current = patch.draftId;
@@ -737,7 +738,16 @@ export default function UploadModal({
       const t = toastLoading("Submitting release...");
       const isSingle = state.releaseType === "single";
       const formattedContributors = formatContributorsForBackend(state.contributors);
+      // Kept stable across retries of the same release so a timed-out request that
+      // actually succeeded server-side cannot create a second release.
+      if (!idempotencyKeyRef.current) {
+        idempotencyKeyRef.current =
+          typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
+            ? crypto.randomUUID()
+            : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+      }
       const base = {
+        idempotency_key: idempotencyKeyRef.current,
         release_title: state.releaseTitle, metadata_language: state.metaLanguage,
         primary_artist: state.primaryArtist, primary_artist_id: null,
         composer: state.contributors.writers.map((w) => w.name).filter(Boolean).join(", "),
@@ -813,6 +823,20 @@ export default function UploadModal({
       }
 
       setSubmitErrors([]);
+
+      const isDuplicate = (res.data as { duplicate?: boolean } | null)?.duplicate === true;
+
+      if (isDuplicate) {
+        toastError(
+          "Already submitted",
+          res.message ??
+            "This release was already submitted in the last 5 minutes. To re-submit a corrected version, please wait 5 minutes and try again."
+        );
+        setIsSubmitting(false);
+        return;
+      }
+
+      idempotencyKeyRef.current = undefined;
       success("Release submitted!", "Your release is now under review.");
       goTo("submitted");
     } catch {
@@ -897,6 +921,7 @@ export default function UploadModal({
 
   const handleClose = useCallback(() => {
     draftIdRef.current = undefined;
+    idempotencyKeyRef.current = undefined;
     setState(INITIAL_STATE);
     onClose();
   }, [onClose]);

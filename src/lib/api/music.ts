@@ -122,6 +122,7 @@ export interface UploadSinglePayload {
   social_media_timestamp?: number;
   single_track_contributors?: string | null;
   single_track_additional_artists?: string | null;
+  idempotency_key?: string;  // Prevents duplicate submissions on retry
 }
 
 export interface DraftPayload {
