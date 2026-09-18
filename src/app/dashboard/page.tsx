@@ -9,6 +9,7 @@ import { useDashboard } from "@/lib/hooks/useDashboard";
 import { useBilling } from "@/lib/hooks/useBilling";
 import { getSpotlights, type Spotlight } from "@/lib/api/spotlight";
 import { ReleaseDetailModal } from "@/components/dashboard/music/ReleaseDetailModal";
+import { normaliseStatus } from "@/app/mock/music";
 
 export default function DashboardPage() {
   const { data, isLoading } = useDashboard();
@@ -114,7 +115,7 @@ export default function DashboardPage() {
                       </div>
                     )}
                     <div className="absolute inset-0" style={{ background: "linear-gradient(to top, rgba(14,8,8,0.95) 0%, transparent 55%)" }} />
-                    {release.status === "live" && (
+                    {normaliseStatus(release.status) === "live" && (
                       <div className="absolute top-3 left-1/2 -translate-x-1/2 flex items-center gap-1.5 bg-black/50 backdrop-blur-sm border border-white/10 rounded-full px-2.5 py-1">
                         <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse shrink-0" />
                         <span className="font-body text-white text-[10px]">Live</span>

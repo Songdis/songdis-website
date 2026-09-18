@@ -12,7 +12,32 @@ export type ReleaseStatus =
   | "need_documentation"
   | "draft"
   | "takedown"
-  | "rejected";
+  | "rejected"
+  | "under_review"
+  | "approved";
+
+/**
+ * The status column is not clean: the admin panel writes "Live", "Delivered" and "Needdoc"
+ * while the rest of the system writes lowercase, and one value is stored with a space
+ * ("Taken Down"). Every read must go through here, because a raw key lookup against
+ * STATUS_CONFIG silently falls through to a blank white badge — which is what roughly
+ * 3,500 of ~4,400 releases were doing.
+ *
+ * Aliases map the stored spellings onto the canonical key rather than adding more entries,
+ * so there is still one config row per status.
+ */
+const STATUS_ALIASES: Record<string, ReleaseStatus> = {
+  needdoc: "need_documentation",
+  need_doc: "need_documentation",
+  needs_documentation: "need_documentation",
+  taken_down: "takedown",
+  take_down: "takedown",
+};
+
+export function normaliseStatus(raw?: string | null): string {
+  const key = (raw ?? "").toLowerCase().trim().replace(/\s+/g, "_");
+  return STATUS_ALIASES[key] ?? key;
+}
 
 export type ReleaseType = "single" | "album" | "mixtape" | "album_ep";
 
@@ -65,7 +90,22 @@ export const STATUS_CONFIG: Record<
   draft:              { label: "Draft",              color: "#ffffff", bg: "rgba(255,255,255,0.15)" },
   takedown:           { label: "Takedown",           color: "#f97316", bg: "rgba(249,115,22,0.15)"  },
   rejected:           { label: "Rejected",           color: "#ef4444", bg: "rgba(239,68,68,0.15)"   },
+  under_review:       { label: "Under Review",       color: "#a78bfa", bg: "rgba(167,139,250,0.15)" },
+  approved:           { label: "Approved",           color: "#34d399", bg: "rgba(52,211,153,0.15)"  },
 };
+
+/** Always use this instead of indexing STATUS_CONFIG directly. */
+export function statusConfigFor(raw?: string | null) {
+  const key = normaliseStatus(raw);
+
+  return (
+    STATUS_CONFIG[key as ReleaseStatus] ?? {
+      label: raw ?? "Unknown",
+      color: "#ffffff",
+      bg: "rgba(255,255,255,0.10)",
+    }
+  );
+}
 
 /* ─── Mock releases ───────────────────────────────────────────── */
 // cover paths point to Figma exports — drop SVGs in /public/images/releases/

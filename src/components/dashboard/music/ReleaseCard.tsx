@@ -1,6 +1,6 @@
 "use client";
 
-import { Release, STATUS_CONFIG } from "@/app/mock/music";
+import { Release, normaliseStatus, statusConfigFor } from "@/app/mock/music";
 import Image from "next/image";
 import { isTakedownEligible } from "@/lib/hooks/useMusic";
 import { useToast, Toaster } from "@/components/dashboard/press-kit/primitives";
@@ -13,12 +13,9 @@ interface ReleaseCardProps {
 }
 
 export default function ReleaseCard({ release, onView, onEdit, onTakedown }: ReleaseCardProps) {
-  const rawStatus = (release.status ?? "").toLowerCase().replace(/\s+/g, "_");
-  const status = STATUS_CONFIG[release.status as keyof typeof STATUS_CONFIG] ?? {
-    label: release.status ?? "Unknown",
-    color: "#ffffff",
-    bg: "rgba(255,255,255,0.10)",
-  };
+  // Both go through the normaliser: the raw value may be "Live", "Needdoc" or "Taken Down".
+  const rawStatus = normaliseStatus(release.status);
+  const status = statusConfigFor(release.status);
   const releaseDateIso = (release as unknown as { releaseDateIso?: string }).releaseDateIso;
   const takedownEligible = isTakedownEligible(releaseDateIso);
   const { toast, show } = useToast();

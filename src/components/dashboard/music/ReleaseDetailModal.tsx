@@ -1,5 +1,7 @@
 "use client";
 
+import { normaliseStatus } from "@/app/mock/music";
+
 import { useState, useRef, useEffect, useCallback } from "react";
 import Image from "next/image";
 import { useReleaseDetail, type NormalisedReleaseDetail, isTakedownEligible } from "@/lib/hooks/useMusic";
@@ -315,7 +317,7 @@ export function ReleaseDetailModal({
   onRequestTakedown?: () => void;
 }) {
   const { release, isLoading, error } = useReleaseDetail(uploadId);
-  const status = STATUS_CONFIG[release?.status ?? "live"] ?? STATUS_CONFIG.live;
+  const status = STATUS_CONFIG[normaliseStatus(release?.status) || "live"] ?? STATUS_CONFIG.live;
   const { toast, show } = useToast();
 
   return (
@@ -358,7 +360,7 @@ export function ReleaseDetailModal({
                     {release.type === "single" ? "Single" : "Album/EP"}
                   </span>
                   <span className="font-body text-xs rounded-full px-2.5 py-1 flex items-center gap-1.5" style={{ color: status.color, backgroundColor: status.bg }}>
-                    {release.status === "live" && <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />}
+                    {normaliseStatus(release.status) === "live" && <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />}
                     {status.label}
                   </span>
                 </div>
