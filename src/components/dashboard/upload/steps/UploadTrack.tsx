@@ -7,6 +7,7 @@ import { uploadAudio } from "@/lib/api/music";
 import { getProfile } from "@/lib/api/auth";
 import type { UploadProgress } from "@/lib/api/music";
 import type { ArtistProfile } from "@/components/dashboard/settings/ArtistProfileModal";
+import { RECORDING_COUNTRY_OPTIONS, countryCodeFromOption, optionFromCountryCode } from "../countries";
 
 /* --- Genre / Sub-genre data (matches old app) --------------- */
 
@@ -440,6 +441,7 @@ function TrackEditModal({ track, profiles, onSave, onClose }: {
   const [genre, setGenre] = useState(track.genre);
   const [subGenre, setSubGenre] = useState(track.subGenre);
   const [explicit, setExplicit] = useState(track.explicitContent);
+  const [isCoverSong, setIsCoverSong] = useState(track.isCoverSong ?? "");
   const [mixedVersion, setMixedVersion] = useState(track.mixedVersion);
   const [contributors, setContributors] = useState(track.contributors);
   const [additionalArtists, setAdditionalArtists] = useState(track.additionalArtists);
@@ -458,6 +460,7 @@ function TrackEditModal({ track, profiles, onSave, onClose }: {
       genre,
       subGenre,
       explicitContent: explicit,
+      isCoverSong,
       mixedVersion,
       contributors,
       additionalArtists,
@@ -493,6 +496,10 @@ function TrackEditModal({ track, profiles, onSave, onClose }: {
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <Field label="Explicit Content">
               <DashSelect value={explicit} onChange={setExplicit} options={["Yes", "No", "Clean"]} />
+            </Field>
+            {/* Per track, not per release: an album can mix covers and originals. */}
+            <Field label="Is this a cover song?">
+              <DashSelect value={isCoverSong} onChange={setIsCoverSong} options={["", "Yes", "No"]} />
             </Field>
             <Field label="Genre">
               <DashSelect value={genre} onChange={(v) => { setGenre(v); setSubGenre(""); }} placeholder="Select genre" options={GENRE_OPTIONS} />
@@ -775,6 +782,7 @@ export default function UploadTrack({ state, update, updateTrack, removeTrack, r
 
         const newTrack: UploadState["tracks"][number] = {
           id: trackId,
+          isCoverSong: "",
           trackTitle: file.name.replace(/\.[^/.]+$/, ""),
           audioUrl: result.file_url,
           audioKey: result.s3_key,
@@ -1104,6 +1112,10 @@ export default function UploadTrack({ state, update, updateTrack, removeTrack, r
                   <DashSelect value={state.explicitContent} onChange={(v) => { update({ explicitContent: v }); clearFieldError?.("explicit"); }} options={["Yes", "No", "Clean"]} />
                   {fieldErrors.explicit && <p className="font-body text-[#C30100] text-xs mt-1">{fieldErrors.explicit}</p>}
                 </Field>
+                {/* Singles answer here; album tracks answer in their own editor. */}
+                <Field label="Is this a cover song?">
+                  <DashSelect value={state.isCoverSong} onChange={(v) => update({ isCoverSong: v })} options={["", "Yes", "No"]} />
+                </Field>
                 <Field label="Genre">
                   <DashSelect value={state.genre} onChange={(v) => { update({ genre: v, subGenre: "" }); clearFieldError?.("genre"); }} placeholder="Select genre" options={GENRE_OPTIONS} />
                   {fieldErrors.genre && <p className="font-body text-[#C30100] text-xs mt-1">{fieldErrors.genre}</p>}
@@ -1116,6 +1128,15 @@ export default function UploadTrack({ state, update, updateTrack, removeTrack, r
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <Field label="Recorded Year">
                   <DashSelect value={state.recordedYear} onChange={(v) => update({ recordedYear: v })} options={["2026", "2025", "2024", "2023"]} />
+                </Field>
+                {/* Stores need this before a release can go out, so it is asked for here
+                    rather than chased later. */}
+                <Field label="Recorded In">
+                  <DashSelect
+                    value={optionFromCountryCode(state.recordingCountry)}
+                    onChange={(v) => update({ recordingCountry: countryCodeFromOption(v) })}
+                    options={RECORDING_COUNTRY_OPTIONS}
+                  />
                 </Field>
                 <Field label="ISRC">
                   <input value={state.isrc} onChange={(e) => update({ isrc: e.target.value })} placeholder="Auto-generated if blank"
@@ -1205,6 +1226,15 @@ export default function UploadTrack({ state, update, updateTrack, removeTrack, r
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <Field label="Recorded Year">
                   <DashSelect value={state.recordedYear} onChange={(v) => update({ recordedYear: v })} options={["2026", "2025", "2024", "2023"]} />
+                </Field>
+                {/* Stores need this before a release can go out, so it is asked for here
+                    rather than chased later. */}
+                <Field label="Recorded In">
+                  <DashSelect
+                    value={optionFromCountryCode(state.recordingCountry)}
+                    onChange={(v) => update({ recordingCountry: countryCodeFromOption(v) })}
+                    options={RECORDING_COUNTRY_OPTIONS}
+                  />
                 </Field>
                 <Field label="Stereo AI Use">
                   <DashSelect value="None" onChange={() => {}} options={["None", "Partial", "Full"]} />

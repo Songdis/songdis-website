@@ -125,6 +125,10 @@ export interface UploadState {
   genre: string;
   subGenre: string;
   recordedYear: string;
+  /** ISO 3166-1 alpha-2. Symphonic: optional at import, required before release. */
+  recordingCountry: string;
+  /** Singles answer Is Cover Song here; album tracks each answer for themselves. */
+  isCoverSong: string;
   isrc: string;
   lyrics: string;
   audioFile: File | null;
@@ -144,6 +148,8 @@ export interface UploadState {
     id: string; trackTitle: string; audioUrl: string; audioKey: string;
     audioBucket: string; audioDuration: string; isrc: string; lyrics: string;
     genre: string; subGenre: string; explicitContent: string;
+    /** "Yes" | "No" | "" — Symphonic's Is Cover Song, which is per track. */
+    isCoverSong: string;
     contributors: { writers: Contributor[]; producers: Contributor[]; performers: Contributor[] };
     additionalArtists: AdditionalArtist[];
     tiktokTimestamp: number; mixedVersion: string;
@@ -168,6 +174,7 @@ const INITIAL_STATE: UploadState = {
   metaLanguage: "English", upcCode: "", cLine: "2026", pLine: "2026",
   noOfTracks: 1, explicitContent: "Yes", coverArtAiUse: "None",
   trackTitle: "", mixedVersion: "", genre: "", subGenre: "", recordedYear: "2026",
+  recordingCountry: "", isCoverSong: "",
   isrc: "", lyrics: "", audioFile: null, audioUrl: "", audioKey: "", audioBucket: "",
   audioDuration: "", tiktokTimestamp: 0, artistDetails: "",
   additionalArtists: [],
@@ -311,6 +318,7 @@ export default function UploadModal({
         upcCode: res.data!.locked_fields.upc_code ?? "",
         isrc: res.data!.locked_fields.isrc_code ?? "",
         tracks: (res.data!.tracks ?? []).map((t) => ({
+          isCoverSong: "",
           id: String(t.id),
           trackTitle: t.track_title ?? "",
           audioUrl: t.audio_file_path ?? "",
@@ -425,6 +433,8 @@ export default function UploadModal({
           genre: (fd.genre as string) ?? "",
           subGenre: (fd.subGenre as string) ?? "",
           recordedYear: (fd.recordedYear as string) ?? "2026",
+          recordingCountry: (fd.recordingCountry as string) ?? "",
+          isCoverSong: (fd.isCoverSong as string) ?? "",
           isrc: (fd.isrc as string) ?? "",
           lyrics: (fd.lyrics as string) ?? "",
           audioUrl: (fd.audioFileUrl as string) ?? "",
@@ -588,6 +598,8 @@ export default function UploadModal({
     primary_genre: state.genre,
     secondary_genre: state.subGenre,
     recorded_year: state.recordedYear,
+    recording_country: state.recordingCountry || null,
+    is_cover_song: state.isCoverSong === "Yes" ? true : state.isCoverSong === "No" ? false : null,
     c_line: state.cLine,
     p_line: state.pLine,
     release_date: state.releaseDate,
@@ -787,6 +799,8 @@ export default function UploadModal({
               explicit_status: tr.explicitContent === "Yes" ? "Yes" : "No",
               genre: tr.genre || state.genre, subgenre: tr.subGenre || state.subGenre,
               recorded_year: state.recordedYear, isrc: tr.isrc || null, stereo_ai_use: "None",
+              recording_country: state.recordingCountry || null,
+              is_cover_song: tr.isCoverSong === "Yes" ? true : tr.isCoverSong === "No" ? false : null,
               lyrics: tr.lyrics || "", lyrics_language: state.metaLanguage,
               duration: tr.audioDuration || "", social_media_timestamp: normaliseTimestamp(tr.tiktokTimestamp),
               contributors: JSON.stringify(formatContributorsForBackend(tr.contributors)),
@@ -869,7 +883,9 @@ export default function UploadModal({
       label: state.label, metaLanguage: state.metaLanguage, upcCode: state.upcCode,
       cLine: state.cLine, pLine: state.pLine, explicitContent: state.explicitContent,
       coverArtAiUse: state.coverArtAiUse, genre: state.genre, subGenre: state.subGenre,
-      recordedYear: state.recordedYear, isrc: state.isrc, lyrics: state.lyrics,
+      recordedYear: state.recordedYear, recordingCountry: state.recordingCountry,
+      isCoverSong: state.isCoverSong,
+      isrc: state.isrc, lyrics: state.lyrics,
       contributors: state.contributors,
       artistDetails: state.artistDetails, releaseDate: state.releaseDate,
       preOrderDate: state.preOrderDate, territory: state.territory,
