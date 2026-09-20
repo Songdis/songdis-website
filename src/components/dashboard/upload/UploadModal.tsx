@@ -437,10 +437,13 @@ export default function UploadModal({
           preOrderDate: (fd.preOrderDate as string) ?? "",
           territory: (fd.territory as "worldwide" | "custom") ?? "worldwide",
           selectedDSPs: (fd.selectedDSPs as string[]) ?? [],
-          tracks: [],
+          tracks: (fd.tracks as UploadState["tracks"]) ?? [],
           artworkFile: null, audioFile: null,
           mixedVersion: "",
-          audioBucket: "", agreedToTerms: false,
+          // Restored alongside the url: the submit sends s3_key from here, and without it a
+          // resumed draft uploaded fine and then failed validation for a missing file.
+          audioKey: (fd.audioKey as string) ?? "",
+          audioBucket: (fd.audioBucket as string) ?? "", agreedToTerms: false,
           quickDropDate: "", quickDropPaid: false,
           isPreviouslyReleased: false, originalReleaseDate: "",
         });
@@ -876,6 +879,15 @@ export default function UploadModal({
       artworkSizes: state.artworkSizes,
       tiktokTimestamp: state.tiktokTimestamp, audioDuration: state.audioDuration,
       isPreviouslyReleased: state.isPreviouslyReleased, originalReleaseDate: state.originalReleaseDate,
+
+      // The album track list, and the single's S3 identifiers. None of this was saved
+      // before: form_data carried only the single-track fields, so resuming an album draft
+      // restored an empty tracklist and every uploaded audio file was lost. The track
+      // objects hold no File instances, only strings, so they serialise as they are.
+      tracks: state.tracks,
+      audioKey: state.audioKey,
+      audioBucket: state.audioBucket,
+      releaseType: state.releaseType,
     },
   }), [state]);
 

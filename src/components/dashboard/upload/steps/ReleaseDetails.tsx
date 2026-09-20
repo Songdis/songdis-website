@@ -280,12 +280,16 @@ export default function ReleaseDetails({ state, update, onBack, onContinue, onSa
 
     const dims = await readDimensions(file);
 
-    if (dims && (dims.w < 3000 || dims.h < 3000)) {
+    // Exactly 3000x3000. Nothing is resized or cropped on the artist's behalf any more:
+    // squaring a rectangular sleeve quietly cut its edges off, and upscaling a small file
+    // produced a soft cover that the stores rejected later, long after the artist believed
+    // the upload had worked. canFix is false because there is no longer a fix to offer.
+    if (!dims || dims.w !== 3000 || dims.h !== 3000) {
       setArtworkIssue({
         file,
-        width: dims.w,
-        height: dims.h,
-        canFix: Math.min(dims.w, dims.h) >= 1500,
+        width: dims?.w ?? 0,
+        height: dims?.h ?? 0,
+        canFix: false,
       });
       if (fileRef.current) fileRef.current.value = "";
       return;
@@ -363,7 +367,7 @@ export default function ReleaseDetails({ state, update, onBack, onContinue, onSa
             className="w-full border-2 border-dashed border-[#C30100]/40 rounded-xl py-10 flex flex-col items-center gap-2 hover:border-[#C30100]/70 transition-colors mb-5">
             <UploadIcon />
             <p className="font-body text-white/50 text-sm">{uploading ? "Uploading..." : "Click to upload artwork"}</p>
-            <p className="font-body text-white/25 text-xs">or drag and drop · Min 3000×3000px · JPG, PNG or WebP</p>
+            <p className="font-body text-white/25 text-xs">or drag and drop · Exactly 3000×3000px · JPG, PNG or WebP</p>
           </button>
         )}
         <input ref={fileRef} type="file" accept=".png,.jpg,.jpeg,.webp,image/png,image/jpeg,image/webp" className="hidden" onChange={handleFileChange} />
@@ -375,10 +379,9 @@ export default function ReleaseDetails({ state, update, onBack, onContinue, onSa
               This artwork is {artworkIssue.width}&times;{artworkIssue.height}
             </p>
             <p className="font-body text-white/55 text-xs leading-relaxed mb-3">
-              Streaming platforms need at least 3000&times;3000.
-              {artworkIssue.canFix
-                ? " We can crop and scale it up for you — it will be trimmed to a square, so check nothing important is near the edges."
-                : " This one is too small to enlarge cleanly — stores would likely reject it as blurry. Please upload a larger original."}
+              Artwork must be exactly 3000&times;3000. Please resize the original and upload it
+              again — we no longer crop or scale it for you, because squaring a rectangular
+              sleeve cuts its edges off and enlarging a small file makes it blurry.
             </p>
 
             {fixError && (
