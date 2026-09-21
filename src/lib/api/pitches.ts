@@ -13,7 +13,8 @@ export interface Curator {
 export interface Pitch {
   id: number;
   music_upload_id: number;
-  curator_id: number;
+  /** Null for every pitch from now on: a pitch is for the release, not a chosen playlist. */
+  curator_id?: number | null;
   status: "draft" | "submitted" | "approved" | "rejected" | "under_review";
   release_story?: string;
   similar_artists?: string[];
@@ -39,7 +40,7 @@ export interface Pitch {
 
 export interface CreatePitchPayload {
   music_upload_id: number;
-  curator_id: number;
+  curator_id?: number | null;
   release_story: string;
   is_part_of_larger_schedule: boolean;
   larger_schedule_note?: string;
@@ -57,6 +58,28 @@ export interface CreatePitchPayload {
   has_other_press: boolean;
 }
 
+
+/**
+ * A release the artist can pitch right now — its release date is 3 to 4 weeks away and it
+ * has not already been pitched. The backend decides this with the same rule it enforces on
+ * creation, so anything listed here will be accepted.
+ */
+export interface EligibleRelease {
+  id: number;
+  title: string;
+  artist: string | null;
+  artwork: string | null;
+  upload_type: string;
+  track_count: number;
+  release_date: string;
+  days_until: number;
+  /** Set when a half-finished pitch already exists for this release. */
+  draft_pitch_id: number | null;
+}
+
+export async function getEligibleReleases() {
+  return request<EligibleRelease[]>("/v1/pitches/eligible-releases", { method: "GET" }, true);
+}
 
 export async function getCurators(musicUploadId?: number) {
   const qs = musicUploadId ? `?music_upload_id=${musicUploadId}` : "";
