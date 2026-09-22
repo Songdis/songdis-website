@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { composeLine, defaultOwner } from "../copyrightLine";
 import Image from "next/image";
 import Link from "next/link";
 import type { UploadState, AdditionalArtist, StepFieldErrors } from "../UploadModal";
@@ -558,12 +559,34 @@ export default function ReleaseDetails({ state, update, onBack, onContinue, onSa
             />
           </Field>
 
-          <Field label="C Line (Copyright)" hint="Who owns the song/lyrics?">
+          <Field label="C Line (Copyright)" hint="Who owns the song/lyrics? Leave blank to use the default.">
             <DashSelect value={state.cLine} onChange={(v) => update({ cLine: v })} options={["2026", "2025", "2024", "2023"]} />
+            {/* Optional. Blank keeps the default owner; anything typed is used exactly as
+                written, all the way to Symphonic. */}
+            <input
+              value={state.cLineOwner}
+              onChange={(e) => update({ cLineOwner: e.target.value.slice(0, 200) })}
+              placeholder={defaultOwner(state.primaryArtist)}
+              className="w-full mt-2 bg-[#0E0808] border border-white/10 rounded-lg px-4 py-3 font-body text-white text-sm placeholder:text-white/25 outline-none focus:border-[#C30100] transition-colors"
+            />
+            <p className="font-body text-white/35 text-xs mt-1.5 truncate">
+              {composeLine("©", state.cLine, state.cLineOwner, state.primaryArtist)}
+            </p>
           </Field>
 
-          <Field label="P Line" hint="Who owns the audio recording?">
+          <Field label="P Line" hint="Who owns the audio recording? Leave blank to use the default.">
             <DashSelect value={state.pLine} onChange={(v) => update({ pLine: v })} options={["2026", "2025", "2024", "2023"]} />
+            {/* Optional. Blank keeps the default owner; anything typed is used exactly as
+                written, all the way to Symphonic. */}
+            <input
+              value={state.pLineOwner}
+              onChange={(e) => update({ pLineOwner: e.target.value.slice(0, 200) })}
+              placeholder={defaultOwner(state.primaryArtist)}
+              className="w-full mt-2 bg-[#0E0808] border border-white/10 rounded-lg px-4 py-3 font-body text-white text-sm placeholder:text-white/25 outline-none focus:border-[#C30100] transition-colors"
+            />
+            <p className="font-body text-white/35 text-xs mt-1.5 truncate">
+              {composeLine("℗", state.pLine, state.pLineOwner, state.primaryArtist)}
+            </p>
           </Field>
 
           <Field label="Release Type" hint="1–3 songs = Single. 4–6 = EP. 7+ = Album.">

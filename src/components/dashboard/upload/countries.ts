@@ -49,7 +49,6 @@ export const RECORDING_COUNTRIES: Array<{ code: string; name: string }> = [
   { code: "CN", name: "China" },
 ];
 
-/** Labels for the select, with the code kept as the stored value. */
 export const RECORDING_COUNTRY_OPTIONS = RECORDING_COUNTRIES.map(
   (c) => `${c.code} — ${c.name}`
 );

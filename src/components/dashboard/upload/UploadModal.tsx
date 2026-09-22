@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback, useEffect, useMemo, useRef } from "react";
+import { composeLine, parseLine } from "./copyrightLine";
 import SelectUploadType from "./steps/SelectUploadType";
 import ReleaseDetails from "./steps/ReleaseDetails";
 import UploadTrack from "./steps/UploadTrack";
@@ -115,8 +116,12 @@ export interface UploadState {
   label: string;
   metaLanguage: string;
   upcCode: string;
+  /** The years the artist picked. */
   cLine: string;
   pLine: string;
+  /** Typed owners; blank means "{artist}, Distributed by Songdis". */
+  cLineOwner: string;
+  pLineOwner: string;
   noOfTracks: number;
   explicitContent: string;
   coverArtAiUse: string;
@@ -171,7 +176,7 @@ const INITIAL_STATE: UploadState = {
   releaseType: null, step: "select-type", draftId: undefined,
   artwork: null, artworkFile: null, artworkUrl: "", artworkKey: "", artworkSizes: null,
   releaseTitle: "", releaseVersion: "", primaryArtist: "", label: "",
-  metaLanguage: "English", upcCode: "", cLine: "2026", pLine: "2026",
+  metaLanguage: "English", upcCode: "", cLine: "2026", pLine: "2026", cLineOwner: "", pLineOwner: "",
   noOfTracks: 1, explicitContent: "Yes", coverArtAiUse: "None",
   trackTitle: "", mixedVersion: "", genre: "", subGenre: "", recordedYear: "2026",
   recordingCountry: "", isCoverSong: "",
@@ -300,8 +305,12 @@ export default function UploadModal({
         genre: v.primary_genre ?? "",
         subGenre: v.secondary_genre ?? "",
         recordedYear: v.recorded_year ?? "2026",
-        cLine: v.c_line ?? "",
-        pLine: v.p_line ?? "",
+        // Split, not copied: the stored value is a whole line, the form holds a year and
+        // an optional owner separately.
+        cLine: parseLine(v.c_line, v.primary_artist ?? "").year,
+        cLineOwner: parseLine(v.c_line, v.primary_artist ?? "").owner,
+        pLine: parseLine(v.p_line, v.primary_artist ?? "").year,
+        pLineOwner: parseLine(v.p_line, v.primary_artist ?? "").owner,
         releaseDate: v.release_date ? String(v.release_date).slice(0, 10) : "",
         preOrderDate: v.pre_order_date ? String(v.pre_order_date).slice(0, 10) : "",
         explicitContent: v.explicit_content ? "Yes" : "No",
@@ -425,6 +434,8 @@ export default function UploadModal({
           upcCode: (fd.upcCode as string) ?? "",
           cLine: (fd.cLine as string) ?? "2026",
           pLine: (fd.pLine as string) ?? "2026",
+          cLineOwner: (fd.cLineOwner as string) ?? "",
+          pLineOwner: (fd.pLineOwner as string) ?? "",
           noOfTracks: (fd.noOfTracks as number) ?? 1,
           explicitContent: (fd.explicitContent as string) ?? "Yes",
           coverArtAiUse: normaliseCoverArtAiUse(fd.coverArtAiUse),
@@ -600,8 +611,8 @@ export default function UploadModal({
     recorded_year: state.recordedYear,
     recording_country: state.recordingCountry || null,
     is_cover_song: state.isCoverSong === "Yes" ? true : state.isCoverSong === "No" ? false : null,
-    c_line: state.cLine,
-    p_line: state.pLine,
+    c_line: composeLine("©", state.cLine, state.cLineOwner, state.primaryArtist),
+    p_line: composeLine("℗", state.pLine, state.pLineOwner, state.primaryArtist),
     release_date: state.releaseDate,
     pre_order_date: state.preOrderDate || null,
     explicit_content: state.explicitContent === "Yes",
@@ -770,8 +781,9 @@ export default function UploadModal({
         album_art_sizes: state.artworkSizes ? JSON.stringify(state.artworkSizes) : null,
         cover_art_ai_use: normaliseCoverArtAiUse(state.coverArtAiUse),
         label: state.label || "Songdis Ltd",
-        c_line: `© ${state.cLine} ${state.primaryArtist}, Distributed by Songdis`,
-        p_line: `℗ ${state.pLine} ${state.primaryArtist}, Distributed by Songdis`,
+        // What the artist typed, used as written; blank falls back to the default owner.
+        c_line: composeLine("©", state.cLine, state.cLineOwner, state.primaryArtist),
+        p_line: composeLine("℗", state.pLine, state.pLineOwner, state.primaryArtist),
         explicit_content: state.explicitContent === "Yes",
         primary_genre: state.genre, secondary_genre: state.subGenre,
         genre: state.genre, subgenre: state.subGenre, recorded_year: state.recordedYear,
@@ -881,7 +893,9 @@ export default function UploadModal({
       releaseTitle: state.releaseTitle, trackTitle: state.trackTitle,
       releaseVersion: state.releaseVersion, primaryArtist: state.primaryArtist,
       label: state.label, metaLanguage: state.metaLanguage, upcCode: state.upcCode,
-      cLine: state.cLine, pLine: state.pLine, explicitContent: state.explicitContent,
+      cLine: state.cLine, pLine: state.pLine,
+      cLineOwner: state.cLineOwner, pLineOwner: state.pLineOwner,
+      explicitContent: state.explicitContent,
       coverArtAiUse: state.coverArtAiUse, genre: state.genre, subGenre: state.subGenre,
       recordedYear: state.recordedYear, recordingCountry: state.recordingCountry,
       isCoverSong: state.isCoverSong,
