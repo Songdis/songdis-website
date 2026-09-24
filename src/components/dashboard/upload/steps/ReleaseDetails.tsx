@@ -104,6 +104,8 @@ export default function ReleaseDetails({ state, update, onBack, onContinue, onSa
     width: number;
     height: number;
     canFix: boolean;
+    /** Why it was refused — the wording differs for a wrong format and a wrong size. */
+    reason?: "type" | "size";
   } | null>(null);
   const [fixing, setFixing] = useState(false);
   const [fixError, setFixError] = useState<string | null>(null);
@@ -279,6 +281,16 @@ export default function ReleaseDetails({ state, update, onBack, onContinue, onSa
 
     setArtworkIssue(null);
 
+    // JPEG only, matching the API. Checked before the size, so a 3000x3000 PNG is refused
+    // here with a clear reason instead of uploading and then failing on the server.
+    // Symphonic requires "JPG format … RGB colorspace" for the release cover.
+    const isJpeg = file.type === "image/jpeg" || /\.jpe?g$/i.test(file.name);
+    if (!isJpeg) {
+      setArtworkIssue({ file, width: 0, height: 0, canFix: false, reason: "type" });
+      if (fileRef.current) fileRef.current.value = "";
+      return;
+    }
+
     const dims = await readDimensions(file);
 
     // Exactly 3000x3000. Nothing is resized or cropped on the artist's behalf any more:
@@ -291,6 +303,7 @@ export default function ReleaseDetails({ state, update, onBack, onContinue, onSa
         width: dims?.w ?? 0,
         height: dims?.h ?? 0,
         canFix: false,
+        reason: "size",
       });
       if (fileRef.current) fileRef.current.value = "";
       return;
@@ -368,21 +381,28 @@ export default function ReleaseDetails({ state, update, onBack, onContinue, onSa
             className="w-full border-2 border-dashed border-[#C30100]/40 rounded-xl py-10 flex flex-col items-center gap-2 hover:border-[#C30100]/70 transition-colors mb-5">
             <UploadIcon />
             <p className="font-body text-white/50 text-sm">{uploading ? "Uploading..." : "Click to upload artwork"}</p>
-            <p className="font-body text-white/25 text-xs">or drag and drop · Exactly 3000×3000px · JPG, PNG or WebP</p>
+            <p className="font-body text-white/25 text-xs">or drag and drop · Exactly 3000×3000px · JPG only</p>
           </button>
         )}
-        <input ref={fileRef} type="file" accept=".png,.jpg,.jpeg,.webp,image/png,image/jpeg,image/webp" className="hidden" onChange={handleFileChange} />
+        <input ref={fileRef} type="file" accept=".jpg,.jpeg,image/jpeg" className="hidden" onChange={handleFileChange} />
         {fieldErrors.artwork && <p className="font-body text-[#C30100] text-xs text-center mb-2">{fieldErrors.artwork}</p>}
 
         {artworkIssue && (
           <div className="mb-5 rounded-xl border border-[#C30100]/30 bg-[#C30100]/[0.07] p-4">
             <p className="font-body text-white text-sm font-medium mb-1">
-              This artwork is {artworkIssue.width}&times;{artworkIssue.height}
+              {artworkIssue.reason === "type"
+                ? `This artwork is a ${(artworkIssue.file.name.split(".").pop() ?? "non-JPG").toUpperCase()} file`
+                : <>This artwork is {artworkIssue.width}&times;{artworkIssue.height}</>}
             </p>
             <p className="font-body text-white/55 text-xs leading-relaxed mb-3">
-              Artwork must be exactly 3000&times;3000. Please resize the original and upload it
-              again — we no longer crop or scale it for you, because squaring a rectangular
-              sleeve cuts its edges off and enlarging a small file makes it blurry.
+              {artworkIssue.reason === "type" ? (
+                <>Artwork must be a JPG. Export it as JPG (exactly 3000&times;3000) and upload
+                it again — streaming platforms do not accept PNG or WebP covers.</>
+              ) : (
+                <>Artwork must be exactly 3000&times;3000. Please resize the original and upload
+                it again — we no longer crop or scale it for you, because squaring a rectangular
+                sleeve cuts its edges off and enlarging a small file makes it blurry.</>
+              )}
             </p>
 
             {fixError && (
