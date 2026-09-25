@@ -5,7 +5,7 @@ import Image from "next/image";
 import { useSearchParams } from "next/navigation";
 import DashboardLayout from "@/components/dashboard/DashboardLayout";
 import {
-  chat,
+  chatStream,
   generateBio,
   saveBio,
   type BioResponse,
@@ -276,34 +276,66 @@ function ChatTab({ initialMessage }: { initialMessage?: string }) {
 
       history.push({ role: "user", content: text.trim() });
 
-      const res = await chat(history);
+      /*
+       * The reply is streamed into one bubble as it is written.
+       *
+       * Ayo's answers are long — a couple of thousand tokens — so waiting for the whole
+       * thing meant ten to fifteen seconds of a typing dot and then a wall of text. The
+       * first words now arrive in about a second.
+       *
+       * The bubble is created on the first fragment, not before, so a failure that produces
+       * nothing never leaves an empty box behind.
+       */
+      const replyId = `ayo-${Date.now()}`;
+      let started = false;
 
-      if (res.error) {
-        setMessages((prev) => [...prev, {
+      const { reply, truncated, error } = await chatStream(history, (delta) => {
+        if (!started) {
+          started = true;
+          // The typing dot has served its purpose once real text is on screen.
+          setIsLoading(false);
+          setMessages((prev) => [...prev, {
+            id: replyId,
+            role: "ayo",
+            content: delta,
+            timestamp: new Date(),
+          }]);
+          return;
+        }
+
+        setMessages((prev) => prev.map((m) =>
+          m.id === replyId ? { ...m, content: m.content + delta } : m
+        ));
+      });
+
+      const finalReply = reply.trim();
+
+      if (finalReply === "") {
+        /*
+         * Never store an empty bubble. An empty reply would render as a blank box and,
+         * worse, be sent back in the next request's history where the API rejects it as
+         * a missing field — breaking every following turn, not just this one.
+         */
+        setMessages((prev) => [...prev.filter((m) => m.id !== replyId), {
           id: `err-${Date.now()}`,
           role: "ayo",
-          content: "Sorry, I'm having trouble connecting right now. Please try again in a moment.",
+          content: error
+            ? "Sorry, I'm having trouble connecting right now. Please try again in a moment."
+            : "Sorry, I didn't manage to put that into words. Try asking again.",
           timestamp: new Date(),
         }]);
       } else {
-        const data = res.data as { reply: string; truncated?: boolean };
-        const reply = (data.reply ?? "").trim();
-
-        setMessages((prev) => [...prev, {
-          id: `ayo-${Date.now()}`,
-          role: "ayo",
-          /*
-           * Never store an empty bubble. An empty reply would render as a blank box and,
-           * worse, be sent back in the next request's history where the API rejects it as
-           * a missing field — breaking every following turn, not just this one.
-           */
-          content: reply !== ""
-            ? reply
-            : "Sorry, I didn't manage to put that into words. Try asking again.",
-          // Truncated replies stop mid-sentence; the chip re-asks in one tap.
-          chips: data.truncated && reply !== "" ? ["Finish that thought"] : undefined,
-          timestamp: new Date(),
-        }]);
+        // Truncated replies stop mid-sentence; the chip re-asks in one tap. An error that
+        // arrived mid-answer is treated the same way: there is more to say.
+        setMessages((prev) => prev.map((m) =>
+          m.id === replyId
+            ? {
+                ...m,
+                content: finalReply,
+                chips: truncated || error ? ["Finish that thought"] : undefined,
+              }
+            : m
+        ));
       }
     } catch {
       setMessages((prev) => [...prev, {

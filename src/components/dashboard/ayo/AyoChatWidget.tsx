@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import Image from "next/image";
-import { chat, type ChatMessage } from "@/lib/api/ayo";
+import { chatStream, type ChatMessage } from "@/lib/api/ayo";
 
 interface Message {
   id: string;
@@ -143,30 +143,48 @@ export default function AyoChatWidget() {
         }));
       history.push({ role: "user", content: text.trim() });
 
-      const res = await chat(history);
+      // Streamed into one bubble as it is written — see the note on the Ayo page. The bubble
+      // is created on the first fragment so a failure never leaves an empty box behind.
+      const replyId = `ayo-${Date.now()}`;
+      let started = false;
 
-      if (res.error) {
-        setMessages((prev) => [...prev, {
+      const { reply, truncated, error } = await chatStream(history, (delta) => {
+        if (!started) {
+          started = true;
+          setIsLoading(false);
+          setMessages((prev) => [...prev, {
+            id: replyId,
+            role: "ayo",
+            content: delta,
+            timestamp: new Date(),
+          }]);
+          return;
+        }
+
+        setMessages((prev) => prev.map((m) =>
+          m.id === replyId ? { ...m, content: m.content + delta } : m
+        ));
+      });
+
+      const finalReply = reply.trim();
+
+      if (finalReply === "") {
+        // Never an empty bubble: it renders blank, and the API rejects it in the next
+        // request's history, which would break every following turn.
+        setMessages((prev) => [...prev.filter((m) => m.id !== replyId), {
           id: `err-${Date.now()}`,
           role: "ayo",
-          content: "Sorry, I'm having trouble connecting right now. Please try again in a moment.",
+          content: error
+            ? "Sorry, I'm having trouble connecting right now. Please try again in a moment."
+            : "Sorry, I didn't manage to put that into words. Try asking again.",
           timestamp: new Date(),
         }]);
       } else {
-        const data = res.data as { reply: string; truncated?: boolean };
-        const reply = (data.reply ?? "").trim();
-
-        setMessages((prev) => [...prev, {
-          id: `ayo-${Date.now()}`,
-          role: "ayo",
-          // Never an empty bubble: it renders blank, and the API rejects it in the next
-          // request's history, which would break every following turn.
-          content: reply !== ""
-            ? reply
-            : "Sorry, I didn't manage to put that into words. Try asking again.",
-          chips: data.truncated && reply !== "" ? ["Finish that thought"] : undefined,
-          timestamp: new Date(),
-        }]);
+        setMessages((prev) => prev.map((m) =>
+          m.id === replyId
+            ? { ...m, content: finalReply, chips: truncated || error ? ["Finish that thought"] : undefined }
+            : m
+        ));
       }
     } catch {
       setMessages((prev) => [...prev, {
