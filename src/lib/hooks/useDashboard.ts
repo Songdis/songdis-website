@@ -38,11 +38,19 @@ const VALID_STATUSES = [
 ] as const;
 type ValidStatus = typeof VALID_STATUSES[number];
 
-function toStatus(raw: string | undefined): ValidStatus {
-  if (!raw) return "live";
-  const lower = raw.toLowerCase();
-  if ((VALID_STATUSES as readonly string[]).includes(lower)) return lower as ValidStatus;
-  return "live";
+/**
+ * Never guess "live".
+ *
+ * This returned "live" for a missing status AND for any status not in the list above —
+ * which is most of them: approved, under_review, processing, takedown, rejected. Releases
+ * that were nowhere near the stores showed a green Live badge on the dashboard, and an
+ * artist reasonably believed their music was out.
+ *
+ * Unknown values are passed through normalised instead. Callers test for "live" explicitly,
+ * so anything else simply renders no badge.
+ */
+function toStatus(raw: string | undefined): string {
+  return (raw ?? "").toLowerCase().trim().replace(/\s+/g, "_");
 }
 
 function normaliseDashboard(

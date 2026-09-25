@@ -1,6 +1,6 @@
 "use client";
 
-import { normaliseStatus } from "@/app/mock/music";
+import { normaliseStatus, statusConfigFor } from "@/app/mock/music";
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import Image from "next/image";
@@ -13,17 +13,6 @@ import {
   createReleaseLink,
   type ReleaseLink,
 } from "@/lib/api/releaseLinks";
-
-const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
-  live:               { label: "Live",       color: "#22c55e", bg: "rgba(34,197,94,0.15)" },
-  pending:            { label: "Pending",    color: "#f97316", bg: "rgba(249,115,22,0.15)" },
-  delivered:          { label: "Delivered",  color: "#3668FF", bg: "rgba(54,104,255,0.15)" },
-  distributed:        { label: "Distributed",color: "#22c55e", bg: "rgba(34,197,94,0.15)" },
-  need_documentation: { label: "Needs Docs", color: "#C30100", bg: "rgba(195,1,0,0.15)" },
-  draft:              { label: "Draft",      color: "#ffffff", bg: "rgba(255,255,255,0.10)" },
-  takedown:           { label: "Takedown",   color: "#f97316", bg: "rgba(249,115,22,0.15)" },
-  rejected:           { label: "Rejected",   color: "#ef4444", bg: "rgba(239,68,68,0.15)" },
-};
 
 function formatPlatformName(key: string): string {
   const known: Record<string, string> = {
@@ -317,7 +306,11 @@ export function ReleaseDetailModal({
   onRequestTakedown?: () => void;
 }) {
   const { release, isLoading, error } = useReleaseDetail(uploadId);
-  const status = STATUS_CONFIG[normaliseStatus(release?.status) || "live"] ?? STATUS_CONFIG.live;
+  // Never falls back to "live". This used to default an empty status to "live" AND any
+  // status missing from the local map to STATUS_CONFIG.live — so approved, under_review
+  // and processing releases all displayed as Live. statusConfigFor knows every status
+  // and falls back to showing the raw value, not a green badge.
+  const status = statusConfigFor(release?.status);
   const { toast, show } = useToast();
 
   return (

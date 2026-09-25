@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { useBilling } from "@/lib/hooks/useBilling";
 import Image from "next/image";
 import Link from "next/link";
 import type { UploadState, AdditionalArtist, StepFieldErrors } from "../UploadModal";
@@ -90,6 +91,9 @@ interface Props {
 }
 
 export default function ReleaseDetails({ state, update, onBack, onContinue, onSaveDraft, fieldErrors = {}, clearFieldError, isEditing = false }: Props) {
+  const { can } = useBilling(0);
+  // Growth is identified by playlist_pitching, the same marker the pitch portal uses.
+  const canCustomiseRights = can("playlist_pitching");
   const [artworkGen, setArtworkGen] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const [profiles, setProfiles] = useState<ArtistProfile[]>([]);
@@ -578,24 +582,37 @@ export default function ReleaseDetails({ state, update, onBack, onContinue, onSa
             />
           </Field>
 
-          <Field label="C Line (Copyright)" hint="Who owns the song/lyrics?">
+          {/*
+            C line / P line. Everyone chooses the year. Naming a different rights owner is
+            a Growth feature, so the owner box is only rendered for those plans; without it
+            the owner is the artist's own name.
+
+            "Distributed by Songdis" is never shown here and cannot be typed away — the API
+            appends it when it composes the stored line. Artists see the full line on the
+            release itself, not while filling this in.
+          */}
+          <Field label="C Line (Copyright)" hint="Who owns the song and lyrics?">
             <DashSelect value={state.cLine} onChange={(v) => update({ cLine: v })} options={["2026", "2025", "2024", "2023"]} />
-            <input
-              value={state.cLineOwner}
-              onChange={(e) => update({ cLineOwner: e.target.value.slice(0, 200) })}
-              placeholder="Optional"
-              className="w-full mt-2 bg-[#0E0808] border border-white/10 rounded-lg px-4 py-3 font-body text-white text-sm placeholder:text-white/25 outline-none focus:border-[#C30100] transition-colors"
-            />
+            {canCustomiseRights && (
+              <input
+                value={state.cLineOwner}
+                onChange={(e) => update({ cLineOwner: e.target.value.slice(0, 200) })}
+                placeholder={state.primaryArtist || "Rights owner"}
+                className="w-full mt-2 bg-[#0E0808] border border-white/10 rounded-lg px-4 py-3 font-body text-white text-sm placeholder:text-white/25 outline-none focus:border-[#C30100] transition-colors"
+              />
+            )}
           </Field>
 
-          <Field label="P Line" hint="Who owns the audio recording?">
+          <Field label="P Line (Recording)" hint="Who owns the audio recording?">
             <DashSelect value={state.pLine} onChange={(v) => update({ pLine: v })} options={["2026", "2025", "2024", "2023"]} />
-            <input
-              value={state.pLineOwner}
-              onChange={(e) => update({ pLineOwner: e.target.value.slice(0, 200) })}
-              placeholder="Optional"
-              className="w-full mt-2 bg-[#0E0808] border border-white/10 rounded-lg px-4 py-3 font-body text-white text-sm placeholder:text-white/25 outline-none focus:border-[#C30100] transition-colors"
-            />
+            {canCustomiseRights && (
+              <input
+                value={state.pLineOwner}
+                onChange={(e) => update({ pLineOwner: e.target.value.slice(0, 200) })}
+                placeholder={state.primaryArtist || "Rights owner"}
+                className="w-full mt-2 bg-[#0E0808] border border-white/10 rounded-lg px-4 py-3 font-body text-white text-sm placeholder:text-white/25 outline-none focus:border-[#C30100] transition-colors"
+              />
+            )}
           </Field>
 
           <Field label="Release Type" hint="1–3 songs = Single. 4–6 = EP. 7+ = Album.">

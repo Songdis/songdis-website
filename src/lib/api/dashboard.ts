@@ -6,7 +6,12 @@ export interface DashboardRelease {
   title: string;
   artist: string;
   cover: string;          
-  status: "live" | "pending" | "delivered" | "distributed" | "need_documentation";
+  /**
+   * Whatever the API reports, normalised. Deliberately not a union: the column also
+   * holds approved, under_review, processing, takedown and rejected, and narrowing it
+   * here is what pushed the mapper into defaulting everything else to "live".
+   */
+  status: string;
   type?: string;
 }
 
