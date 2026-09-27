@@ -57,6 +57,14 @@ export function useResetPassword() {
   >(authApi.resetPassword);
 }
 
+/** First password for an invited (contract) artist — see authApi.setInvitedPassword. */
+export function useSetInvitedPassword() {
+  return useMutation<
+    Parameters<typeof authApi.setInvitedPassword>[0],
+    { message: string }
+  >(authApi.setInvitedPassword);
+}
+
 export function useVerifyOtp() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);

@@ -151,6 +151,30 @@ export async function resetPassword(payload: {
 }
 
 
+/**
+ * First password for an invited (contract) artist.
+ *
+ * A different endpoint from resetPassword: this one also flips the account out of the
+ * `invited` state and activates the contract subscription that was created with it, and it
+ * takes the invitation token rather than a reset token.
+ */
+export async function setInvitedPassword(payload: {
+  email: string;
+  token: string;
+  password: string;
+  confirmPassword: string;
+}) {
+  return request<{ message: string }>("/auth/set-password", {
+    method: "POST",
+    body: JSON.stringify({
+      email: payload.email,
+      invitation_token: payload.token,
+      password: payload.password,
+      password_confirmation: payload.confirmPassword,
+    }),
+  });
+}
+
 export async function getUser() {
   return request<AuthUser>("/user", { method: "GET" }, true);
 }
