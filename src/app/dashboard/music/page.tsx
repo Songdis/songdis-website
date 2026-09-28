@@ -21,7 +21,11 @@ import { ReleaseDetailModal } from "@/components/dashboard/music/ReleaseDetailMo
 type Tab = "releases" | "draft" | "edit-history";
 type ModalState =
   | { type: "detail"; release: NormalisedRelease }
-  | { type: "edit"; release: NormalisedRelease }
+  /**
+   * `track` is set when the artist pressed Edit on one track of an album. The request is
+   * then opened against that track's own row, which is what the API attaches it to.
+   */
+  | { type: "edit"; release: NormalisedRelease; track?: { id: number; title: string } }
   | { type: "takedown"; release: NormalisedRelease }
   | { type: "edit-success" }
   | { type: "takedown-success" }
@@ -270,7 +274,7 @@ export default function YourMusicPage() {
           fallbackTitle={modal.release.title}
           fallbackArtist={modal.release.artist}
           onClose={closeModal}
-          onRequestEdit={() => setModal({ type: "edit", release: modal.release })}
+          onRequestEdit={(track) => setModal({ type: "edit", release: modal.release, track })}
           onRequestTakedown={() => setModal({ type: "takedown", release: modal.release })}
         />
       )}
@@ -278,7 +282,9 @@ export default function YourMusicPage() {
       {modal?.type === "edit" && (
         <UploadModal
           isOpen
-          editReleaseId={Number(modal.release.id)}
+          // The track's own row when one was chosen; otherwise the release's.
+          editReleaseId={modal.track ? modal.track.id : Number(modal.release.id)}
+          editTrackTitle={modal.track?.title}
           onClose={closeModal}
           onRevisionSubmitted={refreshReleases}
         />

@@ -615,11 +615,21 @@ interface Props {
   onSaveDraft?: () => void;
   fieldErrors?: StepFieldErrors;
   clearFieldError?: (key: string) => void;
+  /**
+   * Edit one track's own fields, even on an album.
+   *
+   * Set while editing a release: an edit request is attached to a single music_uploads row,
+   * and only the top-level fields are submitted. Showing the album track list here would let
+   * an artist edit a track whose changes are never sent.
+   */
+  singleTrackOnly?: boolean;
+  /** Which track is being edited, for the heading. */
+  trackLabel?: string;
 }
 
-export default function UploadTrack({ state, update, updateTrack, removeTrack, reorderTrack, onBack, onContinue, onSaveDraft, fieldErrors = {}, clearFieldError }: Props) {
+export default function UploadTrack({ state, update, updateTrack, removeTrack, reorderTrack, onBack, onContinue, onSaveDraft, fieldErrors = {}, clearFieldError, singleTrackOnly = false, trackLabel }: Props) {
   const audioInputRef = useRef<HTMLInputElement>(null);
-  const isSingle = state.releaseType === "single";
+  const isSingle = singleTrackOnly || state.releaseType === "single";
   const isMixtape = state.releaseType === "mixtape";
   const releaseLabel = isSingle ? "Single" : isMixtape ? "Mixtape" : "Album/EP";
 
@@ -839,7 +849,14 @@ export default function UploadTrack({ state, update, updateTrack, removeTrack, r
 
   return (
     <div className="p-4 sm:p-8 max-h-[90vh] overflow-y-auto">
-      <StepHeader title="Upload Track" subtitle="Upload your audio files and complete all track information" />
+      {/* Naming the track matters on an album: the request is attached to this one track,
+          and the artist needs to see which before they change anything. */}
+      <StepHeader
+        title={trackLabel ? `Edit “${trackLabel}”` : "Upload Track"}
+        subtitle={trackLabel
+          ? "These changes apply to this track only. Artwork, release date and other release details apply to the whole release."
+          : "Upload your audio files and complete all track information"}
+      />
       <StepProgress current={2} />
 
       <div className="flex flex-col gap-5">
@@ -848,7 +865,13 @@ export default function UploadTrack({ state, update, updateTrack, removeTrack, r
           <p className="font-body text-white/60 text-xs font-semibold mb-2">Track Information:</p>
           <ul className="space-y-1">
             {(isSingle
-              ? [
+              ? trackLabel
+                ? [
+                    `Everything on this step applies to “${trackLabel}” alone`,
+                    "Writers, performers, features and lyrics are per track",
+                    "To change the artwork or release date, use Edit Release Details instead",
+                  ]
+                : [
                   "Each track requires complete metadata including writers and performers",
                   "ISRC codes will be auto-generated if not provided",
                   "Singles can only have one track",

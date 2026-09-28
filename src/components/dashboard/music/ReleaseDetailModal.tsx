@@ -51,7 +51,21 @@ function PlatformTile({ platformKey }: { platformKey: string }) {
   );
 }
 
-function TrackRow({ track }: { track: NormalisedReleaseDetail["tracks"][number] }) {
+function TrackRow({
+  track,
+  onEdit,
+}: {
+  track: NormalisedReleaseDetail["tracks"][number];
+  /**
+   * Edit THIS track.
+   *
+   * An album is stored as one row per track, and an edit request is attached to the row it
+   * was opened from. Editing an album through one button at the bottom of this modal meant
+   * every request landed on whichever row the card happened to carry, so an artist who
+   * changed the feature on one song saw the request recorded against a different song.
+   */
+  onEdit?: () => void;
+}) {
   const [playing, setPlaying] = useState(false);
   const audioRef = useRef<HTMLAudioElement>(null);
 
@@ -103,6 +117,16 @@ function TrackRow({ track }: { track: NormalisedReleaseDetail["tracks"][number] 
         )}
       </div>
       {track.duration && <p className="font-body text-white/40 text-xs shrink-0">{track.duration}</p>}
+
+      {onEdit && (
+        <button
+          onClick={onEdit}
+          title={`Request an edit to "${track.title}"`}
+          className="shrink-0 font-heading text-white/70 hover:text-white uppercase text-[10px] tracking-widest rounded-full border border-[#C30100]/40 hover:border-[#C30100] hover:bg-[#C30100]/20 px-3 py-2 transition-colors"
+        >
+          Edit
+        </button>
+      )}
     </div>
   );
 }
@@ -302,7 +326,11 @@ export function ReleaseDetailModal({
   fallbackTitle?: string;
   fallbackArtist?: string;
   onClose: () => void;
-  onRequestEdit?: () => void;
+  /**
+   * Opens the edit wizard. Called with a track for a per-track request, and with nothing
+   * for the release as a whole (artwork, release date and the rest, which apply album-wide).
+   */
+  onRequestEdit?: (track?: { id: number; title: string }) => void;
   onRequestTakedown?: () => void;
 }) {
   const { release, isLoading, error } = useReleaseDetail(uploadId);
@@ -377,7 +405,20 @@ export function ReleaseDetailModal({
             <div className="flex flex-col gap-2 mb-6">
               {release.tracks.length === 0 ? (
                 <p className="font-body text-white/30 text-sm text-center py-6">No track details available.</p>
-              ) : release.tracks.map((track) => <TrackRow key={track.id} track={track} />)}
+              ) : release.tracks.map((track) => (
+                <TrackRow
+                  key={track.id}
+                  track={track}
+                  /*
+                   * Only when the id is a real music_uploads row. normaliseTrack() falls back
+                   * to the array index when a track has no id, and an index would open the
+                   * edit form on somebody else's release.
+                   */
+                  onEdit={onRequestEdit && Number.isFinite(Number(track.id))
+                    ? () => onRequestEdit({ id: Number(track.id), title: track.title })
+                    : undefined}
+                />
+              ))}
             </div>
 
             {/* Release information */}
@@ -457,8 +498,14 @@ export function ReleaseDetailModal({
                 </button>
               )}
               {onRequestEdit && (
-                <button onClick={onRequestEdit} className="flex-1 font-heading text-white uppercase text-xs tracking-widest rounded-full border border-[#C30100] bg-[#C30100]/10 hover:bg-[#C30100] py-3.5 transition-all">
-                  Edit Release
+                <button
+                  onClick={() => onRequestEdit()}
+                  title={release.tracks.length > 1
+                    ? "Artwork, release date and other details that apply to the whole release"
+                    : undefined}
+                  className="flex-1 font-heading text-white uppercase text-xs tracking-widest rounded-full border border-[#C30100] bg-[#C30100]/10 hover:bg-[#C30100] py-3.5 transition-all"
+                >
+                  {release.tracks.length > 1 ? "Edit Release Details" : "Edit Release"}
                 </button>
               )}
             </div>

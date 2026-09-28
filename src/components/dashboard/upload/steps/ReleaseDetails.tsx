@@ -582,15 +582,6 @@ export default function ReleaseDetails({ state, update, onBack, onContinue, onSa
             />
           </Field>
 
-          {/*
-            C line / P line. Everyone chooses the year. Naming a different rights owner is
-            a Growth feature, so the owner box is only rendered for those plans; without it
-            the owner is the artist's own name.
-
-            "Distributed by Songdis" is never shown here and cannot be typed away — the API
-            appends it when it composes the stored line. Artists see the full line on the
-            release itself, not while filling this in.
-          */}
           <Field label="C Line (Copyright)" hint="Who owns the song and lyrics?">
             <DashSelect value={state.cLine} onChange={(v) => update({ cLine: v })} options={["2026", "2025", "2024", "2023"]} />
             {canCustomiseRights && (

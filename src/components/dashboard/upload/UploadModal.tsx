@@ -226,6 +226,8 @@ interface UploadModalProps {
   onClose: () => void;
   draftId?: number;
   editReleaseId?: number;
+  /** The track being edited, when the request was opened from one row of an album. */
+  editTrackTitle?: string;
   onRevisionSubmitted?: () => void;
 }
 
@@ -234,6 +236,7 @@ export default function UploadModal({
   onClose,
   draftId: initialDraftId,
   editReleaseId,
+  editTrackTitle,
   onRevisionSubmitted,
 }: UploadModalProps) {
   const [state, setState] = useState<UploadState>(INITIAL_STATE);
@@ -251,6 +254,21 @@ export default function UploadModal({
   }, [submitErrors]);
   const { success, error: toastError, loading: toastLoading, dismiss } = useToast();
   const isEditing = Boolean(editReleaseId);
+
+  /*
+   * While editing, the wizard works on ONE music_uploads row — the one the request is
+   * attached to — even when that row belongs to an album.
+   *
+   * The multi-track editor writes to state.tracks, and nothing in state.tracks is sent:
+   * proposedFromState() builds the payload from the top-level fields only. Leaving the album
+   * editor on screen during an edit meant an artist could change a track, see it accepted,
+   * and have the change silently dropped while the diff was taken against the row the modal
+   * had been opened with — the cause of "I edited the feature on one song and it recorded a
+   * writers credit change on another".
+   *
+   * Release-level fields still reach every track: the API propagates them across siblings.
+   */
+  const editsOneTrack = isEditing;
   const [original, setOriginal] = useState<Record<string, unknown> | null>(null);
   const [lockedFields, setLockedFields] = useState<Record<string, string | null>>({});
   const [originalTracks, setOriginalTracks] = useState<Array<{ id: number; track_title: string | null; s3_key: string | null }>>([]);
@@ -544,7 +562,8 @@ export default function UploadModal({
 
   const handleStep2Continue = useCallback(() => {
     const errors: StepFieldErrors = {};
-    const isMultiTrack = state.releaseType === "album" || state.releaseType === "mixtape";
+    const isMultiTrack = !editsOneTrack
+      && (state.releaseType === "album" || state.releaseType === "mixtape");
 
     if (isMultiTrack) {
       if (state.tracks.length < 2) {
@@ -576,7 +595,7 @@ export default function UploadModal({
     if (Object.keys(errors).length > 0) { setFieldErrors(errors); return; }
     setFieldErrors({});
     goNext();
-  }, [state.audioUrl, state.genre, state.subGenre, state.explicitContent, state.contributors, state.releaseType, state.tracks, goNext]);
+  }, [state.audioUrl, state.genre, state.subGenre, state.explicitContent, state.contributors, state.releaseType, state.tracks, editsOneTrack, goNext]);
 
   const formatContributorsForBackend = useCallback((contributors: { writers: Contributor[]; producers: Contributor[]; performers: Contributor[] }) => {
     const all: { name: string; role: string; type: string }[] = [];
@@ -1001,7 +1020,7 @@ export default function UploadModal({
             <ReleaseDetails state={state} update={update} onBack={goBack} onContinue={handleStep1Continue} onSaveDraft={handleSaveDraft} fieldErrors={fieldErrors} clearFieldError={clearFieldError} isEditing={isEditing} />
           )}
           {state.step === "upload-track" && (
-            <UploadTrack state={state} update={update} updateTrack={updateTrack} removeTrack={removeTrack} reorderTrack={reorderTrack} onBack={goBack} onContinue={handleStep2Continue} onSaveDraft={handleSaveDraft} fieldErrors={fieldErrors} clearFieldError={clearFieldError} />
+            <UploadTrack state={state} update={update} updateTrack={updateTrack} removeTrack={removeTrack} reorderTrack={reorderTrack} onBack={goBack} onContinue={handleStep2Continue} onSaveDraft={handleSaveDraft} fieldErrors={fieldErrors} clearFieldError={clearFieldError} singleTrackOnly={editsOneTrack} trackLabel={editTrackTitle} />
           )}
 
           {state.step === "distribution" && submitErrors.length > 0 && (
