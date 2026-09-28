@@ -1,12 +1,12 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import DashboardLayout from "@/components/dashboard/DashboardLayout";
 import { useToast } from "@/components/ui/Toast";
 import { useBilling } from "@/lib/hooks/useBilling";
-import { fetchVideos, getMusic, submitVideo, type VideoRecord, type VideoStats } from "@/lib/api/music";
+import { fetchVideos, getAllMusic, submitVideo, type VideoRecord, type VideoStats } from "@/lib/api/music";
 import type { Release } from "@/lib/api/music";
 
 
@@ -107,6 +107,9 @@ export default function VideosPage() {
   const [acknowledged, setAcknowledged] = useState(false);
   const [form, setForm] = useState<FormData>(EMPTY_FORM);
   const [releases, setReleases] = useState<Release[]>([]);
+  /** True when the catalogue is larger than the page walk would fetch — say so rather than
+   *  letting the artist believe a missing release does not exist. */
+  const [releasesTruncated, setReleasesTruncated] = useState(false);
   const [loadingReleases, setLoadingReleases] = useState(false);
   const [videos, setVideos] = useState<VideoRecord[]>([]);
   const [stats, setStats] = useState<VideoStats>({ total_videos: 0, in_review: 0, live: 0, total_plays: 0 });
@@ -138,11 +141,16 @@ export default function VideosPage() {
   useEffect(() => {
     if (view === "form" && step === 1 && releases.length === 0) {
       setLoadingReleases(true);
-      getMusic().then((res) => {
-        if (!res.error && res.data) {
-          const raw = Array.isArray(res.data) ? res.data : (res.data as unknown as { data?: Release[] }).data ?? [];
-          setReleases(raw);
-        }
+      /*
+       * Every page, not just the first.
+       *
+       * /music is paginated at 15 by default, and this used to take page one and stop — so
+       * an artist with more than fifteen releases could not pick an older one at all. It was
+       * not a missing release; it was a missing page.
+       */
+      getAllMusic().then(({ releases: all, complete }) => {
+        setReleases(all);
+        setReleasesTruncated(!complete);
         setLoadingReleases(false);
       });
     }
@@ -268,6 +276,7 @@ export default function VideosPage() {
         {view === "form" && (
           <VideoForm
             step={step} form={form} update={update} releases={releases} loadingReleases={loadingReleases}
+            releasesTruncated={releasesTruncated}
             onBack={goBack} onNext={goNext} canContinue={canContinue()} submitting={submitting}
             thumbRef={thumbRef}
           />
@@ -449,12 +458,26 @@ function PreSubmit({ onBack, onStart, acknowledged, setAcknowledged }: {
 }
 
 
-function VideoForm({ step, form, update, releases, loadingReleases, onBack, onNext, canContinue, submitting, thumbRef }: {
+function VideoForm({ step, form, update, releases, loadingReleases, releasesTruncated, onBack, onNext, canContinue, submitting, thumbRef }: {
   step: number; form: FormData; update: (p: Partial<FormData>) => void;
-  releases: Release[]; loadingReleases: boolean;
+  releases: Release[]; loadingReleases: boolean; releasesTruncated?: boolean;
   onBack: () => void; onNext: () => void; canContinue: boolean; submitting: boolean;
   thumbRef: React.RefObject<HTMLInputElement | null>;
 }) {
+  const [releaseQuery, setReleaseQuery] = useState("");
+
+  /** Title, artist or release name — whichever the artist happens to remember. */
+  const visibleReleases = useMemo(() => {
+    const needle = releaseQuery.trim().toLowerCase();
+
+    if (!needle) return releases;
+
+    return releases.filter((r) =>
+      [r.track_title, r.release_title, r.primary_artist]
+        .some((field) => (field ?? "").toLowerCase().includes(needle))
+    );
+  }, [releases, releaseQuery]);
+
   const platforms = form.plan ? getPlatforms(form.plan, form.videoType) : [];
   const progress = (step / 10) * 100;
   const minDate = new Date();
@@ -480,13 +503,30 @@ function VideoForm({ step, form, update, releases, loadingReleases, onBack, onNe
       {step === 1 && (
         <div className="flex flex-col gap-4">
           <h2 className="font-heading text-white uppercase text-sm tracking-widest">Link your song</h2>
+
+          {/* A catalogue runs to hundreds of releases. Scrolling for one is not a way to
+              find it — typing three letters is. */}
+          {!loadingReleases && releases.length > 6 && (
+            <input
+              value={releaseQuery}
+              onChange={(e) => setReleaseQuery(e.target.value)}
+              placeholder={`Search ${releases.length} releases by title or artist`}
+              className="w-full bg-[#0E0808] border border-white/10 rounded-lg px-4 py-3 font-body text-white text-sm placeholder:text-white/25 outline-none focus:border-[#C30100] transition-colors"
+            />
+          )}
+
           {loadingReleases ? (
             <div className="flex justify-center py-16"><svg className="animate-spin" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#C30100" strokeWidth="2"><path d="M21 12a9 9 0 11-6.219-8.56"/></svg></div>
           ) : releases.length === 0 ? (
             <p className="font-body text-white/30 text-sm text-center py-12">No releases found. Upload a song first.</p>
+          ) : visibleReleases.length === 0 ? (
+            <p className="font-body text-white/30 text-sm text-center py-12">
+              Nothing matches “{releaseQuery}”.
+              {releasesTruncated && " Your catalogue is large enough that not all of it is loaded here — contact support if a release is missing."}
+            </p>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-[400px] overflow-y-auto pr-1">
-              {releases.map((r) => {
+              {visibleReleases.map((r) => {
                 const sel = form.linkedSong?.id === r.id;
                 return (
                   <button key={r.id} onClick={() => update({ linkedSong: r })}

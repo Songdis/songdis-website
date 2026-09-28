@@ -76,6 +76,8 @@ export interface EditRequest {
 export interface MusicListParams {
   filter?: "single" | "album_ep";
   page?: number;
+  /** Rows per page. The API defaults to 15 and caps this at 100. */
+  per_page?: number;
   /**
    * Narrow the catalogue to one artist profile. Omit for the pooled view — every artist
    * on the account, which is what a solo artist always sees and what a label sees until
@@ -150,9 +152,60 @@ export async function getMusic(params: MusicListParams = {}) {
   const query = new URLSearchParams();
   if (params.filter) query.set("filter", params.filter);
   if (params.page)   query.set("page", String(params.page));
+  if (params.per_page) query.set("per_page", String(params.per_page));
   if (params.artist_profile_id) query.set("artist_profile_id", String(params.artist_profile_id));
   const qs = query.toString() ? `?${query.toString()}` : "";
   return request<Release[]>(`/music${qs}`, { method: "GET" }, true);
+}
+
+/**
+ * Every release on the account, not just the first page.
+ *
+ * `/music` is paginated and defaults to 15 rows. Anything that needs the whole catalogue —
+ * a picker, for instance — has to walk the pages: the video form called getMusic() once and
+ * offered the artist only their fifteen newest releases, so an older one could not be
+ * chosen at all.
+ *
+ * Pages are fetched in order and stop at the paginator's own last_page, with a hard ceiling
+ * so a bad `total` can never turn this into an unbounded loop. Returns what it managed to
+ * collect, plus whether anything was left behind.
+ */
+export async function getAllMusic(
+  params: Omit<MusicListParams, "page" | "per_page"> = {},
+  maxPages = 25
+): Promise<{ releases: Release[]; complete: boolean; error: string | null }> {
+  const PER_PAGE = 100;
+  const releases: Release[] = [];
+
+  // The listing answers { count, data: <paginator> }, and request() unwraps the outer
+  // `data` — so what arrives here is either the paginator or a plain array.
+  const readPage = (payload: unknown): { rows: Release[]; lastPage: number } => {
+    if (Array.isArray(payload)) return { rows: payload as Release[], lastPage: 1 };
+
+    const page = (payload ?? {}) as { data?: unknown; last_page?: number };
+    const rows = Array.isArray(page.data) ? (page.data as Release[]) : [];
+
+    return { rows, lastPage: Number(page.last_page ?? 1) || 1 };
+  };
+
+  let lastPage = 1;
+
+  for (let page = 1; page <= Math.min(lastPage, maxPages); page++) {
+    const res = await getMusic({ ...params, page, per_page: PER_PAGE });
+
+    if (res.error) {
+      // Whatever arrived is still worth showing; the caller is told it is partial.
+      return { releases, complete: false, error: res.error };
+    }
+
+    const { rows, lastPage: total } = readPage(res.data);
+    releases.push(...rows);
+    lastPage = total;
+
+    if (rows.length === 0) break;
+  }
+
+  return { releases, complete: lastPage <= maxPages, error: null };
 }
 
 export async function getSingleRelease(uploadId: number) {
