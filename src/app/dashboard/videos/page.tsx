@@ -223,29 +223,24 @@ export default function VideosPage() {
         toastError("Submission failed", res.error);
       } else {
         /*
-         * Send them to pay.
+         * A payment link only comes back for someone whose plan does not include videos.
          *
-         * The API has always returned payment_url here and this handler always ignored it,
-         * so nobody ever reached the payment page. The submission was created as unpaid,
-         * the list endpoint filtered unpaid rows out, and the artist saw "No videos yet"
-         * straight after being told it had been submitted for distribution.
+         * For a Growth artist the API charges nothing and returns no link, and that is the
+         * normal path — this used to report "Payment could not be started" in that case,
+         * telling an artist their included submission had failed when it had not.
          */
         const paymentUrl = res.data?.payment_url;
 
+        setForm(EMPTY_FORM); setStep(1); setAcknowledged(false);
+
         if (paymentUrl) {
           toastSuccess("Details saved", "Taking you to payment to finish your submission.");
-          setForm(EMPTY_FORM); setStep(1); setAcknowledged(false);
           window.location.href = paymentUrl;
           return;
         }
 
-        // No payment link came back. Say so plainly rather than claiming success — the
-        // submission exists but is not paid for, and it will show as awaiting payment.
-        toastError(
-          "Payment could not be started",
-          "Your details were saved. Open the submission to try the payment again.",
-        );
-        setForm(EMPTY_FORM); setStep(1); setAcknowledged(false); setView("list");
+        toastSuccess("Video submitted", "It is with our team for review. You will see its status here.");
+        setView("list");
       }
     } catch {
       toastError("Something went wrong", "Please try again.");
@@ -381,27 +376,17 @@ function VideosList({ videos, stats, loading, isGrowthPlan, onStartNew }: {
                 <div className="flex items-center justify-between gap-2">
                   <p className="font-body text-white text-sm font-medium truncate">{v.video_title}</p>
                   {/*
-                    An unpaid submission shows as awaiting payment, not as its status.
-                    Its status column reads "pending", which would tell the artist their
-                    video is being reviewed when in fact nothing happens until it is paid
-                    for — the misunderstanding behind ticket #SGD768.
+                    The badge is the video's status, full stop.
+                    It used to be overridden by payment_status whenever that was not "paid",
+                    so a video the admin had already taken live still read "Awaiting payment"
+                    to the artist. Video distribution comes with the Growth plan now — nothing
+                    is charged for, there is no payment for them to chase, and showing them a
+                    payment state describes a flow they are not in.
                   */}
-                  {v.payment_status && v.payment_status !== "paid" ? (
-                    <span className="text-[10px] font-heading tracking-wider px-2 py-0.5 rounded-full uppercase shrink-0 bg-amber-500/15 text-amber-400">
-                      {v.payment_status === "failed" ? "Payment failed" : "Awaiting payment"}
-                    </span>
-                  ) : (
-                    <span className={["text-[10px] font-heading tracking-wider px-2 py-0.5 rounded-full uppercase shrink-0", STATUS_COLORS[v.status] ?? "bg-white/10 text-white/50"].join(" ")}>
-                      {v.status.replace("_", " ")}
-                    </span>
-                  )}
+                  <span className={["text-[10px] font-heading tracking-wider px-2 py-0.5 rounded-full uppercase shrink-0", STATUS_COLORS[v.status] ?? "bg-white/10 text-white/50"].join(" ")}>
+                    {v.status.replace("_", " ")}
+                  </span>
                 </div>
-
-                {v.payment_status && v.payment_status !== "paid" && (
-                  <p className="font-body text-amber-400/70 text-[11px] leading-relaxed">
-                    This video has not been paid for yet, so it has not gone for distribution.
-                  </p>
-                )}
                 <p className="font-body text-white/40 text-xs">{v.release_artist} · {typeName(v.video_type)}</p>
                 {v.platforms.length > 0 && (
                   <p className="font-body text-white/25 text-[10px] truncate">{v.platforms.join(", ")}</p>
