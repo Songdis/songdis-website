@@ -296,10 +296,7 @@ export default function ReleaseDetails({ state, update, onBack, onContinue, onSa
 
     const dims = await readDimensions(file);
 
-    // Exactly 3000x3000. Nothing is resized or cropped on the artist's behalf any more:
-    // squaring a rectangular sleeve quietly cut its edges off, and upscaling a small file
-    // produced a soft cover that the stores rejected later, long after the artist believed
-    // the upload had worked. canFix is false because there is no longer a fix to offer.
+
     if (!dims || dims.w !== 3000 || dims.h !== 3000) {
       setArtworkIssue({
         file,
