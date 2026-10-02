@@ -436,7 +436,28 @@ export default function ListenView({
 function Shell({ children }: { children: React.ReactNode }) {
   return (
     <main className="min-h-screen bg-[#0A0606] px-4 py-8 sm:py-16">
-      <div className="max-w-2xl mx-auto">{children}</div>
+      <div className="max-w-2xl mx-auto">
+      {/*
+        Whose page this is.
+        A link arrives with no context beyond the artwork, so the mark and the line say who
+        sent it and what Songdis does — the only pitch for us the page makes, kept above the
+        record rather than competing with it.
+      */}
+      <div className="flex flex-col items-center gap-1.5 mb-7 sm:mb-9">
+        <a href="https://songdis.com" target="_blank" rel="noopener noreferrer" aria-label="Songdis">
+          <Image
+            src="/images/logo.svg"
+            alt="Songdis"
+            width={120}
+            height={32}
+            className="h-7 sm:h-8 w-auto object-contain opacity-90 hover:opacity-100 transition-opacity"
+          />
+        </a>
+        <p className="font-body text-white/35 text-[11px] tracking-wide">Get your music everywhere</p>
+      </div>
+
+        {children}
+      </div>
     </main>
   );
 }
