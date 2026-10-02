@@ -42,11 +42,21 @@ export interface ListenTrack {
   stream_url: string | null;
 }
 
+export interface ListenSocial {
+  platform: string;
+  label: string;
+  url: string;
+}
+
 export interface ListenArtist {
   name: string | null;
   bio: string | null;
   image_url: string | null;
   location: string | null;
+  /** Only links that resolve — bare handles are dropped server-side. */
+  socials?: ListenSocial[];
+  /** Only when the artist has actually published their press kit. */
+  press_kit_url?: string | null;
 }
 
 export interface ListenPage {

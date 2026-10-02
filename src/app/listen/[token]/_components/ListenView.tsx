@@ -373,7 +373,7 @@ export default function ListenView({
           and the bio is what turns a file drop into a pitch. Omitted entirely when the
           account has no profile behind it rather than left as an empty heading.
         */}
-        {page.artist?.bio && (
+        {(page.artist?.bio || page.artist?.socials?.length || page.artist?.press_kit_url) && (
           <section className="rounded-2xl border border-white/[0.06] bg-[#120B0B] p-4 sm:p-5 flex flex-col sm:flex-row items-center sm:items-start text-center sm:text-left gap-3 sm:gap-4">
             {page.artist.image_url && (
               <div className="relative w-16 h-16 rounded-full overflow-hidden bg-white/[0.04] shrink-0">
@@ -390,16 +390,51 @@ export default function ListenView({
 
             <div className="min-w-0">
               <p className="font-heading text-white uppercase text-xs tracking-wide">
-                About {page.artist.name ?? release.artist}
+                {page.artist.bio ? "About " : ""}{page.artist.name ?? release.artist}
               </p>
 
               {page.artist.location && (
                 <p className="font-body text-white/35 text-[11px] mt-0.5">{page.artist.location}</p>
               )}
 
-              <p className="font-body text-white/55 text-[13px] leading-relaxed mt-2 whitespace-pre-line">
-                {page.artist.bio}
-              </p>
+              {page.artist.bio && (
+                <p className="font-body text-white/55 text-[13px] leading-relaxed mt-2 whitespace-pre-line">
+                  {page.artist.bio}
+                </p>
+              )}
+
+              {/*
+                Where to go next after listening.
+                An editor's move after a track lands is to check the artist's numbers and
+                socials, and a press kit answers the rest in one page — so both sit here
+                rather than leaving them to search for the name.
+              */}
+              {(page.artist.socials?.length || page.artist.press_kit_url) && (
+                <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 mt-3.5">
+                  {page.artist.press_kit_url && (
+                    <a
+                      href={page.artist.press_kit_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="font-heading uppercase text-[10px] tracking-widest rounded-full border border-[#C30100] bg-[#C30100]/10 hover:bg-[#C30100] text-white px-3 py-1.5 transition-colors"
+                    >
+                      Press kit
+                    </a>
+                  )}
+
+                  {page.artist.socials?.map((social) => (
+                    <a
+                      key={social.platform}
+                      href={social.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="font-body text-[11px] rounded-full border border-white/10 hover:border-white/30 text-white/55 hover:text-white px-3 py-1.5 transition-colors"
+                    >
+                      {social.label}
+                    </a>
+                  ))}
+                </div>
+              )}
             </div>
           </section>
         )}
