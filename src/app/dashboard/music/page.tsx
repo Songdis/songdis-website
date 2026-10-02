@@ -277,7 +277,6 @@ export default function YourMusicPage() {
           privateLink={privateLinks.byRelease.get(Number(modal.release.id))}
           onCreatePrivateLink={privateLinks.create}
           onUpdatePrivateLink={privateLinks.update}
-          onDeletePrivateLink={privateLinks.remove}
           cover={modal.release.cover}
           fallbackTitle={modal.release.title}
           fallbackArtist={modal.release.artist}

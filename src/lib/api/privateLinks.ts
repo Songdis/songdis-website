@@ -42,11 +42,20 @@ export interface ListenTrack {
   stream_url: string | null;
 }
 
+export interface ListenArtist {
+  name: string | null;
+  bio: string | null;
+  image_url: string | null;
+  location: string | null;
+}
+
 export interface ListenPage {
   locked: boolean;
   token?: string;
   visibility?: LinkVisibility;
   label?: string | null;
+  /** Null for releases with no artist profile behind them — the page just omits the block. */
+  artist?: ListenArtist | null;
   release: {
     title: string | null;
     artist: string | null;
@@ -91,9 +100,13 @@ export async function updatePrivateLink(
   );
 }
 
-export async function deletePrivateLink(id: number) {
-  return request<{ message?: string }>(`/private-links/${id}`, { method: "DELETE" }, true);
-}
+/*
+ * There is no delete here.
+ *
+ * The API has no artist-facing delete either: a link may already be in a playlist editor's
+ * inbox, and it must not stop working because the artist tidied their dashboard. Revoking
+ * one is an admin action.
+ */
 
 /* ─── The listening page (public, no account) ─────────────────────────────── */
 

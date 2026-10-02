@@ -15,13 +15,11 @@ export default function PrivateLinkPanel({
   link,
   onCreate,
   onUpdate,
-  onDelete,
 }: {
   releaseId: number;
   link?: PrivateLink;
   onCreate: (payload: { music_upload_id: number; visibility: LinkVisibility; passcode?: string; label?: string }) => Promise<{ error: string | null }>;
   onUpdate: (id: number, payload: { visibility?: LinkVisibility; passcode?: string }) => Promise<{ error: string | null }>;
-  onDelete: (id: number) => Promise<{ error: string | null }>;
 }) {
   const [visibility, setVisibility] = useState<LinkVisibility>("public");
   const [passcode, setPasscode] = useState("");
@@ -29,7 +27,6 @@ export default function PrivateLinkPanel({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
-  const [confirmingDelete, setConfirmingDelete] = useState(false);
 
   const copy = async (text: string) => {
     try {
@@ -158,6 +155,13 @@ export default function PrivateLinkPanel({
         {link.label ? ` · ${link.label}` : ""}
       </p>
 
+      {/* No delete here on purpose: a link may already be with a playlist editor, and it
+          must not stop working from this screen. Support can take one down. */}
+      <p className="font-body text-white/25 text-[10px] leading-relaxed">
+        This link stays live so anyone you have sent it to keeps access. Contact support if it
+        needs taking down.
+      </p>
+
       {error && <p className="font-body text-[#C30100] text-[11px]">{error}</p>}
 
       <div className="flex items-center gap-2 pt-1">
@@ -204,45 +208,8 @@ export default function PrivateLinkPanel({
           </button>
         )}
 
-        <span className="text-white/15">·</span>
-
-        {confirmingDelete ? (
-          <span className="flex items-center gap-2">
-            <button
-              onClick={async () => {
-                setBusy(true);
-                const res = await onDelete(link.id);
-                if (res.error) { setError(res.error); setConfirmingDelete(false); }
-                setBusy(false);
-              }}
-              disabled={busy}
-              className="font-body text-[#C30100] text-[11px] underline underline-offset-2 disabled:opacity-40"
-            >
-              Yes, delete it
-            </button>
-            <button
-              onClick={() => setConfirmingDelete(false)}
-              className="font-body text-white/40 text-[11px]"
-            >
-              Cancel
-            </button>
-          </span>
-        ) : (
-          <button
-            onClick={() => setConfirmingDelete(true)}
-            className="font-body text-[#C30100]/80 hover:text-[#C30100] text-[11px] underline underline-offset-2"
-          >
-            Delete
-          </button>
-        )}
       </div>
 
-      {confirmingDelete && (
-        <p className="font-body text-white/35 text-[10px] leading-relaxed">
-          Anyone holding this link will stop being able to open it. The link cannot be brought
-          back — you would create a new one with a new address.
-        </p>
-      )}
     </div>
   );
 }

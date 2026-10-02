@@ -58,6 +58,15 @@ const MAIN_NAV = [
   { label: "Royalty Report", href: "/dashboard/royalties", icon: "/images/document.svg" },
 ];
 
+function HeadphoneIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M3 18v-6a9 9 0 0118 0v6" />
+      <path d="M21 19a2 2 0 01-2 2h-1a2 2 0 01-2-2v-3a2 2 0 012-2h3zM3 19a2 2 0 002 2h1a2 2 0 002-2v-3a2 2 0 00-2-2H3z" />
+    </svg>
+  );
+}
+
 const RELEASE_CHILDREN: { label: string; href: string; icon?: string; svgIcon?: React.ReactNode; badge?: string }[] = [
   { label: "Your Music", href: "/dashboard/music", icon: "/images/dashboard-music.svg" },
   { label: "Videos", href: "/dashboard/videos", svgIcon: <VideoIcon /> },
@@ -73,6 +82,9 @@ const ARTIST_TOOLS = [
   { label: "Splitr", href: "/dashboard/splitr", icon: "/images/splitr.svg" },
   { label: "Amplify", href: "/dashboard/amplify", icon: "/images/megaphone.svg" },
   { label: "Release Links", href: "/dashboard/release-links", icon: "/images/link.svg" },
+  // Next to Release Links because the two get confused: that one points at the DSPs once a
+  // release is out, this one lets someone hear it before it is.
+  { label: "Private Links", href: "/dashboard/private-links", badge: "NEW", svgIcon: <HeadphoneIcon /> },
   { label: "Playlist Portal", href: "/dashboard/playlist-portal", icon: "/images/playlist-broken.svg" },
 ];
 

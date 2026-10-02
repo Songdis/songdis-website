@@ -163,6 +163,29 @@ export default function ListenView({
   const { release } = page;
   const isAlbum = tracks.length > 1;
 
+  /*
+   * Out yet, or not?
+   *
+   * A release date in the future means the music is embargoed. No date at all is treated as
+   * unreleased: the cautious reading, since a release with no date set has certainly not
+   * come out.
+   */
+  const isUnreleased = (() => {
+    if (!release.release_date) return true;
+
+    const out = new Date(release.release_date);
+
+    if (Number.isNaN(out.getTime())) return true;
+
+    // Compared by day, not by instant: a release dated today is out today, wherever the
+    // person reading this happens to be.
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    out.setHours(0, 0, 0, 0);
+
+    return out.getTime() > today.getTime();
+  })();
+
   return (
     <Shell>
       <div className="flex flex-col gap-8">
@@ -171,7 +194,7 @@ export default function ListenView({
 
           <div className="flex-1 min-w-0 pt-1">
             <p className="font-heading text-[#C30100] uppercase text-[10px] tracking-widest mb-2">
-              {release.type ?? "Release"} · Private listen
+              {release.type ?? "Release"} · {isUnreleased ? "Private listen" : "Private link"}
             </p>
 
             <h1 className="font-heading text-white uppercase text-2xl sm:text-3xl leading-tight">
@@ -316,14 +339,58 @@ export default function ListenView({
         />
 
         {/*
+          Who the artist is. A playlist editor opening this has usually never heard of them,
+          and the bio is what turns a file drop into a pitch. Omitted entirely when the
+          account has no profile behind it rather than left as an empty heading.
+        */}
+        {page.artist?.bio && (
+          <section className="rounded-2xl border border-white/[0.06] bg-[#120B0B] p-5 flex flex-col sm:flex-row gap-4">
+            {page.artist.image_url && (
+              <div className="relative w-16 h-16 rounded-full overflow-hidden bg-white/[0.04] shrink-0">
+                <Image
+                  src={page.artist.image_url}
+                  alt=""
+                  fill
+                  className="object-cover"
+                  unoptimized
+                  draggable={false}
+                />
+              </div>
+            )}
+
+            <div className="min-w-0">
+              <p className="font-heading text-white uppercase text-xs tracking-wide">
+                About {page.artist.name ?? release.artist}
+              </p>
+
+              {page.artist.location && (
+                <p className="font-body text-white/35 text-[11px] mt-0.5">{page.artist.location}</p>
+              )}
+
+              <p className="font-body text-white/55 text-[13px] leading-relaxed mt-2 whitespace-pre-line">
+                {page.artist.bio}
+              </p>
+            </div>
+          </section>
+        )}
+
+        {/*
           The watermark. Not decoration: it is the only thing that makes a leak traceable,
           since a screen recording cannot be prevented.
         */}
         <footer className="border-t border-white/[0.06] pt-5 flex flex-col gap-2">
           <p className="font-body text-white/30 text-[11px] leading-relaxed">
             Shared privately by {release.artist} through Songdis
-            {page.label ? ` · ${page.label}` : ""}. Unreleased — please do not share, copy or
-            re-post this link or its contents.
+            {page.label ? ` · ${page.label}` : ""}.{" "}
+            {/*
+              "Unreleased" only when it actually is. The date decides: calling a record that
+              came out last month unreleased is wrong in front of the exact people — editors,
+              press — this page is built to impress, and it devalues the warning on the ones
+              that really are embargoed.
+            */}
+            {isUnreleased
+              ? "Unreleased — please do not share, copy or re-post this link or its contents."
+              : "Please do not re-post this link or its contents."}
           </p>
           <p className="font-body text-white/20 text-[10px]">
             Opened {new Date().toLocaleString()} · songdis.com

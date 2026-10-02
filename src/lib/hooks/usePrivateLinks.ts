@@ -4,7 +4,6 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 
 import {
   createPrivateLink,
-  deletePrivateLink,
   getPrivateLinks,
   updatePrivateLink,
   type LinkVisibility,
@@ -74,11 +73,7 @@ export function usePrivateLinks() {
     []
   );
 
-  const remove = useCallback(async (id: number) => {
-    const res = await deletePrivateLink(id);
-    if (!res.error) setLinks((prev) => prev.filter((l) => l.id !== id));
-    return res;
-  }, []);
-
-  return { links, byRelease, isLoading, error, refresh: load, create, update, remove };
+  // No remove(): an artist cannot delete a private link, because one may already be with a
+  // playlist editor. Taking one down is an admin action — see the admin Private Links screen.
+  return { links, byRelease, isLoading, error, refresh: load, create, update };
 }
