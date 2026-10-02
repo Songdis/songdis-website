@@ -115,7 +115,11 @@ export default function ListenView({
     return (
       <Shell>
         <div className="flex flex-col items-center text-center gap-5 max-w-sm mx-auto">
-          <Artwork url={page.release.artwork_url} title={page.release.title} size={160} />
+          <Artwork
+            url={page.release.artwork_url}
+            title={page.release.title}
+            className="w-40 h-40 sm:w-44 sm:h-44"
+          />
 
           <div>
             <h1 className="font-heading text-white uppercase text-xl tracking-wide">
@@ -188,22 +192,37 @@ export default function ListenView({
 
   return (
     <Shell>
-      <div className="flex flex-col gap-8">
-        <header className="flex flex-col sm:flex-row gap-6 items-start">
-          <Artwork url={release.artwork_url} title={release.title} size={200} />
+      <div className="flex flex-col gap-7 sm:gap-8 pb-28 sm:pb-24">
+        {/*
+          Two layouts, not one scaled down.
+          On a phone the artwork is the page: full width, centred, with the title under it the
+          way every music app does it. From sm up it becomes the sleeve-beside-details row
+          that reads better when there is width to spare.
+        */}
+        <header className="flex flex-col sm:flex-row gap-5 sm:gap-6 items-center sm:items-start text-center sm:text-left">
+          <Artwork
+            url={release.artwork_url}
+            title={release.title}
+            className="w-full max-w-[280px] aspect-square sm:w-[200px] sm:h-[200px] sm:max-w-none sm:aspect-auto"
+          />
 
-          <div className="flex-1 min-w-0 pt-1">
+          <div className="w-full flex-1 min-w-0 sm:pt-1">
             <p className="font-heading text-[#C30100] uppercase text-[10px] tracking-widest mb-2">
               {release.type ?? "Release"} · {isUnreleased ? "Private listen" : "Private link"}
             </p>
 
-            <h1 className="font-heading text-white uppercase text-2xl sm:text-3xl leading-tight">
+            <h1 className="font-heading text-white uppercase text-xl sm:text-3xl leading-tight break-words">
               {release.title}
             </h1>
 
             <p className="font-body text-white/60 text-sm mt-2">{release.artist}</p>
 
-            <dl className="grid grid-cols-2 gap-x-6 gap-y-2 mt-5 max-w-md">
+            {/*
+              The facts, as a card on a phone.
+              Loose two-column text looked like debris on a narrow screen; boxed and evenly
+              divided, it reads as a spec sheet — which is what an editor is scanning for.
+            */}
+            <dl className="grid grid-cols-2 gap-px mt-5 rounded-xl overflow-hidden bg-white/[0.06] sm:bg-transparent sm:gap-x-6 sm:gap-y-3 sm:mt-6 sm:max-w-md sm:rounded-none">
               <Fact label="Release date" value={formatDate(release.release_date) || "Not set"} />
               <Fact label="Tracks" value={String(release.track_count ?? tracks.length)} />
               <Fact label="Label" value={release.label_name || "—"} />
@@ -211,9 +230,15 @@ export default function ListenView({
               {/*
                 UPC is shown whether or not it exists. An editor wants the barcode; an artist
                 wants to know one is coming. "Assigned before release" is the truth when it is
-                missing — a blank would read as "this release has no barcode".
+                missing — a blank would read as "this release has no barcode". Full width: a
+                13-digit barcode does not fit in half a phone screen.
               */}
-              <Fact label="UPC" value={release.upc ?? "Assigned before release"} mono={!!release.upc} />
+              <Fact
+                label="UPC"
+                value={release.upc ?? "Assigned before release"}
+                mono={!!release.upc}
+                wide
+              />
             </dl>
           </div>
         </header>
@@ -232,7 +257,7 @@ export default function ListenView({
               <div
                 key={track.id}
                 className={[
-                  "flex items-center gap-3 rounded-xl border p-3 transition-colors",
+                  "flex items-center gap-3 rounded-xl border p-3 sm:p-3.5 transition-colors",
                   isActive
                     ? "border-[#C30100]/50 bg-[#C30100]/[0.07]"
                     : "border-white/[0.06] bg-[#120B0B] hover:border-white/15",
@@ -242,7 +267,8 @@ export default function ListenView({
                   onClick={() => play(track)}
                   disabled={!track.stream_url}
                   aria-label={isActive && playing ? `Pause ${track.title}` : `Play ${track.title}`}
-                  className="w-9 h-9 shrink-0 rounded-full border border-white/20 flex items-center justify-center text-white/70 hover:text-white hover:border-white/40 transition-colors disabled:opacity-25 disabled:cursor-not-allowed"
+                  // 44px on a phone: the minimum a thumb can hit reliably.
+                  className="w-11 h-11 sm:w-9 sm:h-9 shrink-0 rounded-full border border-white/20 flex items-center justify-center text-white/70 hover:text-white hover:border-white/40 transition-colors disabled:opacity-25 disabled:cursor-not-allowed"
                 >
                   {isActive && playing ? <PauseIcon /> : <PlayIcon />}
                 </button>
@@ -289,10 +315,14 @@ export default function ListenView({
         {/* The player. Seek and play only — no download control, and the element itself is
             never exposed, so there is no right-click "save audio as". */}
         {active && (
-          <div className="sticky bottom-4 rounded-2xl border border-white/10 bg-[#1A0D0D]/95 backdrop-blur p-4 flex items-center gap-4">
+          /*
+            Pinned to the bottom of the screen on a phone, where a floating card inset by 16px
+            just loses width the seek bar needs. On a wider screen it stays a card.
+          */
+          <div className="fixed sm:sticky bottom-0 sm:bottom-4 left-0 right-0 sm:left-auto sm:right-auto z-20 border-t sm:border border-white/10 bg-[#1A0D0D]/95 backdrop-blur px-4 py-3 sm:p-4 sm:rounded-2xl flex items-center gap-3 sm:gap-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:pb-4">
             <button
               onClick={() => play(active)}
-              className="w-11 h-11 shrink-0 rounded-full bg-[#C30100] flex items-center justify-center text-white"
+              className="w-12 h-12 sm:w-11 sm:h-11 shrink-0 rounded-full bg-[#C30100] flex items-center justify-center text-white"
               aria-label={playing ? "Pause" : "Play"}
             >
               {playing ? <PauseIcon /> : <PlayIcon />}
@@ -344,7 +374,7 @@ export default function ListenView({
           account has no profile behind it rather than left as an empty heading.
         */}
         {page.artist?.bio && (
-          <section className="rounded-2xl border border-white/[0.06] bg-[#120B0B] p-5 flex flex-col sm:flex-row gap-4">
+          <section className="rounded-2xl border border-white/[0.06] bg-[#120B0B] p-4 sm:p-5 flex flex-col sm:flex-row items-center sm:items-start text-center sm:text-left gap-3 sm:gap-4">
             {page.artist.image_url && (
               <div className="relative w-16 h-16 rounded-full overflow-hidden bg-white/[0.04] shrink-0">
                 <Image
@@ -405,7 +435,7 @@ export default function ListenView({
 
 function Shell({ children }: { children: React.ReactNode }) {
   return (
-    <main className="min-h-screen bg-[#0A0606] px-4 py-10 sm:py-16">
+    <main className="min-h-screen bg-[#0A0606] px-4 py-8 sm:py-16">
       <div className="max-w-2xl mx-auto">{children}</div>
     </main>
   );
@@ -414,16 +444,22 @@ function Shell({ children }: { children: React.ReactNode }) {
 function Artwork({
   url,
   title,
-  size,
+  className = "",
 }: {
   url: string | null | undefined;
   title: string | null | undefined;
-  size: number;
+  /**
+   * Sized by the caller, in classes rather than pixels.
+   *
+   * It used to take a fixed pixel size, which is what made the phone layout look like a
+   * squeezed desktop: a 200px square pinned to the left of a 360px screen, with the title
+   * crammed into what was left.
+   */
+  className?: string;
 }) {
   return (
     <div
-      className="relative rounded-xl overflow-hidden bg-white/[0.04] shrink-0"
-      style={{ width: size, height: size }}
+      className={`relative rounded-xl overflow-hidden bg-white/[0.04] shrink-0 ${className}`}
       // Artwork for unreleased music: not worth making it a one-click save.
       onContextMenu={(e) => e.preventDefault()}
     >
@@ -442,11 +478,29 @@ function Artwork({
   );
 }
 
-function Fact({ label, value, mono = false }: { label: string; value: string; mono?: boolean }) {
+function Fact({
+  label,
+  value,
+  mono = false,
+  wide = false,
+}: {
+  label: string;
+  value: string;
+  mono?: boolean;
+  /** Spans both columns on a phone — for values too long to share a row, like a UPC. */
+  wide?: boolean;
+}) {
   return (
-    <div>
+    <div
+      className={[
+        // The background paints the cell inside the grid's 1px gaps, which is what draws the
+        // dividing lines on a phone. Above sm the card dissolves back into plain text.
+        "bg-[#120B0B] px-3 py-2.5 text-left sm:bg-transparent sm:p-0",
+        wide ? "col-span-2 sm:col-span-1" : "",
+      ].join(" ")}
+    >
       <dt className="font-body text-white/30 text-[10px] uppercase tracking-wider">{label}</dt>
-      <dd className={`font-body text-white/70 text-xs mt-0.5 ${mono ? "font-mono select-all" : ""}`}>
+      <dd className={`font-body text-white/70 text-xs mt-1 break-all sm:break-normal ${mono ? "font-mono select-all" : ""}`}>
         {value}
       </dd>
     </div>
