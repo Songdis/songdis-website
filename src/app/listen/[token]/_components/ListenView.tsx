@@ -1,0 +1,400 @@
+"use client";
+
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import Image from "next/image";
+
+import {
+  unlockListenPage,
+  type ListenPage,
+  type ListenTrack,
+} from "@/lib/api/privateLinks";
+
+/*
+ * The listening page.
+ *
+ * What this does about leaking, honestly:
+ *
+ *   - audio is served from short-lived signed URLs, never the storage URL, so a link lifted
+ *     from the network tab is dead within minutes;
+ *   - the player exposes no download control and the <audio> element is not reachable by
+ *     right-click, so the casual "save audio as" route is closed;
+ *   - every page carries a line naming who it was issued to, so a leaked recording can be
+ *     traced back.
+ *
+ * What it does NOT do is stop a screen recording. No web page can — there is no browser API
+ * for it, and anyone claiming otherwise is selling something. The watermark is the answer to
+ * that, not a blocked shortcut.
+ */
+
+function formatDuration(seconds: number | null): string {
+  if (!seconds || Number.isNaN(seconds)) return "";
+  const m = Math.floor(seconds / 60);
+  const s = Math.round(seconds % 60);
+  return `${m}:${String(s).padStart(2, "0")}`;
+}
+
+function formatDate(iso: string | null | undefined): string {
+  if (!iso) return "";
+  const d = new Date(iso);
+  return Number.isNaN(d.getTime())
+    ? ""
+    : d.toLocaleDateString(undefined, { day: "numeric", month: "long", year: "numeric" });
+}
+
+export default function ListenView({
+  token,
+  initial,
+}: {
+  token: string;
+  initial: ListenPage;
+}) {
+  const [page, setPage] = useState<ListenPage>(initial);
+  const [passcode, setPasscode] = useState("");
+  const [unlocking, setUnlocking] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const tracks = useMemo<ListenTrack[]>(() => page.tracks ?? [], [page.tracks]);
+
+  const [activeId, setActiveId] = useState<number | null>(null);
+  const [playing, setPlaying] = useState(false);
+  const [position, setPosition] = useState(0);
+  const [length, setLength] = useState(0);
+  const audioRef = useRef<HTMLAudioElement>(null);
+
+  const active = tracks.find((t) => t.id === activeId) ?? null;
+
+  const unlock = useCallback(async () => {
+    if (!passcode.trim() || unlocking) return;
+
+    setUnlocking(true);
+    setError(null);
+
+    const { page: unlocked, error: failed } = await unlockListenPage(token, passcode.trim());
+
+    if (unlocked) {
+      setPage(unlocked);
+    } else {
+      setError(failed);
+    }
+
+    setUnlocking(false);
+  }, [passcode, token, unlocking]);
+
+  const play = useCallback((track: ListenTrack) => {
+    if (!track.stream_url) return;
+
+    if (track.id === activeId) {
+      const el = audioRef.current;
+      if (!el) return;
+      if (el.paused) el.play().catch(() => setPlaying(false));
+      else el.pause();
+      return;
+    }
+
+    setActiveId(track.id);
+    setPosition(0);
+  }, [activeId]);
+
+  // Autoplay the newly chosen track once its source has actually changed.
+  useEffect(() => {
+    const el = audioRef.current;
+    if (!el || !active?.stream_url) return;
+    el.load();
+    el.play().catch(() => setPlaying(false));
+  }, [active?.id, active?.stream_url]);
+
+  const seek = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const el = audioRef.current;
+    if (!el || !length) return;
+    el.currentTime = (Number(e.target.value) / 100) * length;
+  };
+
+  /* ─── Locked ─────────────────────────────────────────────────────────── */
+
+  if (page.locked) {
+    return (
+      <Shell>
+        <div className="flex flex-col items-center text-center gap-5 max-w-sm mx-auto">
+          <Artwork url={page.release.artwork_url} title={page.release.title} size={160} />
+
+          <div>
+            <h1 className="font-heading text-white uppercase text-xl tracking-wide">
+              {page.release.title ?? "Private listening link"}
+            </h1>
+            {page.release.artist && (
+              <p className="font-body text-white/50 text-sm mt-1">{page.release.artist}</p>
+            )}
+          </div>
+
+          <p className="font-body text-white/40 text-sm leading-relaxed">
+            This link is private. Enter the passcode you were given to listen.
+          </p>
+
+          <form
+            onSubmit={(e) => { e.preventDefault(); unlock(); }}
+            className="w-full flex flex-col gap-3"
+          >
+            <input
+              type="password"
+              value={passcode}
+              onChange={(e) => { setPasscode(e.target.value); setError(null); }}
+              placeholder="Passcode"
+              autoComplete="off"
+              className="w-full bg-[#0E0808] border border-white/10 rounded-lg px-4 py-3 font-body text-white text-sm text-center placeholder:text-white/25 outline-none focus:border-[#C30100] transition-colors"
+            />
+
+            {error && <p className="font-body text-[#C30100] text-xs">{error}</p>}
+
+            <button
+              type="submit"
+              disabled={unlocking || !passcode.trim()}
+              className="w-full min-h-[48px] font-heading text-white uppercase text-xs tracking-widest bg-[#C30100] hover:bg-[#C30100]/80 disabled:opacity-40 rounded-full px-6 py-3 transition-colors"
+            >
+              {unlocking ? "Checking…" : "Listen"}
+            </button>
+          </form>
+        </div>
+      </Shell>
+    );
+  }
+
+  /* ─── Unlocked ───────────────────────────────────────────────────────── */
+
+  const { release } = page;
+  const isAlbum = tracks.length > 1;
+
+  return (
+    <Shell>
+      <div className="flex flex-col gap-8">
+        <header className="flex flex-col sm:flex-row gap-6 items-start">
+          <Artwork url={release.artwork_url} title={release.title} size={200} />
+
+          <div className="flex-1 min-w-0 pt-1">
+            <p className="font-heading text-[#C30100] uppercase text-[10px] tracking-widest mb-2">
+              {release.type ?? "Release"} · Private listen
+            </p>
+
+            <h1 className="font-heading text-white uppercase text-2xl sm:text-3xl leading-tight">
+              {release.title}
+            </h1>
+
+            <p className="font-body text-white/60 text-sm mt-2">{release.artist}</p>
+
+            <dl className="grid grid-cols-2 gap-x-6 gap-y-2 mt-5 max-w-md">
+              <Fact label="Release date" value={formatDate(release.release_date) || "Not set"} />
+              <Fact label="Tracks" value={String(release.track_count ?? tracks.length)} />
+              <Fact label="Label" value={release.label_name || "—"} />
+              <Fact label="Genre" value={release.genre || "—"} />
+              {/*
+                UPC is shown whether or not it exists. An editor wants the barcode; an artist
+                wants to know one is coming. "Assigned before release" is the truth when it is
+                missing — a blank would read as "this release has no barcode".
+              */}
+              <Fact label="UPC" value={release.upc ?? "Assigned before release"} mono={!!release.upc} />
+            </dl>
+          </div>
+        </header>
+
+        <section className="flex flex-col gap-1.5">
+          {isAlbum && (
+            <h2 className="font-heading text-white/70 uppercase text-[11px] tracking-widest mb-1.5">
+              Tracklist
+            </h2>
+          )}
+
+          {tracks.map((track) => {
+            const isActive = track.id === activeId;
+
+            return (
+              <div
+                key={track.id}
+                className={[
+                  "flex items-center gap-3 rounded-xl border p-3 transition-colors",
+                  isActive
+                    ? "border-[#C30100]/50 bg-[#C30100]/[0.07]"
+                    : "border-white/[0.06] bg-[#120B0B] hover:border-white/15",
+                ].join(" ")}
+              >
+                <button
+                  onClick={() => play(track)}
+                  disabled={!track.stream_url}
+                  aria-label={isActive && playing ? `Pause ${track.title}` : `Play ${track.title}`}
+                  className="w-9 h-9 shrink-0 rounded-full border border-white/20 flex items-center justify-center text-white/70 hover:text-white hover:border-white/40 transition-colors disabled:opacity-25 disabled:cursor-not-allowed"
+                >
+                  {isActive && playing ? <PauseIcon /> : <PlayIcon />}
+                </button>
+
+                {isAlbum && (
+                  <span className="font-body text-white/25 text-xs w-5 text-right shrink-0">
+                    {track.number}
+                  </span>
+                )}
+
+                <div className="flex-1 min-w-0">
+                  <p className="font-body text-white text-sm truncate">
+                    {track.title}
+                    {track.mix_version ? (
+                      <span className="text-white/40"> ({track.mix_version})</span>
+                    ) : null}
+                    {track.explicit && (
+                      <span className="ml-2 align-middle text-[9px] font-heading tracking-wider px-1.5 py-0.5 rounded bg-white/10 text-white/50">
+                        E
+                      </span>
+                    )}
+                  </p>
+
+                  <p className="font-body text-white/30 text-[11px] mt-0.5">
+                    <span className="text-white/20 mr-1">ISRC</span>
+                    {track.isrc ? (
+                      <span className="font-mono select-all">{track.isrc}</span>
+                    ) : (
+                      "Assigned before release"
+                    )}
+                  </p>
+                </div>
+
+                {track.duration ? (
+                  <span className="font-body text-white/30 text-xs shrink-0">
+                    {formatDuration(track.duration)}
+                  </span>
+                ) : null}
+              </div>
+            );
+          })}
+        </section>
+
+        {/* The player. Seek and play only — no download control, and the element itself is
+            never exposed, so there is no right-click "save audio as". */}
+        {active && (
+          <div className="sticky bottom-4 rounded-2xl border border-white/10 bg-[#1A0D0D]/95 backdrop-blur p-4 flex items-center gap-4">
+            <button
+              onClick={() => play(active)}
+              className="w-11 h-11 shrink-0 rounded-full bg-[#C30100] flex items-center justify-center text-white"
+              aria-label={playing ? "Pause" : "Play"}
+            >
+              {playing ? <PauseIcon /> : <PlayIcon />}
+            </button>
+
+            <div className="flex-1 min-w-0">
+              <p className="font-body text-white text-sm truncate mb-1.5">{active.title}</p>
+
+              <div className="flex items-center gap-2">
+                <span className="font-body text-white/40 text-[10px] tabular-nums w-9">
+                  {formatDuration(Math.floor(position))}
+                </span>
+
+                <input
+                  type="range"
+                  min={0}
+                  max={100}
+                  value={length ? (position / length) * 100 : 0}
+                  onChange={seek}
+                  aria-label="Seek"
+                  className="flex-1 h-1 accent-[#C30100] cursor-pointer"
+                />
+
+                <span className="font-body text-white/40 text-[10px] tabular-nums w-9 text-right">
+                  {formatDuration(Math.floor(length))}
+                </span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        <audio
+          ref={audioRef}
+          src={active?.stream_url ?? undefined}
+          onPlay={() => setPlaying(true)}
+          onPause={() => setPlaying(false)}
+          onEnded={() => setPlaying(false)}
+          onTimeUpdate={(e) => setPosition(e.currentTarget.currentTime)}
+          onLoadedMetadata={(e) => setLength(e.currentTarget.duration)}
+          onContextMenu={(e) => e.preventDefault()}
+          controlsList="nodownload noplaybackrate"
+          preload="none"
+          className="hidden"
+        />
+
+        {/*
+          The watermark. Not decoration: it is the only thing that makes a leak traceable,
+          since a screen recording cannot be prevented.
+        */}
+        <footer className="border-t border-white/[0.06] pt-5 flex flex-col gap-2">
+          <p className="font-body text-white/30 text-[11px] leading-relaxed">
+            Shared privately by {release.artist} through Songdis
+            {page.label ? ` · ${page.label}` : ""}. Unreleased — please do not share, copy or
+            re-post this link or its contents.
+          </p>
+          <p className="font-body text-white/20 text-[10px]">
+            Opened {new Date().toLocaleString()} · songdis.com
+          </p>
+        </footer>
+      </div>
+    </Shell>
+  );
+}
+
+/* ─── Bits ──────────────────────────────────────────────────────────────── */
+
+function Shell({ children }: { children: React.ReactNode }) {
+  return (
+    <main className="min-h-screen bg-[#0A0606] px-4 py-10 sm:py-16">
+      <div className="max-w-2xl mx-auto">{children}</div>
+    </main>
+  );
+}
+
+function Artwork({
+  url,
+  title,
+  size,
+}: {
+  url: string | null | undefined;
+  title: string | null | undefined;
+  size: number;
+}) {
+  return (
+    <div
+      className="relative rounded-xl overflow-hidden bg-white/[0.04] shrink-0"
+      style={{ width: size, height: size }}
+      // Artwork for unreleased music: not worth making it a one-click save.
+      onContextMenu={(e) => e.preventDefault()}
+    >
+      {url ? (
+        <Image src={url} alt={title ?? ""} fill className="object-cover" unoptimized draggable={false} />
+      ) : (
+        <div className="w-full h-full flex items-center justify-center text-white/15">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+            <path d="M9 18V5l12-2v13" />
+            <circle cx="6" cy="18" r="3" />
+            <circle cx="18" cy="16" r="3" />
+          </svg>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function Fact({ label, value, mono = false }: { label: string; value: string; mono?: boolean }) {
+  return (
+    <div>
+      <dt className="font-body text-white/30 text-[10px] uppercase tracking-wider">{label}</dt>
+      <dd className={`font-body text-white/70 text-xs mt-0.5 ${mono ? "font-mono select-all" : ""}`}>
+        {value}
+      </dd>
+    </div>
+  );
+}
+
+const PlayIcon = () => (
+  <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
+    <polygon points="5 3 19 12 5 21 5 3" />
+  </svg>
+);
+
+const PauseIcon = () => (
+  <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
+    <rect x="6" y="4" width="4" height="16" />
+    <rect x="14" y="4" width="4" height="16" />
+  </svg>
+);

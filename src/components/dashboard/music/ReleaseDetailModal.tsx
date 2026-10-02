@@ -1,6 +1,8 @@
 "use client";
 
 import { normaliseStatus, statusConfigFor } from "@/app/mock/music";
+import PrivateLinkPanel from "./PrivateLinkPanel";
+import type { LinkVisibility, PrivateLink } from "@/lib/api/privateLinks";
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import Image from "next/image";
@@ -320,12 +322,21 @@ export function ReleaseDetailModal({
   onClose,
   onRequestEdit,
   onRequestTakedown,
+  privateLink,
+  onCreatePrivateLink,
+  onUpdatePrivateLink,
+  onDeletePrivateLink,
 }: {
   uploadId: number;
   cover?: string;
   fallbackTitle?: string;
   fallbackArtist?: string;
   onClose: () => void;
+  /** The private listening link for this release, when it has one. */
+  privateLink?: PrivateLink;
+  onCreatePrivateLink?: (payload: { music_upload_id: number; visibility: LinkVisibility; passcode?: string; label?: string }) => Promise<{ error: string | null }>;
+  onUpdatePrivateLink?: (id: number, payload: { visibility?: LinkVisibility; passcode?: string }) => Promise<{ error: string | null }>;
+  onDeletePrivateLink?: (id: number) => Promise<{ error: string | null }>;
   /**
    * Opens the edit wizard. Called with a track for a per-track request, and with nothing
    * for the release as a whole (artwork, release date and the rest, which apply album-wide).
@@ -394,6 +405,20 @@ export function ReleaseDetailModal({
             </div>
 
             <ShareLinkSection releaseId={uploadId} />
+
+            {/* The pre-release listening link. Distinct from the smart link above, which
+                points at the DSPs and only exists once the music is out. */}
+            {onCreatePrivateLink && onUpdatePrivateLink && onDeletePrivateLink && (
+              <div className="mb-5">
+                <PrivateLinkPanel
+                  releaseId={uploadId}
+                  link={privateLink}
+                  onCreate={onCreatePrivateLink}
+                  onUpdate={onUpdatePrivateLink}
+                  onDelete={onDeletePrivateLink}
+                />
+              </div>
+            )}
 
             {/* Track list */}
             <div className="flex items-center justify-between mb-3">

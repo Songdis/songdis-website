@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import { usePrivateLinks } from "@/lib/hooks/usePrivateLinks";
 import DashboardLayout from "@/components/dashboard/DashboardLayout";
 import ReleaseCard, { DraftCard } from "@/components/dashboard/music/ReleaseCard";
 import UploadModal from "@/components/dashboard/upload/UploadModal";
@@ -83,6 +84,8 @@ function FilterDropdown({ value, options, onChange }: {
 export default function YourMusicPage() {
   const [tab, setTab] = useState<Tab>("releases");
   const [modal, setModal] = useState<ModalState>(null);
+  // Loaded once for the whole grid: a request per card would be dozens of calls.
+  const privateLinks = usePrivateLinks();
   const [continueDraftId, setContinueDraftId] = useState<number | undefined>(undefined);
   const [draftToDelete, setDraftToDelete] = useState<{ id: number; title: string } | null>(null);
   const [deletingDraft, setDeletingDraft] = useState(false);
@@ -187,6 +190,7 @@ export default function YourMusicPage() {
                     onView={(r) => setModal({ type: "detail", release: r as unknown as NormalisedRelease })}
                     onEdit={(r) => setModal({ type: "edit", release: r as unknown as NormalisedRelease })}
                     onTakedown={(r) => setModal({ type: "takedown", release: r as unknown as NormalisedRelease })}
+                    privateLinkUrl={privateLinks.byRelease.get(Number(release.id))?.url}
                   />
                 ))}
               </div>
@@ -270,6 +274,10 @@ export default function YourMusicPage() {
       {modal?.type === "detail" && (
         <ReleaseDetailModal
           uploadId={Number(modal.release.id)}
+          privateLink={privateLinks.byRelease.get(Number(modal.release.id))}
+          onCreatePrivateLink={privateLinks.create}
+          onUpdatePrivateLink={privateLinks.update}
+          onDeletePrivateLink={privateLinks.remove}
           cover={modal.release.cover}
           fallbackTitle={modal.release.title}
           fallbackArtist={modal.release.artist}
