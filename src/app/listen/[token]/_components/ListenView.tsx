@@ -72,6 +72,8 @@ export default function ListenView({
    */
   const [comments, setComments] = useState<ListenComment[]>(initial.comments ?? []);
   const [commentFor, setCommentFor] = useState<number | null>(null);
+  /** Which track is showing its whole thread rather than the first two. */
+  const [expanded, setExpanded] = useState<number | null>(null);
   const [authorName, setAuthorName] = useState("");
   const [commentBody, setCommentBody] = useState("");
   const [withTimestamp, setWithTimestamp] = useState(true);
@@ -568,6 +570,11 @@ export default function ListenView({
                 <div className="flex-1 min-w-0">
                   <p className="font-body text-white text-sm truncate">
                     {track.title}
+                    {/* A feature is often the reason an editor takes the meeting — it belongs
+                        with the title, not buried in credits. */}
+                    {track.features && track.features.length > 0 && (
+                      <span className="text-white/45"> feat. {track.features.join(", ")}</span>
+                    )}
                     {track.mix_version ? (
                       <span className="text-white/40"> ({track.mix_version})</span>
                     ) : null}
@@ -611,9 +618,11 @@ export default function ListenView({
                 </button>
               </div>
 
-              {(open || mine.length > 0) && (
+              {/* Only when asked for. The page is for listening; feedback already left should
+                  not push the next track off the screen. */}
+              {open && (
                 <div className="ml-0 sm:ml-14 flex flex-col gap-2 pb-1">
-                  {mine.map((comment) => (
+                  {(expanded === track.id ? mine : mine.slice(0, 2)).map((comment) => (
                     <div key={comment.id} className="rounded-lg bg-[#160D0D] border border-white/[0.05] px-3 py-2.5">
                       <p className="font-body text-white/80 text-[12px]">
                         <span className="text-white">{comment.author_name}</span>
@@ -634,8 +643,40 @@ export default function ListenView({
                       <p className="font-body text-white/55 text-[12px] leading-relaxed mt-1 whitespace-pre-line">
                         {comment.body}
                       </p>
+
+                      {/* The artist answered. Shown to whoever left the comment, so feedback
+                          feels heard rather than posted into a void. */}
+                      {comment.reply_body && (
+                        <div className="mt-2.5 pl-3 border-l-2 border-[#C30100]/40">
+                          <p className="font-body text-[11px] text-[#C30100]">
+                            {release.artist ?? "The artist"} replied
+                          </p>
+                          <p className="font-body text-white/60 text-[12px] leading-relaxed mt-0.5 whitespace-pre-line">
+                            {comment.reply_body}
+                          </p>
+                        </div>
+                      )}
                     </div>
                   ))}
+
+                  {/* Two is enough to show there is a conversation; the rest on request. */}
+                  {mine.length > 2 && expanded !== track.id && (
+                    <button
+                      onClick={() => setExpanded(track.id)}
+                      className="self-start font-body text-white/45 hover:text-white text-[11px] underline underline-offset-2"
+                    >
+                      Show {mine.length - 2} more
+                    </button>
+                  )}
+
+                  {mine.length > 2 && expanded === track.id && (
+                    <button
+                      onClick={() => setExpanded(null)}
+                      className="self-start font-body text-white/45 hover:text-white text-[11px] underline underline-offset-2"
+                    >
+                      Show less
+                    </button>
+                  )}
 
                   {open && (
                     <form

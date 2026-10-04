@@ -39,6 +39,8 @@ export interface LinkComment {
   at_seconds: number | null;
   track_title: string | null;
   created_at: string | null;
+  reply_body?: string | null;
+  replied_at?: string | null;
 }
 
 export interface ListenTrack {
@@ -50,6 +52,8 @@ export interface ListenTrack {
   isrc: string | null;
   explicit: boolean;
   duration: number | null;
+  /** Featured artists, already filtered to real features server-side. */
+  features?: string[];
   /** Signed and short-lived. Never the raw storage URL. */
   stream_url: string | null;
 }
@@ -102,6 +106,9 @@ export interface ListenComment {
   /** How far into the track they were, when they said so. */
   at_seconds: number | null;
   created_at: string | null;
+  /** The artist's answer, shown under the comment. Null until they reply. */
+  reply_body?: string | null;
+  replied_at?: string | null;
 }
 
 /* ─── The artist's own links (authenticated) ──────────────────────────────── */
@@ -130,6 +137,20 @@ export async function updatePrivateLink(
   return request<PrivateLink>(
     `/private-links/${id}`,
     { method: "PATCH", body: JSON.stringify(payload) },
+    true
+  );
+}
+
+/**
+ * Answer a comment left on one of the artist's links.
+ *
+ * An empty body removes the reply — the same call, so an artist can take back something
+ * written in haste without a second endpoint.
+ */
+export async function replyToComment(commentId: number, body: string) {
+  return request<{ id: number; reply_body: string | null; replied_at: string | null }>(
+    `/private-links/comments/${commentId}/reply`,
+    { method: "PATCH", body: JSON.stringify({ body }) },
     true
   );
 }

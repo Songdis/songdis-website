@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   createPrivateLink,
   getPrivateLinks,
+  replyToComment,
   updatePrivateLink,
   type LinkVisibility,
   type PrivateLink,
@@ -73,7 +74,27 @@ export function usePrivateLinks() {
     []
   );
 
+  /** Answer a comment, or clear the answer by sending nothing. */
+  const reply = useCallback(async (commentId: number, body: string) => {
+    const res = await replyToComment(commentId, body);
+
+    if (!res.error) {
+      setLinks((prev) =>
+        prev.map((link) => ({
+          ...link,
+          comments: link.comments?.map((c) =>
+            c.id === commentId
+              ? { ...c, reply_body: res.data?.reply_body ?? null, replied_at: res.data?.replied_at ?? null }
+              : c
+          ),
+        }))
+      );
+    }
+
+    return res;
+  }, []);
+
   // No remove(): an artist cannot delete a private link, because one may already be with a
   // playlist editor. Taking one down is an admin action — see the admin Private Links screen.
-  return { links, byRelease, isLoading, error, refresh: load, create, update };
+  return { links, byRelease, isLoading, error, refresh: load, create, update, reply };
 }

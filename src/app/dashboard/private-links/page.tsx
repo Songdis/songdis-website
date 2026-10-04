@@ -15,10 +15,16 @@ import type { PrivateLink } from "@/lib/api/privateLinks";
  * and which are actually being listened to.
  */
 export default function PrivateLinksPage() {
-  const { links, isLoading, error, update } = usePrivateLinks();
+  const { links, isLoading, error, update, reply } = usePrivateLinks();
   const [query, setQuery] = useState("");
   const [copiedId, setCopiedId] = useState<number | null>(null);
   const [openComments, setOpenComments] = useState<number | null>(null);
+  /** Which links are showing their whole thread rather than the first two. */
+  const [expanded, setExpanded] = useState<number | null>(null);
+  /** The comment being answered, and what has been typed so far. */
+  const [replyTo, setReplyTo] = useState<number | null>(null);
+  const [replyBody, setReplyBody] = useState("");
+  const [replying, setReplying] = useState(false);
   const [busyId, setBusyId] = useState<number | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
 
@@ -40,6 +46,20 @@ export default function PrivateLinksPage() {
     } catch {
       setActionError("Could not copy. Select the link and copy it by hand.");
     }
+  };
+
+  const sendReply = async (commentId: number) => {
+    if (!replyBody.trim() || replying) return;
+
+    setReplying(true);
+    setActionError(null);
+
+    const res = await reply(commentId, replyBody.trim());
+
+    if (res.error) setActionError(res.error);
+    else { setReplyTo(null); setReplyBody(""); }
+
+    setReplying(false);
   };
 
   const makePublic = async (link: PrivateLink) => {
@@ -226,7 +246,7 @@ export default function PrivateLinksPage() {
                 */}
                 {openComments === link.id && link.comments && (
                   <div className="flex flex-col gap-2 pt-1">
-                    {link.comments.map((comment) => (
+                    {(expanded === link.id ? link.comments : link.comments.slice(0, 2)).map((comment) => (
                       <div
                         key={comment.id}
                         className="rounded-xl bg-[#0E0808] border border-white/[0.05] px-3.5 py-3"
@@ -253,8 +273,62 @@ export default function PrivateLinksPage() {
                             {new Date(comment.created_at).toLocaleString()}
                           </p>
                         )}
+
+                        {/* Your answer, which whoever left the comment sees on the link. */}
+                        {comment.reply_body && replyTo !== comment.id && (
+                          <div className="mt-2.5 pl-3 border-l-2 border-[#C30100]/40">
+                            <p className="font-body text-[#C30100] text-[11px]">You replied</p>
+                            <p className="font-body text-white/60 text-[12px] leading-relaxed mt-0.5 whitespace-pre-line">
+                              {comment.reply_body}
+                            </p>
+                          </div>
+                        )}
+
+                        {replyTo === comment.id ? (
+                          <div className="mt-2.5 flex flex-col gap-2">
+                            <textarea
+                              value={replyBody}
+                              onChange={(e) => setReplyBody(e.target.value)}
+                              rows={2}
+                              maxLength={2000}
+                              placeholder={`Reply to ${comment.author_name}`}
+                              className="w-full bg-[#180F0F] border border-white/10 rounded-lg px-3 py-2 font-body text-white text-[12px] placeholder:text-white/25 outline-none focus:border-[#C30100] transition-colors resize-none"
+                            />
+                            <div className="flex items-center gap-3">
+                              <button
+                                onClick={() => sendReply(comment.id)}
+                                disabled={replying || !replyBody.trim()}
+                                className="font-heading text-white uppercase text-[10px] tracking-widest rounded-full border border-[#C30100] bg-[#C30100]/10 hover:bg-[#C30100] disabled:opacity-40 px-3.5 py-1.5 transition-colors"
+                              >
+                                {replying ? "Sending…" : "Reply"}
+                              </button>
+                              <button
+                                onClick={() => { setReplyTo(null); setReplyBody(""); }}
+                                className="font-body text-white/40 hover:text-white/70 text-[11px]"
+                              >
+                                Cancel
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <button
+                            onClick={() => { setReplyTo(comment.id); setReplyBody(comment.reply_body ?? ""); }}
+                            className="mt-2 font-body text-white/45 hover:text-white text-[11px] underline underline-offset-2"
+                          >
+                            {comment.reply_body ? "Edit your reply" : "Reply"}
+                          </button>
+                        )}
                       </div>
                     ))}
+
+                    {link.comments.length > 2 && (
+                      <button
+                        onClick={() => setExpanded(expanded === link.id ? null : link.id)}
+                        className="self-start font-body text-white/45 hover:text-white text-[11px] underline underline-offset-2"
+                      >
+                        {expanded === link.id ? "Show less" : `Show ${link.comments.length - 2} more`}
+                      </button>
+                    )}
 
                     <p className="font-body text-white/25 text-[10px] leading-relaxed">
                       Anyone you send the link to can leave feedback — the name is whatever they
