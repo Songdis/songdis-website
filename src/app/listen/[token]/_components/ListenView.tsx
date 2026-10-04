@@ -74,6 +74,14 @@ export default function ListenView({
   const [commentFor, setCommentFor] = useState<number | null>(null);
   /** Which track is showing its whole thread rather than the first two. */
   const [expanded, setExpanded] = useState<number | null>(null);
+  /**
+   * Which track has the write box open.
+   *
+   * Separate from commentFor on purpose: the icon opens what people said, and writing is a
+   * second, deliberate step. Opening straight into a form puts a name field in front of
+   * someone who only wanted to read.
+   */
+  const [composingFor, setComposingFor] = useState<number | null>(null);
   const [authorName, setAuthorName] = useState("");
   const [commentBody, setCommentBody] = useState("");
   const [withTimestamp, setWithTimestamp] = useState(true);
@@ -373,7 +381,9 @@ export default function ListenView({
       if (comment) {
         setComments((prev) => [...prev, comment]);
         setCommentBody("");
-        setCommentFor(null);
+        // Close the form, not the panel: they should see their comment land under the track
+        // rather than watch the whole thing collapse.
+        setComposingFor(null);
 
         try {
           sessionStorage.setItem("songdis_listen_name", authorName.trim());
@@ -540,6 +550,7 @@ export default function ListenView({
             const isActive = track.id === activeId;
             const mine = comments.filter((c) => c.music_upload_id === track.id);
             const open = commentFor === track.id;
+            const composing = composingFor === track.id;
 
             return (
               <div key={track.id} className="flex flex-col gap-1.5">
@@ -604,7 +615,11 @@ export default function ListenView({
                 {/* Feedback lives on the track, not in one pile at the bottom. The count is
                     the affordance: an empty one still invites the first comment. */}
                 <button
-                  onClick={() => { setCommentFor(open ? null : track.id); setCommentError(null); }}
+                  onClick={() => {
+                    setCommentFor(open ? null : track.id);
+                    setComposingFor(null);
+                    setCommentError(null);
+                  }}
                   aria-expanded={open}
                   aria-label={mine.length ? `${mine.length} comments on ${track.title}` : `Comment on ${track.title}`}
                   className={`shrink-0 flex items-center gap-1 rounded-full border px-2.5 py-1.5 transition-colors ${
@@ -678,7 +693,21 @@ export default function ListenView({
                     </button>
                   )}
 
-                  {open && (
+                  {/* Nothing said yet — say so plainly rather than showing an empty box. */}
+                  {mine.length === 0 && !composing && (
+                    <p className="font-body text-white/30 text-[11px]">No comments yet.</p>
+                  )}
+
+                  {!composing && (
+                    <button
+                      onClick={() => { setComposingFor(track.id); setCommentError(null); }}
+                      className="self-start font-heading text-white uppercase text-[10px] tracking-widest rounded-full border border-[#C30100] bg-[#C30100]/10 hover:bg-[#C30100] px-4 py-2 transition-colors"
+                    >
+                      {mine.length === 0 ? "Leave the first comment" : "Add a comment"}
+                    </button>
+                  )}
+
+                  {composing && (
                     <form
                       onSubmit={(e) => { e.preventDefault(); submitComment(track.id); }}
                       className="rounded-lg bg-[#160D0D] border border-white/[0.07] p-3 flex flex-col gap-2"
@@ -728,7 +757,7 @@ export default function ListenView({
 
                         <button
                           type="button"
-                          onClick={() => { setCommentFor(null); setCommentError(null); }}
+                          onClick={() => { setComposingFor(null); setCommentError(null); }}
                           className="font-body text-white/40 hover:text-white/70 text-[11px]"
                         >
                           Cancel
