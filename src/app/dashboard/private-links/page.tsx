@@ -18,6 +18,7 @@ export default function PrivateLinksPage() {
   const { links, isLoading, error, update } = usePrivateLinks();
   const [query, setQuery] = useState("");
   const [copiedId, setCopiedId] = useState<number | null>(null);
+  const [openComments, setOpenComments] = useState<number | null>(null);
   const [busyId, setBusyId] = useState<number | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
 
@@ -132,6 +133,9 @@ export default function PrivateLinksPage() {
                       {link.release?.upload_type ?? "Release"}
                       {link.label ? ` · ${link.label}` : ""}
                       {` · ${link.view_count} ${link.view_count === 1 ? "open" : "opens"}`}
+                      {link.comments?.length
+                        ? ` · ${link.comments.length} ${link.comments.length === 1 ? "comment" : "comments"}`
+                        : ""}
                     </p>
                   </div>
 
@@ -192,6 +196,19 @@ export default function PrivateLinksPage() {
                     </button>
                   )}
 
+                  {link.comments && link.comments.length > 0 && (
+                    <>
+                      <span className="text-white/15">·</span>
+                      <button
+                        onClick={() => setOpenComments(openComments === link.id ? null : link.id)}
+                        aria-expanded={openComments === link.id}
+                        className="font-body text-[#C30100] hover:text-white text-[11px] underline underline-offset-2"
+                      >
+                        {openComments === link.id ? "Hide feedback" : `Read ${link.comments.length} comment${link.comments.length === 1 ? "" : "s"}`}
+                      </button>
+                    </>
+                  )}
+
                   {link.last_viewed_at && (
                     <>
                       <span className="text-white/15">·</span>
@@ -201,6 +218,50 @@ export default function PrivateLinksPage() {
                     </>
                   )}
                 </div>
+
+                {/*
+                  What people actually said.
+                  The track is named on every comment: an album's link covers several songs,
+                  and "the hook needs work" is useless without knowing which one.
+                */}
+                {openComments === link.id && link.comments && (
+                  <div className="flex flex-col gap-2 pt-1">
+                    {link.comments.map((comment) => (
+                      <div
+                        key={comment.id}
+                        className="rounded-xl bg-[#0E0808] border border-white/[0.05] px-3.5 py-3"
+                      >
+                        <p className="font-body text-[12px]">
+                          <span className="text-white">{comment.author_name}</span>
+                          {comment.track_title && (
+                            <span className="text-white/40"> on {comment.track_title}</span>
+                          )}
+                          {comment.at_seconds !== null && (
+                            <span className="text-[#C30100]">
+                              {" "}at {Math.floor(comment.at_seconds / 60)}:
+                              {String(comment.at_seconds % 60).padStart(2, "0")}
+                            </span>
+                          )}
+                        </p>
+
+                        <p className="font-body text-white/60 text-[12px] leading-relaxed mt-1.5 whitespace-pre-line">
+                          {comment.body}
+                        </p>
+
+                        {comment.created_at && (
+                          <p className="font-body text-white/25 text-[10px] mt-1.5">
+                            {new Date(comment.created_at).toLocaleString()}
+                          </p>
+                        )}
+                      </div>
+                    ))}
+
+                    <p className="font-body text-white/25 text-[10px] leading-relaxed">
+                      Anyone you send the link to can leave feedback — the name is whatever they
+                      typed. Contact support if something here should not be.
+                    </p>
+                  </div>
+                )}
               </div>
             ))}
           </div>

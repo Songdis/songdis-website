@@ -27,6 +27,18 @@ export interface PrivateLink {
     artwork_url: string | null;
     upload_type: string | null;
   } | null;
+  comments?: LinkComment[];
+}
+
+/** A comment as the artist and the admin see it — the track is named, since an album's
+ *  link covers several and the feedback is useless without knowing which song. */
+export interface LinkComment {
+  id: number;
+  author_name: string;
+  body: string;
+  at_seconds: number | null;
+  track_title: string | null;
+  created_at: string | null;
 }
 
 export interface ListenTrack {
@@ -78,6 +90,18 @@ export interface ListenPage {
     track_count?: number;
   };
   tracks?: ListenTrack[];
+  comments?: ListenComment[];
+}
+
+/** Feedback left on a track by whoever was sent the link. */
+export interface ListenComment {
+  id: number;
+  music_upload_id: number;
+  author_name: string;
+  body: string;
+  /** How far into the track they were, when they said so. */
+  at_seconds: number | null;
+  created_at: string | null;
 }
 
 /* ─── The artist's own links (authenticated) ──────────────────────────────── */
@@ -148,6 +172,56 @@ export async function getListenPage(token: string): Promise<ListenPage | null> {
     return json?.data ?? null;
   } catch {
     return null;
+  }
+}
+
+/**
+ * Leave feedback on a track.
+ *
+ * Carries the passcode when the page is a locked one: the API refuses a comment on a link
+ * the commenter could not have opened.
+ */
+export async function postListenComment(
+  token: string,
+  payload: { music_upload_id: number; author_name: string; body: string; at_seconds?: number },
+  passcode?: string | null
+): Promise<{ comment: ListenComment | null; error: string | null }> {
+  if (!BASE_URL || !isValidToken(token)) {
+    return { comment: null, error: "This link is not available." };
+  }
+
+  try {
+    const res = await fetch(`${BASE_URL}/public/listen/${token}/comments`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+        ...(passcode ? { "X-Link-Passcode": passcode } : {}),
+      },
+      body: JSON.stringify(payload),
+      cache: "no-store",
+    });
+
+    const json = (await res.json().catch(() => null)) as
+      | { data?: ListenComment; message?: string; errors?: Record<string, string[]> }
+      | null;
+
+    if (!res.ok) {
+      // Laravel puts the useful sentence in `errors`; `message` is the generic one.
+      const firstFieldError = Object.values(json?.errors ?? {})[0]?.[0];
+
+      return {
+        comment: null,
+        error:
+          res.status === 429
+            ? "That is a lot of comments at once. Give it a minute."
+            : firstFieldError ?? json?.message ?? "Could not post that.",
+      };
+    }
+
+    return { comment: json?.data ?? null, error: null };
+  } catch {
+    return { comment: null, error: "Network error. Please check your connection." };
   }
 }
 
