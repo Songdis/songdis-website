@@ -33,6 +33,14 @@ export interface Split {
 
 export interface CreateSplitPayload {
   music_upload_id: number;
+  /**
+   * What the split covers.
+   *
+   * 'track' matches royalties by ISRC — one song. 'release' matches by UPC, which every
+   * track of an album shares, so it takes the whole record. The API defaults to 'track';
+   * it is sent explicitly here so the intent is in the request rather than inferred.
+   */
+  scope?: "track" | "release";
   split_name: string;
   notes?: string;
   recipients: Array<{

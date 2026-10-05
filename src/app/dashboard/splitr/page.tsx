@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Image from "next/image";
 import DashboardLayout from "@/components/dashboard/DashboardLayout";
 import { SuccessModal } from "@/components/auth/SuccessModal";
@@ -13,13 +13,15 @@ import {
   type NormalisedSplit,
 } from "@/lib/hooks/useSplit";
 import { updateRecipient, addRecipient, respondToMyInvitation, type SplitEarnings } from "@/lib/api/splitr";
-import { useMusic } from "@/lib/hooks/useMusic";
+import { getAllMusic } from "@/lib/api/music";
 import { useUser } from "@/lib/hooks/useUser";
 
 interface SplitFormProps {
   mode: "new" | "edit";
   split?: NormalisedSplit;
-  musicUploadOptions: Array<{ id: number; title: string }>;
+  /** One entry per TRACK. An album's songs are credited to different people, so the unit
+   *  here is the song, not the record — see RoyaltySplit::SCOPE_TRACK. */
+  musicUploadOptions: Array<{ id: number; title: string; release: string; isAlbumTrack: boolean }>;
   onClose: () => void;
   onSubmit: (data: {
     musicUploadId: number;
@@ -81,15 +83,35 @@ function SplitAgreementForm({ mode, split, musicUploadOptions, onClose, onSubmit
                   onChange={(e) => setSelectedUploadId(Number(e.target.value))}
                   className={selectCls}
                 >
-                  {musicUploadOptions.length === 0
-                    ? <option>No releases found</option>
-                    : musicUploadOptions.map((m) => (
-                        <option key={m.id} value={m.id}>{m.title}</option>
-                      ))
-                  }
+                  {musicUploadOptions.length === 0 ? (
+                    <option>No releases found</option>
+                  ) : (
+                    /*
+                      Grouped by release so an album's tracks sit together and a long
+                      catalogue stays navigable. Singles are their own group rather than
+                      a group of one each.
+                    */
+                    Object.entries(
+                      musicUploadOptions.reduce<Record<string, typeof musicUploadOptions>>((groups, m) => {
+                        const key = m.isAlbumTrack ? m.release : "Singles";
+                        (groups[key] ??= []).push(m);
+                        return groups;
+                      }, {})
+                    ).map(([release, tracks]) => (
+                      <optgroup key={release} label={release}>
+                        {tracks.map((m) => (
+                          <option key={m.id} value={m.id}>{m.title}</option>
+                        ))}
+                      </optgroup>
+                    ))
+                  )}
                 </select>
                 <ChevronIcon />
               </div>
+              <p className="font-body text-white/30 text-[11px] mt-1.5">
+                Splits apply to this track alone. Add a separate split for each song that has
+                different collaborators.
+              </p>
             </Field>
 
             {/* Split name */}
@@ -297,9 +319,36 @@ export default function SplitrPage() {
   const { earnings, totalEarnings, error: earningsError, refresh: refreshEarnings } = useSplitEarnings();
   const { create, isLoading: createLoading } = useCreateSplit();
   const { update, isLoading: updateLoading } = useUpdateSplit();
-  const { releases } = useMusic();
   const { user } = useUser();
-  const musicUploadOptions = releases.map((r) => ({ id: Number(r.id), title: r.title }));
+  /*
+   * Every TRACK, not every release.
+   *
+   * useMusic() collapses an album into one card, which is right for the music page and wrong
+   * here: a split belongs to a song, and an album's songs have different writers, producers
+   * and features. Loaded straight from the API so the album's individual rows survive.
+   */
+  const [trackOptions, setTrackOptions] = useState<
+    Array<{ id: number; title: string; release: string; isAlbumTrack: boolean }>
+  >([]);
+
+  useEffect(() => {
+    getAllMusic().then(({ releases: rows }) => {
+      setTrackOptions(
+        rows.map((row) => {
+          const isAlbumTrack = !String(row.upload_type ?? "").toLowerCase().includes("single");
+
+          return {
+            id: Number(row.id),
+            title: row.track_title || row.release_title || "Untitled",
+            release: row.release_title || row.track_title || "Release",
+            isAlbumTrack,
+          };
+        })
+      );
+    });
+  }, []);
+
+  const musicUploadOptions = trackOptions;
   const vizSplit = splits[0] ?? null;
   const vizCollabs = vizSplit?.collaborators ?? [];
   const myShare = vizCollabs.find((c) => c.isYou)?.split ?? 0;
@@ -312,6 +361,8 @@ export default function SplitrPage() {
     await create(
       {
         music_upload_id: data.musicUploadId,
+        // One song. The API defaults to this; sent anyway so the request says what it means.
+        scope: "track",
         split_name: data.splitName,
         recipients: data.collaborators
           .filter((c) => c.email)
