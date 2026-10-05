@@ -40,14 +40,28 @@ jobs:
             git fetch origin
             git reset --hard origin/develop
 
-            # --env-file, not the shell: the build args in the compose file read from the
-            # environment, and NEXT_PUBLIC_* is compiled into the bundle rather than read at
-            # runtime. Build with the wrong file and the site talks to the wrong API.
+            # Built through buildx, not `docker compose build`.
+            #
+            # This host uses Docker's containerd image store, which fails to export a layer
+            # containing react-icons - tens of thousands of tiny files - with
+            # "lstat ... no such file or directory" AFTER a completely successful compile.
+            # The docker-container builder builds in isolation and only loads the finished
+            # image, which sidesteps that export entirely.
+            #
+            # The args are read from .env and passed explicitly: NEXT_PUBLIC_* is compiled
+            # INTO the bundle, so building with the wrong file points the site at the wrong
+            # API and no runtime setting can correct it.
             echo "Building..."
-            docker compose --env-file .env -f docker-compose.dev.yml build
+            set -a
+            . ./.env
+            set +a
+            docker buildx build --builder songdis --load \
+              --build-arg NEXT_PUBLIC_API_URL="$NEXT_PUBLIC_API_URL" \
+              --build-arg NEXT_PUBLIC_AYO_URL="$NEXT_PUBLIC_AYO_URL" \
+              -t songdis-web:dev .
 
             echo "Starting..."
-            docker compose --env-file .env -f docker-compose.dev.yml up -d
+            docker compose --env-file .env -f docker-compose.dev.yml up -d --no-build
 
             echo "Waiting for it to answer..."
             for i in $(seq 1 30); do
