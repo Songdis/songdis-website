@@ -105,6 +105,9 @@ export default function ListenView({
     setRatings(seeded);
   }, [page.tracks]);
 
+  /** Which track has its rating strip open. */
+  const [ratingFor, setRatingFor] = useState<number | null>(null);
+
   /** Which track is showing its whole thread rather than the first two. */
   const [expanded, setExpanded] = useState<number | null>(null);
   /**
@@ -597,6 +600,7 @@ export default function ListenView({
             const mine = comments.filter((c) => c.music_upload_id === track.id);
             const open = commentFor === track.id;
             const composing = composingFor === track.id;
+            const rating_open = ratingFor === track.id;
 
             return (
               <div key={track.id} className="flex flex-col gap-1.5">
@@ -676,6 +680,25 @@ export default function ListenView({
                   )}
                 </button>
 
+                {/* Rating gets its own button rather than hiding inside the comment panel:
+                    it is a different act — one is a note to the artist, the other a score
+                    only they ever see — and burying one behind the other hides it. */}
+                <button
+                  onClick={() => { setRatingFor(rating_open ? null : track.id); }}
+                  aria-expanded={rating_open}
+                  aria-label={ratings[track.id] ? `Rated ${ratings[track.id]} out of 5` : `Rate ${track.title}`}
+                  className={`shrink-0 flex items-center gap-1 rounded-full border px-2.5 py-1.5 transition-colors ${
+                    ratings[track.id]
+                      ? "border-[#C30100] text-[#C30100]"
+                      : "border-white/10 text-white/35 hover:text-white/70 hover:border-white/25"
+                  }`}
+                >
+                  <StarIcon filled={Boolean(ratings[track.id])} />
+                  {ratings[track.id] ? (
+                    <span className="font-body text-[10px]">{ratings[track.id]}</span>
+                  ) : null}
+                </button>
+
                 {/* Feedback lives on the track, not in one pile at the bottom. The count is
                     the affordance: an empty one still invites the first comment. */}
                 <button
@@ -696,6 +719,33 @@ export default function ListenView({
                   {mine.length > 0 && <span className="font-body text-[10px]">{mine.length}</span>}
                 </button>
               </div>
+
+              {rating_open && (
+                <div className="ml-0 sm:ml-14 flex flex-wrap items-center gap-2 rounded-lg bg-[#160D0D] border border-white/[0.05] px-3 py-2.5">
+                  <span className="flex items-center gap-0.5">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <button
+                        key={star}
+                        onClick={() => rate(track.id, star)}
+                        aria-label={`Rate ${star} out of 5`}
+                        className={`p-0.5 transition-colors ${
+                          (ratings[track.id] ?? 0) >= star
+                            ? "text-[#C30100]"
+                            : "text-white/20 hover:text-white/45"
+                        }`}
+                      >
+                        <StarIcon filled={(ratings[track.id] ?? 0) >= star} />
+                      </button>
+                    ))}
+                  </span>
+
+                  {/* Said where it is given: a score the room can read is a score people
+                      round up. */}
+                  <span className="font-body text-white/30 text-[11px]">
+                    Private — only the artist sees this
+                  </span>
+                </div>
+              )}
 
               {/* Only when asked for. The page is for listening; feedback already left should
                   not push the next track off the screen. */}
@@ -756,36 +806,6 @@ export default function ListenView({
                       Show less
                     </button>
                   )}
-
-                  {/*
-                    The private rating.
-                    Said plainly where it is given: a score nobody can see is the only kind
-                    worth collecting, and someone who suspects the room can read it rounds up.
-                  */}
-                  <div className="flex flex-wrap items-center gap-2 pb-0.5">
-                    <span className="font-body text-white/35 text-[11px]">Rate it</span>
-
-                    <span className="flex items-center gap-0.5">
-                      {[1, 2, 3, 4, 5].map((star) => (
-                        <button
-                          key={star}
-                          onClick={() => rate(track.id, star)}
-                          aria-label={`Rate ${star} out of 5`}
-                          className={`p-0.5 transition-colors ${
-                            (ratings[track.id] ?? 0) >= star
-                              ? "text-[#C30100]"
-                              : "text-white/20 hover:text-white/45"
-                          }`}
-                        >
-                          <StarIcon filled={(ratings[track.id] ?? 0) >= star} />
-                        </button>
-                      ))}
-                    </span>
-
-                    <span className="font-body text-white/25 text-[10px]">
-                      {ratings[track.id] ? "Only the artist sees this" : "Private — only the artist sees it"}
-                    </span>
-                  </div>
 
                   {/* Nothing said yet — say so plainly rather than showing an empty box. */}
                   {mine.length === 0 && !composing && (
