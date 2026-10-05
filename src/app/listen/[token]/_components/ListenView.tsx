@@ -5,6 +5,7 @@ import Image from "next/image";
 
 import {
   postListenComment,
+  toggleTrackLike,
   unlockListenPage,
   type ListenComment,
   type ListenPage,
@@ -72,6 +73,24 @@ export default function ListenView({
    */
   const [comments, setComments] = useState<ListenComment[]>(initial.comments ?? []);
   const [commentFor, setCommentFor] = useState<number | null>(null);
+  /*
+   * Likes, held locally so a tap is instant.
+   *
+   * Seeded from the page and corrected by whatever the server returns. A heart that waits for
+   * a round trip feels broken, and the count is not worth being strict about mid-tap.
+   */
+  const [likes, setLikes] = useState<Record<number, { liked: boolean; count: number }>>({});
+
+  useEffect(() => {
+    const seeded: Record<number, { liked: boolean; count: number }> = {};
+
+    for (const track of page.tracks ?? []) {
+      seeded[track.id] = { liked: Boolean(track.liked), count: track.likes ?? 0 };
+    }
+
+    setLikes(seeded);
+  }, [page.tracks]);
+
   /** Which track is showing its whole thread rather than the first two. */
   const [expanded, setExpanded] = useState<number | null>(null);
   /**
@@ -399,6 +418,30 @@ export default function ListenView({
     [authorName, commentBody, posting, token, withTimestamp, activeId, position, passcode]
   );
 
+  const like = useCallback(
+    async (trackId: number) => {
+      const before = likes[trackId] ?? { liked: false, count: 0 };
+
+      // Optimistic: the heart fills on the tap, not on the response.
+      setLikes((prev) => ({
+        ...prev,
+        [trackId]: {
+          liked: !before.liked,
+          count: Math.max(0, before.count + (before.liked ? -1 : 1)),
+        },
+      }));
+
+      const result = await toggleTrackLike(token, trackId, passcode || null);
+
+      // Put it back if the server disagreed — including when it never answered.
+      setLikes((prev) => ({
+        ...prev,
+        [trackId]: result ? { liked: result.liked, count: result.likes } : before,
+      }));
+    },
+    [likes, token, passcode]
+  );
+
   const seek = (e: React.ChangeEvent<HTMLInputElement>) => {
     const el = audioRef.current;
     if (!el || !length) return;
@@ -512,30 +555,6 @@ export default function ListenView({
             </h1>
 
             <p className="font-body text-white/60 text-sm mt-2">{release.artist}</p>
-
-            {/*
-              The facts, as a card on a phone.
-              Loose two-column text looked like debris on a narrow screen; boxed and evenly
-              divided, it reads as a spec sheet — which is what an editor is scanning for.
-            */}
-            <dl className="grid grid-cols-2 gap-px mt-5 rounded-xl overflow-hidden bg-white/[0.06] sm:bg-transparent sm:gap-x-6 sm:gap-y-3 sm:mt-6 sm:max-w-md sm:rounded-none">
-              <Fact label="Release date" value={formatDate(release.release_date) || "Not set"} />
-              <Fact label="Tracks" value={String(release.track_count ?? tracks.length)} />
-              <Fact label="Label" value={release.label_name || "—"} />
-              <Fact label="Genre" value={release.genre || "—"} />
-              {/*
-                UPC is shown whether or not it exists. An editor wants the barcode; an artist
-                wants to know one is coming. "Assigned before release" is the truth when it is
-                missing — a blank would read as "this release has no barcode". Full width: a
-                13-digit barcode does not fit in half a phone screen.
-              */}
-              <Fact
-                label="UPC"
-                value={release.upc ?? "Assigned before release"}
-                mono={!!release.upc}
-                wide
-              />
-            </dl>
           </div>
         </header>
 
@@ -611,6 +630,24 @@ export default function ListenView({
                     {formatDuration(track.duration)}
                   </span>
                 ) : null}
+
+                {/* A like is the lightest thing someone can say, and often the only thing
+                    they will. It sits before the comment button for that reason. */}
+                <button
+                  onClick={() => like(track.id)}
+                  aria-pressed={likes[track.id]?.liked ?? false}
+                  aria-label={likes[track.id]?.liked ? `Unlike ${track.title}` : `Like ${track.title}`}
+                  className={`shrink-0 flex items-center gap-1 rounded-full border px-2.5 py-1.5 transition-colors ${
+                    likes[track.id]?.liked
+                      ? "border-[#C30100] text-[#C30100]"
+                      : "border-white/10 text-white/35 hover:text-white/70 hover:border-white/25"
+                  }`}
+                >
+                  <HeartIcon filled={likes[track.id]?.liked ?? false} />
+                  {(likes[track.id]?.count ?? 0) > 0 && (
+                    <span className="font-body text-[10px]">{likes[track.id]?.count}</span>
+                  )}
+                </button>
 
                 {/* Feedback lives on the track, not in one pile at the bottom. The count is
                     the affordance: an empty one still invites the first comment. */}
@@ -887,6 +924,38 @@ export default function ListenView({
         />
 
         {/*
+          The release details, under the tracklist on purpose.
+          Artists screenshot this page, and a screenshot wants the artwork, the title and the
+          songs — not a barcode. Release date, label, genre and UPC are what an editor checks
+          after they have listened, so they sit after the music rather than above it.
+        */}
+        <section>
+            {/*
+            The facts, as a card on a phone.
+            Loose two-column text looked like debris on a narrow screen; boxed and evenly
+            divided, it reads as a spec sheet — which is what an editor is scanning for.
+          */}
+          <dl className="grid grid-cols-2 gap-px mt-5 rounded-xl overflow-hidden bg-white/[0.06] sm:bg-transparent sm:gap-x-6 sm:gap-y-3 sm:mt-6 sm:max-w-md sm:rounded-none">
+            <Fact label="Release date" value={formatDate(release.release_date) || "Not set"} />
+            <Fact label="Tracks" value={String(release.track_count ?? tracks.length)} />
+            <Fact label="Label" value={release.label_name || "—"} />
+            <Fact label="Genre" value={release.genre || "—"} />
+            {/*
+              UPC is shown whether or not it exists. An editor wants the barcode; an artist
+              wants to know one is coming. "Assigned before release" is the truth when it is
+              missing — a blank would read as "this release has no barcode". Full width: a
+              13-digit barcode does not fit in half a phone screen.
+            */}
+            <Fact
+              label="UPC"
+              value={release.upc ?? "Assigned before release"}
+              mono={!!release.upc}
+              wide
+            />
+          </dl>
+        </section>
+
+        {/*
           Who the artist is. A playlist editor opening this has usually never heard of them,
           and the bio is what turns a file drop into a pitch. Omitted entirely when the
           account has no profile behind it rather than left as an empty heading.
@@ -1080,6 +1149,12 @@ function Fact({
     </div>
   );
 }
+
+const HeartIcon = ({ filled }: { filled: boolean }) => (
+  <svg width="13" height="13" viewBox="0 0 24 24" fill={filled ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z" />
+  </svg>
+);
 
 const CommentIcon = () => (
   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

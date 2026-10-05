@@ -54,6 +54,9 @@ export interface ListenTrack {
   duration: number | null;
   /** Featured artists, already filtered to real features server-side. */
   features?: string[];
+  likes?: number;
+  /** Whether THIS browser already liked it. */
+  liked?: boolean;
   /** Signed and short-lived. Never the raw storage URL. */
   stream_url: string | null;
 }
@@ -171,7 +174,68 @@ export function isValidToken(token: string): boolean {
 }
 
 /**
- * Server-side fetch for the page shell.
+ * Who this browser is, as far as a like is concerned.
+ *
+ * A random token kept in localStorage — not an IP, because an A&R office, a label and a
+ * shared studio all sit behind one address and would count as a single listener. It
+ * identifies nobody: it exists so a heart stays filled when they come back, and so one
+ * person cannot like the same track twenty times.
+ */
+export function listenerId(): string {
+  const KEY = "songdis_listener_id";
+
+  try {
+    const existing = localStorage.getItem(KEY);
+    if (existing) return existing;
+
+    const minted =
+      typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
+        ? crypto.randomUUID()
+        : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+
+    localStorage.setItem(KEY, minted);
+    return minted;
+  } catch {
+    // Private mode throws. A per-session id still prevents double-liking within the visit,
+    // which is all a heart needs.
+    return `ephemeral-${Math.random().toString(36).slice(2)}`;
+  }
+}
+
+/** Like a track, or take the like back — one call for both, since a heart is a toggle. */
+export async function toggleTrackLike(
+  token: string,
+  musicUploadId: number,
+  passcode?: string | null
+): Promise<{ liked: boolean; likes: number } | null> {
+  if (!BASE_URL || !isValidToken(token)) return null;
+
+  try {
+    const res = await fetch(`${BASE_URL}/public/listen/${token}/likes`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+        "X-Listener-Id": listenerId(),
+        ...(passcode ? { "X-Link-Passcode": passcode } : {}),
+      },
+      body: JSON.stringify({ music_upload_id: musicUploadId }),
+      cache: "no-store",
+    });
+
+    if (!res.ok) return null;
+
+    const json = (await res.json().catch(() => null)) as
+      | { data?: { liked: boolean; likes: number } }
+      | null;
+
+    return json?.data ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/** Server-side fetch for the page shell.
  *
  * Never cached: the audio URLs it carries are signed and short-lived, so a cached copy
  * would hand a later visitor links that have already expired. A deleted link must also stop
