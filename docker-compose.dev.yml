@@ -1,0 +1,36 @@
+# The artist site on dev: dev.songdis.com
+#
+# Same image, different build arguments and a different port. It points at the staging API,
+# which is the whole reason it cannot share production's image.
+
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
+        NEXT_PUBLIC_AYO_URL: ${NEXT_PUBLIC_AYO_URL}
+
+    image: songdis-web:dev
+    container_name: songdis-web-dev
+
+    environment:
+      NODE_ENV: production
+
+    # 3001, beside production's 3000, the way the staging API sits on 8001 beside 8000.
+    ports:
+      - "127.0.0.1:3001:3000"
+
+    restart: unless-stopped
+
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"

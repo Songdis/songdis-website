@@ -1,0 +1,37 @@
+# Keep the build context small and free of anything that should not reach a server.
+#
+# node_modules especially: the deps stage installs its own from the lockfile, and shipping a
+# Windows-built tree into an Alpine image gives you native modules compiled for the wrong
+# platform.
+
+node_modules
+.next
+out
+build
+
+.git
+.github
+.gitignore
+
+# Local secrets. The container reads its configuration from the environment, and an .env
+# copied into an image is a secret that travels with every copy of it.
+.env
+.env.*
+!.env.example
+
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.DS_Store
+Thumbs.db
+
+.vscode
+.idea
+.claude
+
+README.md
+CLAUDE.md
+*.md
+
+coverage
+.nyc_output

@@ -1,0 +1,76 @@
+name: Deploy site to Production
+
+on:
+  push:
+    branches:
+      - main
+
+# One deploy at a time, and never cancelled halfway. A build killed between `docker compose
+# build` and `up` leaves the old container running against a half-built image.
+concurrency:
+  group: web-prod-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: production
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Deploy to production server
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          # The build happens on the server and takes a couple of minutes on six cores.
+          command_timeout: 20m
+          script: |
+            set -e
+            cd /opt/songdis-web
+
+            echo "Current image, in case this needs rolling back..."
+            BEFORE=$(docker compose -f docker-compose.prod.yml images -q web 2>/dev/null || echo "none")
+            echo "Before: $BEFORE"
+
+            echo "Pulling main..."
+            git fetch origin
+            git reset --hard origin/main
+
+            # --env-file, not the shell: the build args in the compose file read from the
+            # environment, and NEXT_PUBLIC_* is compiled into the bundle rather than read at
+            # runtime. Build with the wrong file and the site talks to the wrong API.
+            echo "Building..."
+            docker compose --env-file .env -f docker-compose.prod.yml build
+
+            echo "Starting..."
+            docker compose --env-file .env -f docker-compose.prod.yml up -d
+
+            echo "Waiting for it to answer..."
+            for i in $(seq 1 30); do
+              if curl -fsS -o /dev/null http://127.0.0.1:3000/; then
+                echo "Up after ${i}s"
+                HEALTHY=1
+                break
+              fi
+              sleep 1
+            done
+
+            if [ -z "$HEALTHY" ]; then
+              echo "The new container never answered. Rolling back."
+              docker compose --env-file .env -f docker-compose.prod.yml down
+              if [ "$BEFORE" != "none" ] && [ -n "$BEFORE" ]; then
+                docker tag "$BEFORE" songdis-web:prod
+                docker compose --env-file .env -f docker-compose.prod.yml up -d
+              fi
+              exit 1
+            fi
+
+            # Only once the new one is serving. Images are a few hundred MB each and this box
+            # also runs the API and two databases.
+            docker image prune -f --filter "until=168h"
+
+            echo "Deployed."
