@@ -216,6 +216,22 @@ export default function PrivateLinksPage() {
                     </button>
                   )}
 
+                  {/*
+                    Ratings, shown only here. Listeners never see them — that is the whole
+                    reason the numbers are worth anything.
+                  */}
+                  {link.ratings && link.ratings.length > 0 && (
+                    <>
+                      <span className="text-white/15">·</span>
+                      <span className="font-body text-white/40 text-[11px]">
+                        Rated{" "}
+                        {link.ratings
+                          .map((r) => `${r.track_title ?? "Track"} ${r.average}/5`)
+                          .join(" · ")}
+                      </span>
+                    </>
+                  )}
+
                   {link.comments && link.comments.length > 0 && (
                     <>
                       <span className="text-white/15">·</span>

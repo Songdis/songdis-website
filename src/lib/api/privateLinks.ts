@@ -28,6 +28,15 @@ export interface PrivateLink {
     upload_type: string | null;
   } | null;
   comments?: LinkComment[];
+  ratings?: TrackRating[];
+}
+
+/** How a track was rated. Seen by the artist and support only — never on the public page. */
+export interface TrackRating {
+  music_upload_id: number;
+  track_title: string | null;
+  votes: number;
+  average: number;
 }
 
 /** A comment as the artist and the admin see it — the track is named, since an album's
@@ -57,6 +66,11 @@ export interface ListenTrack {
   likes?: number;
   /** Whether THIS browser already liked it. */
   liked?: boolean;
+  /**
+   * What THIS browser rated it, out of five. Never anybody else's, and never an average:
+   * a rating is private to the artist, and arithmetic on a shared page would leak it.
+   */
+  my_rating?: number | null;
   /** Signed and short-lived. Never the raw storage URL. */
   stream_url: string | null;
 }
@@ -199,6 +213,43 @@ export function listenerId(): string {
     // Private mode throws. A per-session id still prevents double-liking within the visit,
     // which is all a heart needs.
     return `ephemeral-${Math.random().toString(36).slice(2)}`;
+  }
+}
+
+/**
+ * Rate a track out of five.
+ *
+ * Only the artist sees the result. The response says nothing but what this listener gave —
+ * no average, no count — so nothing on this page can reveal what anyone else thought.
+ */
+export async function rateTrack(
+  token: string,
+  musicUploadId: number,
+  rating: number,
+  passcode?: string | null
+): Promise<number | null> {
+  if (!BASE_URL || !isValidToken(token)) return null;
+
+  try {
+    const res = await fetch(`${BASE_URL}/public/listen/${token}/ratings`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+        "X-Listener-Id": listenerId(),
+        ...(passcode ? { "X-Link-Passcode": passcode } : {}),
+      },
+      body: JSON.stringify({ music_upload_id: musicUploadId, rating }),
+      cache: "no-store",
+    });
+
+    if (!res.ok) return null;
+
+    const json = (await res.json().catch(() => null)) as { data?: { my_rating: number } } | null;
+
+    return json?.data?.my_rating ?? null;
+  } catch {
+    return null;
   }
 }
 

@@ -5,6 +5,7 @@ import Image from "next/image";
 
 import {
   postListenComment,
+  rateTrack,
   toggleTrackLike,
   unlockListenPage,
   type ListenComment,
@@ -89,6 +90,19 @@ export default function ListenView({
     }
 
     setLikes(seeded);
+  }, [page.tracks]);
+
+  /** What this listener rated each track, seeded from the page. Nobody else's is ever here. */
+  const [ratings, setRatings] = useState<Record<number, number | null>>({});
+
+  useEffect(() => {
+    const seeded: Record<number, number | null> = {};
+
+    for (const track of page.tracks ?? []) {
+      seeded[track.id] = track.my_rating ?? null;
+    }
+
+    setRatings(seeded);
   }, [page.tracks]);
 
   /** Which track is showing its whole thread rather than the first two. */
@@ -442,6 +456,19 @@ export default function ListenView({
     [likes, token, passcode]
   );
 
+  const rate = useCallback(
+    async (trackId: number, stars: number) => {
+      const before = ratings[trackId] ?? null;
+
+      setRatings((prev) => ({ ...prev, [trackId]: stars }));
+
+      const saved = await rateTrack(token, trackId, stars, passcode || null);
+
+      setRatings((prev) => ({ ...prev, [trackId]: saved ?? before }));
+    },
+    [ratings, token, passcode]
+  );
+
   const seek = (e: React.ChangeEvent<HTMLInputElement>) => {
     const el = audioRef.current;
     if (!el || !length) return;
@@ -729,6 +756,36 @@ export default function ListenView({
                       Show less
                     </button>
                   )}
+
+                  {/*
+                    The private rating.
+                    Said plainly where it is given: a score nobody can see is the only kind
+                    worth collecting, and someone who suspects the room can read it rounds up.
+                  */}
+                  <div className="flex flex-wrap items-center gap-2 pb-0.5">
+                    <span className="font-body text-white/35 text-[11px]">Rate it</span>
+
+                    <span className="flex items-center gap-0.5">
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <button
+                          key={star}
+                          onClick={() => rate(track.id, star)}
+                          aria-label={`Rate ${star} out of 5`}
+                          className={`p-0.5 transition-colors ${
+                            (ratings[track.id] ?? 0) >= star
+                              ? "text-[#C30100]"
+                              : "text-white/20 hover:text-white/45"
+                          }`}
+                        >
+                          <StarIcon filled={(ratings[track.id] ?? 0) >= star} />
+                        </button>
+                      ))}
+                    </span>
+
+                    <span className="font-body text-white/25 text-[10px]">
+                      {ratings[track.id] ? "Only the artist sees this" : "Private — only the artist sees it"}
+                    </span>
+                  </div>
 
                   {/* Nothing said yet — say so plainly rather than showing an empty box. */}
                   {mine.length === 0 && !composing && (
@@ -1149,6 +1206,12 @@ function Fact({
     </div>
   );
 }
+
+const StarIcon = ({ filled }: { filled: boolean }) => (
+  <svg width="15" height="15" viewBox="0 0 24 24" fill={filled ? "currentColor" : "none"} stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+  </svg>
+);
 
 const HeartIcon = ({ filled }: { filled: boolean }) => (
   <svg width="13" height="13" viewBox="0 0 24 24" fill={filled ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
