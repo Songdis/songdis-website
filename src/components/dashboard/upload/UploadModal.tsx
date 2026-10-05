@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback, useEffect, useMemo, useRef } from "react";
+import { useToast as useStepToast, Toaster as StepToaster } from "@/components/dashboard/press-kit/primitives";
 import SelectUploadType from "./steps/SelectUploadType";
 import ReleaseDetails from "./steps/ReleaseDetails";
 import UploadTrack from "./steps/UploadTrack";
@@ -253,6 +254,56 @@ export default function UploadModal({
     submitErrorRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   }, [submitErrors]);
   const { success, error: toastError, loading: toastLoading, dismiss } = useToast();
+  /*
+   * Telling someone why Continue did nothing.
+   *
+   * The step validators set field errors and stop. Those errors render beside their fields,
+   * which on this form are below the fold — so an artist missing a songwriter pressed
+   * Continue, saw the page not move, and concluded the button was broken. The toast is the
+   * same one the press kit uses, and it is the only part of the failure they are guaranteed
+   * to see.
+   */
+  const { toast: stepToast, show: showStepToast } = useStepToast();
+
+  /** Say what is missing, naming the fields rather than counting them. */
+  const announceMissing = useCallback((errors: StepFieldErrors) => {
+    const LABELS: Record<string, string> = {
+      releaseTitle: "release title",
+      artwork: "artwork",
+      audio: "audio file",
+      genre: "genre",
+      subGenre: "sub-genre",
+      explicit: "explicit content",
+      // Worded as the form words them, so the toast points at a field they can see rather
+      // than at an internal name.
+      writers: "songwriter's full name",
+      producers: "production credit",
+      performers: "performer credit",
+      tracks: "track details",
+    };
+
+    const missing = Object.keys(errors).map((key) => LABELS[key] ?? key);
+
+    if (missing.length === 0) return;
+
+    // One name reads better than a list of one, and the tracks error already explains itself.
+    const text = errors.tracks
+      ? String(errors.tracks)
+      : missing.length === 1
+        ? `Add the ${missing[0]} before continuing`
+        : `Still needed: ${missing.join(", ")}`;
+
+    showStepToast(text, "bad");
+
+    // The field itself is somewhere below; bring the first one into view so the toast is not
+    // the only thing they have to go on.
+    requestAnimationFrame(() => {
+      document
+        .querySelector('[data-step-error="true"]')
+        ?.scrollIntoView({ behavior: "smooth", block: "center" });
+    });
+  }, [showStepToast]);
+
   const isEditing = Boolean(editReleaseId);
 
   /*
@@ -549,7 +600,7 @@ export default function UploadModal({
     const errors: StepFieldErrors = {};
     if (!state.releaseTitle.trim()) errors.releaseTitle = "Release title is required";
     if (!state.artworkUrl) errors.artwork = "Artwork must be uploaded before continuing";
-    if (Object.keys(errors).length > 0) { setFieldErrors(errors); return; }
+    if (Object.keys(errors).length > 0) { setFieldErrors(errors); announceMissing(errors); return; }
     setFieldErrors({});
     if (state.releaseType === "single") {
       update({ trackTitle: state.releaseTitle, artistDetails: state.primaryArtist });
@@ -558,7 +609,7 @@ export default function UploadModal({
       update({ contributors: { writers: [writer], producers: [], performers: [performer] } });
     }
     goNext();
-  }, [state.releaseTitle, state.artworkUrl, state.releaseType, state.primaryArtist, update, goNext]);
+  }, [state.releaseTitle, state.artworkUrl, state.releaseType, state.primaryArtist, update, goNext, announceMissing]);
 
   const handleStep2Continue = useCallback(() => {
     const errors: StepFieldErrors = {};
@@ -592,10 +643,10 @@ export default function UploadModal({
       if (state.contributors.performers.length === 0 || state.contributors.performers.every((p) => !p.name.trim())) errors.performers = "At least one performer is required";
     }
 
-    if (Object.keys(errors).length > 0) { setFieldErrors(errors); return; }
+    if (Object.keys(errors).length > 0) { setFieldErrors(errors); announceMissing(errors); return; }
     setFieldErrors({});
     goNext();
-  }, [state.audioUrl, state.genre, state.subGenre, state.explicitContent, state.contributors, state.releaseType, state.tracks, editsOneTrack, goNext]);
+  }, [state.audioUrl, state.genre, state.subGenre, state.explicitContent, state.contributors, state.releaseType, state.tracks, editsOneTrack, goNext, announceMissing]);
 
   const formatContributorsForBackend = useCallback((contributors: { writers: Contributor[]; producers: Contributor[]; performers: Contributor[] }) => {
     const all: { name: string; role: string; type: string }[] = [];
@@ -1013,6 +1064,8 @@ export default function UploadModal({
           <button onClick={handleClose} aria-label="Close" className="absolute top-5 right-5 z-10 text-white/40 hover:text-white transition-colors">
             <CloseIcon />
           </button>
+          <StepToaster toast={stepToast} />
+
           {state.step === "select-type" && (
             <SelectUploadType selected={state.releaseType} onSelect={(t) => update({ releaseType: t })} onContinue={() => { if (state.releaseType) goNext(); }} />
           )}
