@@ -5,8 +5,7 @@ on:
     branches:
       - develop
 
-# One deploy at a time, and never cancelled halfway. A build killed between `docker compose
-# build` and `up` leaves the old container running against a half-built image.
+
 concurrency:
   group: web-dev-deploy
   cancel-in-progress: false
@@ -26,7 +25,6 @@ jobs:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          # The build happens on the server and takes a couple of minutes on six cores.
           command_timeout: 20m
           script: |
             set -e

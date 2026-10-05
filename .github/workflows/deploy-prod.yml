@@ -5,8 +5,6 @@ on:
     branches:
       - main
 
-# One deploy at a time, and never cancelled halfway. A build killed between `docker compose
-# build` and `up` leaves the old container running against a half-built image.
 concurrency:
   group: web-prod-deploy
   cancel-in-progress: false
