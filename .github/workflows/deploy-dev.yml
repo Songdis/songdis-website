@@ -83,6 +83,8 @@ jobs:
 
             # Only once the new one is serving. Images are a few hundred MB each and this box
             # also runs the API and two databases.
-            docker image prune -f --filter "until=168h"
+            # Never fail a deploy on cleanup: the daemon refuses a second concurrent
+            # prune, and prod and dev can be deploying at the same moment.
+            docker image prune -f --filter "until=168h" || true
 
             echo "Deployed."
