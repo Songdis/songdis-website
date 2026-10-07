@@ -37,7 +37,7 @@ export default function PressKitChrome({
         <div className="mx-auto flex max-w-[1080px] items-center justify-between px-5 py-4 sm:px-8 sm:py-5">
           <Link href="/" aria-label="Songdis home" className="shrink-0">
             <Image
-              src="/images/logo.svg"
+              src="https://res.cloudinary.com/wddg7ppg/image/upload/v1790847552/logo.svg"
               alt="Songdis"
               width={108}
               height={39}
@@ -73,7 +73,7 @@ export default function PressKitChrome({
           <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-[radial-gradient(120%_100%_at_100%_0%,rgba(245,166,35,.13),transparent_55%),radial-gradient(120%_100%_at_0%_100%,var(--pk-glow),transparent_55%),linear-gradient(180deg,var(--pk-tint),var(--pk-bg-deep))] p-7 sm:p-10">
             <div className="max-w-[560px]">
               <Image
-                src="/images/logo.svg"
+                src="https://res.cloudinary.com/wddg7ppg/image/upload/v1790847552/logo.svg"
                 alt="Songdis"
                 width={108}
                 height={39}

@@ -6,7 +6,6 @@ import DashboardLayout from "@/components/dashboard/DashboardLayout";
 import { request } from "@/lib/api/core";
 import { deleteReleaseLink } from "@/lib/api/releaseLinks";
 
-
 interface ReleaseLink {
   id: string;
   trackTitle: string;
@@ -23,7 +22,6 @@ interface ReleaseLink {
   fansCaptured: number;
   topPlatforms: Record<string, number>;
 }
-
 
 function LinkCard({
   link,
@@ -78,7 +76,6 @@ function LinkCard({
           </div>
         </div>
 
-      
         <div className="flex flex-wrap items-center gap-4 sm:gap-6 shrink-0">
           {link.isSmartLink && (
             <>
@@ -100,7 +97,9 @@ function LinkCard({
                     ? `${link.conversionRate.toFixed(1)}%`
                     : "—"}
                 </p>
-                <p className="font-body text-white/30 text-[10px]">Tap-through</p>
+                <p className="font-body text-white/30 text-[10px]">
+                  Tap-through
+                </p>
               </div>
               <div className="text-right">
                 <p className="font-body text-white text-sm font-medium">
@@ -118,7 +117,6 @@ function LinkCard({
           </div>
         </div>
       </div>
-
 
       {link.isSmartLink && Object.keys(link.topPlatforms).length > 0 && (
         <div className="flex flex-wrap gap-1.5 mb-4">
@@ -209,7 +207,9 @@ export default function ReleaseLinksPage() {
   const [page, setPage] = useState(1);
   const PAGE_SIZE = 10;
   const [copied, setCopied] = useState<string | null>(null);
-  const [confirmingDelete, setConfirmingDelete] = useState<ReleaseLink | null>(null);
+  const [confirmingDelete, setConfirmingDelete] = useState<ReleaseLink | null>(
+    null,
+  );
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
@@ -249,7 +249,6 @@ export default function ReleaseLinksPage() {
     setTimeout(() => setCopied(null), 2000);
   };
 
-
   const handleDelete = async (id: string) => {
     setDeleteError(null);
     setDeletingId(id);
@@ -270,13 +269,11 @@ export default function ReleaseLinksPage() {
   const totalClicks = links.reduce((sum, l) => sum + l.clicks, 0);
   const totalViews = links.reduce((sum, l) => sum + l.views, 0);
 
-
   const bestPerformer = links
     .filter((l) => l.clicks > 0)
-    .reduce<ReleaseLink | undefined>(
-      (best, l) => (l.clicks > (best?.clicks ?? 0) ? l : best),
-      undefined,
-    );
+    .reduce<
+      ReleaseLink | undefined
+    >((best, l) => (l.clicks > (best?.clicks ?? 0) ? l : best), undefined);
 
   return (
     <DashboardLayout
@@ -292,7 +289,7 @@ export default function ReleaseLinksPage() {
 
               <div className="w-12 h-12 rounded-lg  flex items-center justify-center">
                 <Image
-                  src="/images/total-links.svg"
+                  src="https://res.cloudinary.com/wddg7ppg/image/upload/v1790850492/total-links.svg"
                   alt="Links"
                   width={66}
                   height={66}
@@ -319,7 +316,7 @@ export default function ReleaseLinksPage() {
               <p className="font-body text-white/60 text-xs">Total Clicks</p>
               <div className="w-12 h-12 rounded-lg  flex items-center justify-center">
                 <Image
-                  src="/images/total-clicks.svg"
+                  src="https://res.cloudinary.com/wddg7ppg/image/upload/v1790850436/total-clicks.svg"
                   alt="Clicks"
                   width={66}
                   height={66}
@@ -347,7 +344,7 @@ export default function ReleaseLinksPage() {
               <p className="font-body text-white/60 text-xs">Best Performer</p>
               <div className="w-12 h-12 rounded-lg  flex items-center justify-center">
                 <Image
-                  src="/images/money.svg"
+                  src="https://res.cloudinary.com/wddg7ppg/image/upload/v1790848021/money.svg"
                   alt="Performer"
                   width={66}
                   height={66}
@@ -371,7 +368,7 @@ export default function ReleaseLinksPage() {
           <div className="flex items-start gap-3">
             <div className="w-9 h-9 rounded-full bg-yellow-500/20 flex items-center justify-center shrink-0 mt-0.5">
               <Image
-                src="/images/ayo.svg"
+                src="https://res.cloudinary.com/wddg7ppg/image/upload/v1790778707/ayo.svg"
                 alt="Ayo"
                 width={20}
                 height={20}

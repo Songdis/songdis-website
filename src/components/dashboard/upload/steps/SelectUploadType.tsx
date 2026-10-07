@@ -106,8 +106,6 @@
 // function MixtapeIcon() { return <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="2" y="6" width="20" height="14" rx="2"/><path d="M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2"/><circle cx="9" cy="13" r="2"/><circle cx="15" cy="13" r="2"/><path d="M11 13h2"/></svg>; }
 // function AyoIcon() { return <svg width="14" height="14" viewBox="0 0 24 24" fill="#C30100"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>; }
 
-
-
 "use client";
 
 import { useState, useEffect } from "react";
@@ -115,7 +113,8 @@ import type { ReleaseType } from "../UploadModal";
 import { StepHeader } from "../UploadModal";
 import { chat } from "@/lib/api/ayo";
 
-const FALLBACK_TIP = "Release consistently — one single every 4–6 weeks is the sweet spot for building algorithmic momentum right now.";
+const FALLBACK_TIP =
+  "Release consistently — one single every 4–6 weeks is the sweet spot for building algorithmic momentum right now.";
 
 const TYPES: {
   id: ReleaseType;
@@ -126,13 +125,15 @@ const TYPES: {
   {
     id: "single",
     label: "Single",
-    description: "1 track. Perfect for momentum between albums or testing new sounds.",
+    description:
+      "1 track. Perfect for momentum between albums or testing new sounds.",
     icon: <SingleIcon />,
   },
   {
     id: "album",
     label: "Album/EP",
-    description: "7+ tracks. A full artistic statement for established artists.",
+    description:
+      "7+ tracks. A full artistic statement for established artists.",
     icon: <AlbumIcon />,
   },
   {
@@ -149,7 +150,11 @@ interface Props {
   onContinue: () => void;
 }
 
-export default function SelectUploadType({ selected, onSelect, onContinue }: Props) {
+export default function SelectUploadType({
+  selected,
+  onSelect,
+  onContinue,
+}: Props) {
   const [ayoTip, setAyoTip] = useState<string>("");
   const [ayoLoading, setAyoLoading] = useState(true);
 
@@ -158,7 +163,11 @@ export default function SelectUploadType({ selected, onSelect, onContinue }: Pro
     (async () => {
       try {
         const res = await chat([
-          { role: "user", content: "Based on my profile, release history, and streaming data, what upload type (Single, Album/EP, or Mixtape) do you recommend for me right now and why? Keep your response to 2-3 sentences max. Be specific to my situation." },
+          {
+            role: "user",
+            content:
+              "Based on my profile, release history, and streaming data, what upload type (Single, Album/EP, or Mixtape) do you recommend for me right now and why? Keep your response to 2-3 sentences max. Be specific to my situation.",
+          },
         ]);
         if (!cancelled && res.data?.reply) {
           setAyoTip(res.data.reply);
@@ -169,7 +178,9 @@ export default function SelectUploadType({ selected, onSelect, onContinue }: Pro
         if (!cancelled) setAyoLoading(false);
       }
     })();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   return (
@@ -194,15 +205,23 @@ export default function SelectUploadType({ selected, onSelect, onContinue }: Pro
                   : "border-white/[0.08] bg-white/[0.03] hover:border-white/20",
               ].join(" ")}
             >
-              <div className={[
-                "w-14 h-14 rounded-full flex items-center justify-center shrink-0 sm:mb-4 transition-colors",
-                isSelected ? "bg-[#C30100]/30 text-[#C30100]" : "bg-white/10 text-white/40",
-              ].join(" ")}>
+              <div
+                className={[
+                  "w-14 h-14 rounded-full flex items-center justify-center shrink-0 sm:mb-4 transition-colors",
+                  isSelected
+                    ? "bg-[#C30100]/30 text-[#C30100]"
+                    : "bg-white/10 text-white/40",
+                ].join(" ")}
+              >
                 {t.icon}
               </div>
               <div className="min-w-0">
-                <p className="font-body text-white text-sm font-medium mb-1 sm:mb-2">{t.label}</p>
-                <p className="font-body text-white/40 text-xs leading-relaxed">{t.description}</p>
+                <p className="font-body text-white text-sm font-medium mb-1 sm:mb-2">
+                  {t.label}
+                </p>
+                <p className="font-body text-white/40 text-xs leading-relaxed">
+                  {t.description}
+                </p>
               </div>
             </button>
           );
@@ -217,10 +236,16 @@ export default function SelectUploadType({ selected, onSelect, onContinue }: Pro
       {/* Ayo tip */}
       <div className="flex items-start gap-3 rounded-xl border border-[#C30100]/20 bg-[#C30100]/5 px-4 py-4 mb-8">
         <div className="w-8 h-8 rounded-full shrink-0 mt-0.5 overflow-hidden">
-          <img src="/images/ayo.svg" alt="" className="w-full h-full object-contain" />
+          <img
+            src="https://res.cloudinary.com/wddg7ppg/image/upload/v1790778707/ayo.svg"
+            alt=""
+            className="w-full h-full object-contain"
+          />
         </div>
         <div className="min-w-0">
-          <p className="font-body text-[#C30100] text-xs font-semibold mb-0.5">Ayo AI · Recommendation</p>
+          <p className="font-body text-[#C30100] text-xs font-semibold mb-0.5">
+            Ayo AI · Recommendation
+          </p>
           {ayoLoading ? (
             <div className="space-y-1.5">
               <div className="h-2.5 bg-white/10 rounded-full w-full animate-pulse" />
@@ -246,6 +271,53 @@ export default function SelectUploadType({ selected, onSelect, onContinue }: Pro
   );
 }
 
-function SingleIcon() { return <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3"/><path d="M12 9V3M15 12h6M12 15v6M9 12H3"/></svg>; }
-function AlbumIcon() { return <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r="1" fill="currentColor"/></svg>; }
-function MixtapeIcon() { return <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="2" y="6" width="20" height="14" rx="2"/><path d="M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2"/><circle cx="9" cy="13" r="2"/><circle cx="15" cy="13" r="2"/><path d="M11 13h2"/></svg>; }
+function SingleIcon() {
+  return (
+    <svg
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+    >
+      <circle cx="12" cy="12" r="9" />
+      <circle cx="12" cy="12" r="3" />
+      <path d="M12 9V3M15 12h6M12 15v6M9 12H3" />
+    </svg>
+  );
+}
+function AlbumIcon() {
+  return (
+    <svg
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+    >
+      <circle cx="12" cy="12" r="9" />
+      <circle cx="12" cy="12" r="4" />
+      <circle cx="12" cy="12" r="1" fill="currentColor" />
+    </svg>
+  );
+}
+function MixtapeIcon() {
+  return (
+    <svg
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+    >
+      <rect x="2" y="6" width="20" height="14" rx="2" />
+      <path d="M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2" />
+      <circle cx="9" cy="13" r="2" />
+      <circle cx="15" cy="13" r="2" />
+      <path d="M11 13h2" />
+    </svg>
+  );
+}

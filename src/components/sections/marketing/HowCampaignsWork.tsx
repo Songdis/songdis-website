@@ -14,9 +14,12 @@ function useInView(threshold = 0.1) {
     if (!el) return;
     const observer = new IntersectionObserver(
       ([entry]) => {
-        if (entry.isIntersecting) { setInView(true); observer.disconnect(); }
+        if (entry.isIntersecting) {
+          setInView(true);
+          observer.disconnect();
+        }
       },
-      { threshold }
+      { threshold },
     );
     observer.observe(el);
     return () => observer.disconnect();
@@ -33,25 +36,26 @@ const HowCampaignsWork: React.FC = () => {
 
   return (
     <section className="relative w-full bg-[#140C0C] py-20 sm:py-24 lg:py-32 overflow-hidden">
-
       {/* ── Top red glow ── */}
       <div
         aria-hidden="true"
         className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[500px] pointer-events-none opacity-20"
         style={{
-          background: "radial-gradient(ellipse at top, rgba(195,1,0,0.6) 0%, transparent 70%)",
+          background:
+            "radial-gradient(ellipse at top, rgba(195,1,0,0.6) 0%, transparent 70%)",
           filter: "blur(80px)",
         }}
       />
 
       <div className="relative z-10 max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-10">
-
         {/* ── HEADER ── */}
         <div
           ref={headRef}
           className={[
             "text-center mb-12 sm:mb-16 transition-all duration-700",
-            headInView ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6",
+            headInView
+              ? "opacity-100 translate-y-0"
+              : "opacity-0 translate-y-6",
           ].join(" ")}
         >
           <h2 className="font-heading text-white uppercase text-3xl sm:text-4xl lg:text-5xl xl:text-[56px] leading-tight mb-5">
@@ -62,7 +66,6 @@ const HowCampaignsWork: React.FC = () => {
             audience and achieves your goals.
           </p>
         </div>
-
       </div>
 
       {/* ── CHART IMAGE — full bleed, no side padding ── */}
@@ -74,7 +77,7 @@ const HowCampaignsWork: React.FC = () => {
         ].join(" ")}
       >
         <Image
-          src="/images/marketing-chart.svg"
+          src="https://res.cloudinary.com/wddg7ppg/image/upload/v1790847618/marketing-chart.svg"
           alt="How our marketing campaigns work — Strategy Development, Content Creation, Campaign Launch, Performance Tracking"
           width={1440}
           height={700}
@@ -82,7 +85,6 @@ const HowCampaignsWork: React.FC = () => {
           loading="lazy"
         />
       </div>
-
     </section>
   );
 };

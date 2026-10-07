@@ -14,9 +14,12 @@ function useInView(threshold = 0.1) {
     if (!el) return;
     const observer = new IntersectionObserver(
       ([entry]) => {
-        if (entry.isIntersecting) { setInView(true); observer.disconnect(); }
+        if (entry.isIntersecting) {
+          setInView(true);
+          observer.disconnect();
+        }
       },
-      { threshold }
+      { threshold },
     );
     observer.observe(el);
     return () => observer.disconnect();
@@ -33,7 +36,7 @@ const ContactForm: React.FC = () => {
   const [sending, setSending] = useState(false);
 
   const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
   ) => setForm((f) => ({ ...f, [e.target.name]: e.target.value }));
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -60,24 +63,23 @@ const ContactForm: React.FC = () => {
   return (
     <section className="relative w-full bg-[#140C0C] py-10 sm:py-12 lg:py-14 px-4 sm:px-6 lg:px-10">
       <div className="max-w-[1280px] mx-auto">
-
         {/* ── CARD ── */}
         <div
           ref={cardRef}
           className={[
             "rounded-2xl overflow-hidden flex flex-col lg:flex-row min-h-[600px]",
             "transition-all duration-700",
-            cardInView ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8",
+            cardInView
+              ? "opacity-100 translate-y-0"
+              : "opacity-0 translate-y-8",
           ].join(" ")}
           style={{
             backgroundColor: "#1A0808",
             border: "1px solid rgba(255,255,255,0.08)",
           }}
         >
-
           {/* Left — form */}
           <div className="flex flex-col p-8 sm:p-10 lg:p-14 lg:w-[48%] shrink-0">
-
             <h2 className="font-heading text-white uppercase text-2xl sm:text-3xl lg:text-4xl tracking-wide mb-10">
               Leave A Message
             </h2>
@@ -143,20 +145,18 @@ const ContactForm: React.FC = () => {
                 </button>
               </div>
             </form>
-
           </div>
 
           {/* Right — image flush to card edges */}
           <div className="relative flex-1 min-h-[320px] lg:min-h-0 overflow-hidden">
             <Image
-              src="/images/contact-form.svg"
+              src="https://res.cloudinary.com/wddg7ppg/image/upload/v1790779138/contact-form.svg"
               alt="Songdis artists"
               fill
               className="object-cover object-center"
               loading="lazy"
             />
           </div>
-
         </div>
       </div>
     </section>

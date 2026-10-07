@@ -40,7 +40,7 @@ const PricingHero: React.FC = () => {
         style={{ maxWidth: "1280px" }}
       >
         <Image
-          src="/images/pricing-hero.svg"
+          src="https://res.cloudinary.com/wddg7ppg/image/upload/v1790849070/pricing-hero.svg"
           alt="Pricing visual"
           width={840}
           height={680}

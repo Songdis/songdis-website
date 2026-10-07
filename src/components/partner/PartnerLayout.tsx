@@ -68,7 +68,7 @@ export default function PartnerLayout({ children, pageTitle, partnerName }: Part
         <aside className="w-[240px] h-full bg-[#140C0C] border-r border-white/[0.06] flex flex-col">
           <div className="px-5 py-6 flex items-center justify-between">
             <Image
-              src="/images/logo.svg"
+              src="https://res.cloudinary.com/wddg7ppg/image/upload/v1790847552/logo.svg"
               alt="Songdis"
               priority
               width={120}

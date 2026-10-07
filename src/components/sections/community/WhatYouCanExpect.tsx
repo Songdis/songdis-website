@@ -14,9 +14,12 @@ function useInView(threshold = 0.1) {
     if (!el) return;
     const observer = new IntersectionObserver(
       ([entry]) => {
-        if (entry.isIntersecting) { setInView(true); observer.disconnect(); }
+        if (entry.isIntersecting) {
+          setInView(true);
+          observer.disconnect();
+        }
       },
-      { threshold }
+      { threshold },
     );
     observer.observe(el);
     return () => observer.disconnect();
@@ -117,10 +120,7 @@ const PillCard: React.FC<{
     </div>
 
     {/* Number — bottom */}
-    <span
-      className="font-heading text-xl"
-      style={{ color: "#C30100" }}
-    >
+    <span className="font-heading text-xl" style={{ color: "#C30100" }}>
       {number}
     </span>
   </div>
@@ -135,7 +135,6 @@ const WhatYouCanExpect: React.FC = () => {
 
   return (
     <section className="relative w-full bg-[#140C0C] py-20 sm:py-24 lg:py-32 overflow-hidden">
-
       {/* ── Bottom-right red glow ── */}
       <div
         aria-hidden="true"
@@ -148,24 +147,24 @@ const WhatYouCanExpect: React.FC = () => {
       />
 
       <div className="relative z-10 max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-10">
-
         {/* ── HEADER ── */}
         <div
           ref={headRef}
           className={[
             "text-center mb-14 sm:mb-16 lg:mb-20 transition-all duration-700",
-            headInView ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6",
+            headInView
+              ? "opacity-100 translate-y-0"
+              : "opacity-0 translate-y-6",
           ].join(" ")}
         >
           <h2 className="font-heading text-white uppercase text-3xl sm:text-4xl lg:text-5xl xl:text-[56px] leading-tight mb-5">
             What You Can Expect
           </h2>
           <p className="font-body text-white/60 text-sm sm:text-base lg:text-lg leading-relaxed max-w-[700px] mx-auto">
-            We provide resources, knowledge, and strategies to grow your
-            music career and distribute your tracks globally.
+            We provide resources, knowledge, and strategies to grow your music
+            career and distribute your tracks globally.
           </p>
         </div>
-
       </div>
 
       {/* ── ITEMS ROW ── */}
@@ -181,10 +180,9 @@ const WhatYouCanExpect: React.FC = () => {
             className="flex items-stretch gap-3 lg:justify-center"
             style={{ minWidth: "max-content" }}
           >
-
             {/* 01 — Workshops & Webinars */}
             <PhotoCard
-              image="/images/workshop-big.svg"
+              image="https://res.cloudinary.com/wddg7ppg/image/upload/v1790851437/workshop-big.svg"
               alt="Workshops and Webinars"
               number="01"
               title="Workshops & Webinars"
@@ -200,7 +198,7 @@ const WhatYouCanExpect: React.FC = () => {
 
             {/* 04 — Interactive Q&A Sessions */}
             <PhotoCard
-              image="/images/workshop.svg"
+              image="https://res.cloudinary.com/wddg7ppg/image/upload/v1790850806/workshop.svg"
               alt="Interactive Q&A Sessions"
               number="04"
               title="Interactive Q&A Sessions"
@@ -213,11 +211,9 @@ const WhatYouCanExpect: React.FC = () => {
 
             {/* 06 — New Music Friday */}
             <PillCard number="06" title="New Music Friday" />
-
           </div>
         </div>
       </div>
-
     </section>
   );
 };

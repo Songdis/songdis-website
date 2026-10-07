@@ -5,15 +5,25 @@ import {
   type RoyaltiesParams,
 } from "@/lib/api/royalties";
 
-function periodToDates(period: string): { start_date: string; end_date: string } {
+function periodToDates(period: string): {
+  start_date: string;
+  end_date: string;
+} {
   const now = new Date();
   const end_date = now.toISOString().split("T")[0];
   const start = new Date();
   switch (period) {
-    case "Last 7 days":   start.setDate(now.getDate() - 7);    break;
-    case "Last 3 months": start.setMonth(now.getMonth() - 3);  break;
-    case "Last 2 years":  start.setFullYear(now.getFullYear() - 2); break;
-    default:              start.setFullYear(now.getFullYear() - 1);
+    case "Last 7 days":
+      start.setDate(now.getDate() - 7);
+      break;
+    case "Last 3 months":
+      start.setMonth(now.getMonth() - 3);
+      break;
+    case "Last 2 years":
+      start.setFullYear(now.getFullYear() - 2);
+      break;
+    default:
+      start.setFullYear(now.getFullYear() - 1);
   }
   return { start_date: start.toISOString().split("T")[0], end_date };
 }
@@ -23,75 +33,80 @@ function fmtNum(n: number | string | undefined): string {
   const num = typeof n === "string" ? parseFloat(n) : n;
   if (isNaN(num)) return "0";
   if (num >= 1_000_000) return `${(num / 1_000_000).toFixed(1)}M`;
-  if (num >= 1_000)     return `${(num / 1_000).toFixed(1)}K`;
+  if (num >= 1_000) return `${(num / 1_000).toFixed(1)}K`;
   return num.toLocaleString();
 }
 
-
 const PLATFORM_LOGO_URLS: Record<string, string> = {
-  spotify:              "https://cdn.simpleicons.org/spotify/1DB954",
-  apple_music:          "https://cdn.simpleicons.org/applemusic/FC3C44",
-  youtube_music:        "https://cdn.simpleicons.org/youtubemusic/FF0000",
-  youtube:              "https://cdn.simpleicons.org/youtube/FF0000",
-  youtube_streaming:    "https://cdn.simpleicons.org/youtube/FF0000",
-  "youtube streaming":  "https://cdn.simpleicons.org/youtube/FF0000",
-  "youtube (red)":      "https://cdn.simpleicons.org/youtube/FF0000",
-  "youtube (ads)":      "https://cdn.simpleicons.org/youtube/FF0000",
-  "youtube (audio)":    "https://cdn.simpleicons.org/youtube/FF0000",
-  youtube_content_id:   "https://cdn.simpleicons.org/youtube/FF0000",
+  spotify: "https://cdn.simpleicons.org/spotify/1DB954",
+  apple_music: "https://cdn.simpleicons.org/applemusic/FC3C44",
+  youtube_music: "https://cdn.simpleicons.org/youtubemusic/FF0000",
+  youtube: "https://cdn.simpleicons.org/youtube/FF0000",
+  youtube_streaming: "https://cdn.simpleicons.org/youtube/FF0000",
+  "youtube streaming": "https://cdn.simpleicons.org/youtube/FF0000",
+  "youtube (red)": "https://cdn.simpleicons.org/youtube/FF0000",
+  "youtube (ads)": "https://cdn.simpleicons.org/youtube/FF0000",
+  "youtube (audio)": "https://cdn.simpleicons.org/youtube/FF0000",
+  youtube_content_id: "https://cdn.simpleicons.org/youtube/FF0000",
   "youtube content id": "https://cdn.simpleicons.org/youtube/FF0000",
   "youtube audio tier": "https://cdn.simpleicons.org/youtube/FF0000",
-  audiomack:            "https://cdn.simpleicons.org/audiomack/FFA500",
-  boomplay:             "https://cdn.simpleicons.org/boomplay/00C4CC",
-  amazon_music:         "https://cdn.simpleicons.org/amazonmusic/00A8E1",
-  "amazon_prime":       "https://cdn.simpleicons.org/amazon/FF9900",
-  "amazon prime":       "https://cdn.simpleicons.org/amazon/FF9900",
-  "amazon unlimited (streaming)": "https://cdn.simpleicons.org/amazonmusic/00A8E1",
-  "amazon prime (streaming)":     "https://cdn.simpleicons.org/amazonmusic/00A8E1",
-  tidal:                "https://cdn.simpleicons.org/tidal/000000",
-  deezer:               "https://cdn.simpleicons.org/deezer/A238FF",
-  tiktok:               "https://cdn.simpleicons.org/tiktok/ffffff",
+  audiomack: "https://cdn.simpleicons.org/audiomack/FFA500",
+  boomplay: "https://cdn.simpleicons.org/boomplay/00C4CC",
+  amazon_music: "https://cdn.simpleicons.org/amazonmusic/00A8E1",
+  amazon_prime: "https://cdn.simpleicons.org/amazon/FF9900",
+  "amazon prime": "https://cdn.simpleicons.org/amazon/FF9900",
+  "amazon unlimited (streaming)":
+    "https://cdn.simpleicons.org/amazonmusic/00A8E1",
+  "amazon prime (streaming)": "https://cdn.simpleicons.org/amazonmusic/00A8E1",
+  tidal: "https://cdn.simpleicons.org/tidal/000000",
+  deezer: "https://cdn.simpleicons.org/deezer/A238FF",
+  tiktok: "https://cdn.simpleicons.org/tiktok/ffffff",
   "tiktok music (audio)": "https://cdn.simpleicons.org/tiktok/ffffff",
-  facebook:             "https://cdn.simpleicons.org/facebook/1877F2",
-  "facebook / instagram":       "https://cdn.simpleicons.org/facebook/1877F2",
-  "facebook / instagram - revenue share": "https://cdn.simpleicons.org/facebook/1877F2",
-  facebook_instagram:   "https://cdn.simpleicons.org/instagram/E4405F",
+  facebook: "https://cdn.simpleicons.org/facebook/1877F2",
+  "facebook / instagram": "https://cdn.simpleicons.org/facebook/1877F2",
+  "facebook / instagram - revenue share":
+    "https://cdn.simpleicons.org/facebook/1877F2",
+  facebook_instagram: "https://cdn.simpleicons.org/instagram/E4405F",
   "facebook: whatsapp": "https://cdn.simpleicons.org/whatsapp/25D366",
-  facebook_whatsapp:    "https://cdn.simpleicons.org/whatsapp/25D366",
-  facebook_instagram_rs:"https://cdn.simpleicons.org/instagram/E4405F",
-  snapchat:             "https://cdn.simpleicons.org/snapchat/FFFC00",
-  snap:                 "https://cdn.simpleicons.org/snapchat/FFFC00",
-  itunes:               "https://cdn.simpleicons.org/itunes/FB5BC5",
-  "itunes songs":       "https://cdn.simpleicons.org/itunes/FB5BC5",
-  "itunes match":       "https://cdn.simpleicons.org/itunes/FB5BC5",
-  soundcloud:           "https://cdn.simpleicons.org/soundcloud/FF5500",
+  facebook_whatsapp: "https://cdn.simpleicons.org/whatsapp/25D366",
+  facebook_instagram_rs: "https://cdn.simpleicons.org/instagram/E4405F",
+  snapchat: "https://cdn.simpleicons.org/snapchat/FFFC00",
+  snap: "https://cdn.simpleicons.org/snapchat/FFFC00",
+  itunes: "https://cdn.simpleicons.org/itunes/FB5BC5",
+  "itunes songs": "https://cdn.simpleicons.org/itunes/FB5BC5",
+  "itunes match": "https://cdn.simpleicons.org/itunes/FB5BC5",
+  soundcloud: "https://cdn.simpleicons.org/soundcloud/FF5500",
   "soundcloud ad monetization": "https://cdn.simpleicons.org/soundcloud/FF5500",
-  soundcloud_ads:       "https://cdn.simpleicons.org/soundcloud/FF5500",
-  triller:              "https://cdn.simpleicons.org/triller/FF0050",
-  anghami:              "https://cdn.simpleicons.org/anghami/8A2BE2",
-  deezer_fr:            "https://cdn.simpleicons.org/deezer/A238FF",
-  netease:              "https://cdn.simpleicons.org/neteasecloudmusic/D6322A",
+  soundcloud_ads: "https://cdn.simpleicons.org/soundcloud/FF5500",
+  triller: "https://cdn.simpleicons.org/triller/FF0050",
+  anghami: "https://cdn.simpleicons.org/anghami/8A2BE2",
+  deezer_fr: "https://cdn.simpleicons.org/deezer/A238FF",
+  netease: "https://cdn.simpleicons.org/neteasecloudmusic/D6322A",
   "netease cloud music": "https://cdn.simpleicons.org/neteasecloudmusic/D6322A",
-  resso:                "",
-  luna:                 "",
-  lyricfind:            "",
-  boomplaycms:          "https://cdn.simpleicons.org/boomplay/00C4CC",
-  jiosaavn:             "https://cdn.simpleicons.org/jiosaavn/2BC5B4",
-  "7digital":           "",
-  acrcloud:             "",
-  alibaba:              "https://cdn.simpleicons.org/alibabadotcom/FF6A00",
-  pandora:              "https://cdn.simpleicons.org/pandora/224099",
-  napster:              "",
-  iheartradio:          "https://cdn.simpleicons.org/iheartradio/C6002B",
-  shazam:               "https://cdn.simpleicons.org/shazam/0088FF",
-  qobuz:                "",
-  bandcamp:             "https://cdn.simpleicons.org/bandcamp/408294",
-  vevo:                 "https://cdn.simpleicons.org/vevo/E62E27",
+  resso: "",
+  luna: "",
+  lyricfind: "",
+  boomplaycms: "https://cdn.simpleicons.org/boomplay/00C4CC",
+  jiosaavn: "https://cdn.simpleicons.org/jiosaavn/2BC5B4",
+  "7digital": "",
+  acrcloud: "",
+  alibaba: "https://cdn.simpleicons.org/alibabadotcom/FF6A00",
+  pandora: "https://cdn.simpleicons.org/pandora/224099",
+  napster: "",
+  iheartradio: "https://cdn.simpleicons.org/iheartradio/C6002B",
+  shazam: "https://cdn.simpleicons.org/shazam/0088FF",
+  qobuz: "",
+  bandcamp: "https://cdn.simpleicons.org/bandcamp/408294",
+  vevo: "https://cdn.simpleicons.org/vevo/E62E27",
 };
 
 export function getPlatformLogoUrl(key: string): string {
   const normalized = key.toLowerCase().trim();
-  return PLATFORM_LOGO_URLS[normalized] ?? PLATFORM_LOGO_URLS[normalized.replace(/[\s_-]+/g, "_")] ?? "";
+  return (
+    PLATFORM_LOGO_URLS[normalized] ??
+    PLATFORM_LOGO_URLS[normalized.replace(/[\s_-]+/g, "_")] ??
+    ""
+  );
 }
 
 function normalisePlatformName(key: string): string {
@@ -111,7 +126,7 @@ function normalisePlatformName(key: string): string {
     boomplay: "Boomplay",
     boomplaycms: "Boomplay CMS",
     amazon_music: "Amazon Music",
-    "amazon_prime": "Amazon Prime",
+    amazon_prime: "Amazon Prime",
     "amazon prime": "Amazon Prime",
     "amazon unlimited (streaming)": "Amazon Unlimited",
     "amazon prime (streaming)": "Amazon Prime",
@@ -150,55 +165,130 @@ function normalisePlatformName(key: string): string {
     "fluxus: mts music": "MTS Music",
     mts_music: "MTS Music",
   };
-  return names[key.toLowerCase().trim()]
-    ?? key.split(/[\s_]/).map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
+  return (
+    names[key.toLowerCase().trim()] ??
+    key
+      .split(/[\s_]/)
+      .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+      .join(" ")
+  );
 }
 
 const TERRITORY_NAMES: Record<string, string> = {
-  NG: "Nigeria",   US: "United States", GB: "United Kingdom",
-  GH: "Ghana",     KE: "Kenya",         ZA: "South Africa",
-  FR: "France",    DE: "Germany",       CA: "Canada",
-  BR: "Brazil",    CO: "Colombia",      MX: "Mexico",
-  IT: "Italy",     ES: "Spain",         SE: "Sweden",
-  AR: "Argentina", PE: "Peru",          CL: "Chile",
-  AU: "Australia", NL: "Netherlands",
-  NGA: "Nigeria",  USA: "United States", GBR: "United Kingdom",
-  GHA: "Ghana",    KEN: "Kenya",         ZAF: "South Africa",
-  FRA: "France",   DEU: "Germany",       CAN: "Canada",
+  NG: "Nigeria",
+  US: "United States",
+  GB: "United Kingdom",
+  GH: "Ghana",
+  KE: "Kenya",
+  ZA: "South Africa",
+  FR: "France",
+  DE: "Germany",
+  CA: "Canada",
+  BR: "Brazil",
+  CO: "Colombia",
+  MX: "Mexico",
+  IT: "Italy",
+  ES: "Spain",
+  SE: "Sweden",
+  AR: "Argentina",
+  PE: "Peru",
+  CL: "Chile",
+  AU: "Australia",
+  NL: "Netherlands",
+  NGA: "Nigeria",
+  USA: "United States",
+  GBR: "United Kingdom",
+  GHA: "Ghana",
+  KEN: "Kenya",
+  ZAF: "South Africa",
+  FRA: "France",
+  DEU: "Germany",
+  CAN: "Canada",
 };
 
 const TERRITORY_FLAGS: Record<string, string> = {
-  NG: "🇳🇬",  US: "🇺🇸",  GB: "🇬🇧",  GH: "🇬🇭",  KE: "🇰🇪",
-  ZA: "🇿🇦",  FR: "🇫🇷",  DE: "🇩🇪",  CA: "🇨🇦",  BR: "🇧🇷",
-  CO: "🇨🇴",  MX: "🇲🇽",  IT: "🇮🇹",  ES: "🇪🇸",  SE: "🇸🇪",
-  AR: "🇦🇷",  PE: "🇵🇪",  CL: "🇨🇱",  AU: "🇦🇺",  NL: "🇳🇱",
-  NGA: "🇳🇬", USA: "🇺🇸", GBR: "🇬🇧", GHA: "🇬🇭", KEN: "🇰🇪",
-  ZAF: "🇿🇦", FRA: "🇫🇷", DEU: "🇩🇪", CAN: "🇨🇦",
+  NG: "🇳🇬",
+  US: "🇺🇸",
+  GB: "🇬🇧",
+  GH: "🇬🇭",
+  KE: "🇰🇪",
+  ZA: "🇿🇦",
+  FR: "🇫🇷",
+  DE: "🇩🇪",
+  CA: "🇨🇦",
+  BR: "🇧🇷",
+  CO: "🇨🇴",
+  MX: "🇲🇽",
+  IT: "🇮🇹",
+  ES: "🇪🇸",
+  SE: "🇸🇪",
+  AR: "🇦🇷",
+  PE: "🇵🇪",
+  CL: "🇨🇱",
+  AU: "🇦🇺",
+  NL: "🇳🇱",
+  NGA: "🇳🇬",
+  USA: "🇺🇸",
+  GBR: "🇬🇧",
+  GHA: "🇬🇭",
+  KEN: "🇰🇪",
+  ZAF: "🇿🇦",
+  FRA: "🇫🇷",
+  DEU: "🇩🇪",
+  CAN: "🇨🇦",
 };
 
 export interface RoyaltiesPageData {
   stats: {
-    totalEarnings:  { value: string; change: string; sub: string; icon: string };
-    totalStreams:   { value: string; change: string; sub: string; icon: string };
-    uniqueReleases: { value: string; change: string; sub: string; icon: string };
-    territories:   { value: string; change: string; sub: string; icon: string };
+    totalEarnings: { value: string; change: string; sub: string; icon: string };
+    totalStreams: { value: string; change: string; sub: string; icon: string };
+    uniqueReleases: {
+      value: string;
+      change: string;
+      sub: string;
+      icon: string;
+    };
+    territories: { value: string; change: string; sub: string; icon: string };
   };
   revenueByPlatform: Array<{
-    id: string; name: string; logoUrl: string; earnings: number; streams: number;
+    id: string;
+    name: string;
+    logoUrl: string;
+    earnings: number;
+    streams: number;
   }>;
   topEarningReleases: Array<{
-    id: string; rank: number; title: string; artist: string;
-    cover: string; streams: string; earnings: string; territories: number;
+    id: string;
+    rank: number;
+    title: string;
+    artist: string;
+    cover: string;
+    streams: string;
+    earnings: string;
+    territories: number;
   }>;
   revenueByTerritory: Array<{
-    id: string; rank: number; country: string; flag: string;
-    streams: string; earnings: string; platforms: number;
+    id: string;
+    rank: number;
+    country: string;
+    flag: string;
+    streams: string;
+    earnings: string;
+    platforms: number;
   }>;
   socialVsStreaming: {
     socialMediaStats: { avgRate: string; uses: string; totalEarnings: string };
-    streamingStats:   { avgRate: string; streams: string; totalEarnings: string };
-    socialPlatforms: Array<{ platform: string; earnings: number; uses: number }>;
-    streamingPlatforms: Array<{ platform: string; earnings: number; streams: number }>;
+    streamingStats: { avgRate: string; streams: string; totalEarnings: string };
+    socialPlatforms: Array<{
+      platform: string;
+      earnings: number;
+      uses: number;
+    }>;
+    streamingPlatforms: Array<{
+      platform: string;
+      earnings: number;
+      streams: number;
+    }>;
   };
   monthlyTrends: Array<{
     month: string;
@@ -212,34 +302,44 @@ function normalise(
   royaltiesRaw: Record<string, unknown> | null,
   socialRaw: Record<string, unknown> | null,
 ): RoyaltiesPageData {
-
-  const d = (royaltiesRaw?.data as Record<string, unknown>) ?? royaltiesRaw ?? {};
+  const d =
+    (royaltiesRaw?.data as Record<string, unknown>) ?? royaltiesRaw ?? {};
   const overview = (d.overview as Record<string, unknown>) ?? d;
 
-  const totalEarnings  = (overview.total_earnings      as number) ?? 0;
-  const totalStreams    = parseInt(String(overview.total_streams ?? 0)) || 0;
-  const uniqueReleases = (overview.unique_releases     as number) ?? 0;
-  const territories    = (overview.territories_reached as number) ?? 0;
+  const totalEarnings = (overview.total_earnings as number) ?? 0;
+  const totalStreams = parseInt(String(overview.total_streams ?? 0)) || 0;
+  const uniqueReleases = (overview.unique_releases as number) ?? 0;
+  const territories = (overview.territories_reached as number) ?? 0;
 
-  const rawPlatforms = (d.platform_breakdown as Array<Record<string, unknown>>) ?? [];
+  const rawPlatforms =
+    (d.platform_breakdown as Array<Record<string, unknown>>) ?? [];
 
   const socialPlatformEarnings: Record<string, number> = {};
-  const socialPlatformsRaw = ((socialRaw?.social_platforms as Record<string, unknown>)?.platforms as Array<Record<string, unknown>>) ?? [];
-  const streamingPlatformsRaw = ((socialRaw?.streaming_platforms as Record<string, unknown>)?.platforms as Array<Record<string, unknown>>) ?? [];
+  const socialPlatformsRaw =
+    ((socialRaw?.social_platforms as Record<string, unknown>)
+      ?.platforms as Array<Record<string, unknown>>) ?? [];
+  const streamingPlatformsRaw =
+    ((socialRaw?.streaming_platforms as Record<string, unknown>)
+      ?.platforms as Array<Record<string, unknown>>) ?? [];
   [...socialPlatformsRaw, ...streamingPlatformsRaw].forEach((p) => {
-    const key = (p.platform as string ?? "").toLowerCase();
-    socialPlatformEarnings[key] = parseFloat(String(p.total_earnings ?? p.total_royalties ?? 0)) || 0;
+    const key = ((p.platform as string) ?? "").toLowerCase();
+    socialPlatformEarnings[key] =
+      parseFloat(String(p.total_earnings ?? p.total_royalties ?? 0)) || 0;
   });
 
   const revenueByPlatform = rawPlatforms
     .filter((p) => {
-      const key = (p.platform as string ?? "").toLowerCase();
+      const key = ((p.platform as string) ?? "").toLowerCase();
       return key !== "test_platform" && !key.includes("test_");
     })
     .map((p, i) => {
-      const key = (p.platform as string ?? "").toLowerCase().trim();
-      const royaltyEarnings = parseFloat(String(p.total_royalties ?? p.total_earnings ?? 0)) || 0;
-      const earnings = royaltyEarnings > 0 ? royaltyEarnings : (socialPlatformEarnings[key] ?? 0);
+      const key = ((p.platform as string) ?? "").toLowerCase().trim();
+      const royaltyEarnings =
+        parseFloat(String(p.total_royalties ?? p.total_earnings ?? 0)) || 0;
+      const earnings =
+        royaltyEarnings > 0
+          ? royaltyEarnings
+          : (socialPlatformEarnings[key] ?? 0);
       return {
         id: String(i),
         name: normalisePlatformName(key),
@@ -250,19 +350,21 @@ function normalise(
     })
     .sort((a, b) => b.earnings - a.earnings);
 
-  const rawReleases = (d.top_earning_releases as Array<Record<string, unknown>>) ?? [];
+  const rawReleases =
+    (d.top_earning_releases as Array<Record<string, unknown>>) ?? [];
   const topEarningReleases = rawReleases.slice(0, 10).map((r, i) => ({
     id: String(r.isrc ?? r.upc ?? i),
     rank: i + 1,
-    title:  (r.track_title   ?? r.release_name ?? "") as string,
+    title: (r.track_title ?? r.release_name ?? "") as string,
     artist: (r.track_artists ?? r.primary_artist ?? "") as string,
-    cover:  (r.album_art_url ?? "") as string,
-    streams:  fmtNum(r.total_streams as number),
+    cover: (r.album_art_url ?? "") as string,
+    streams: fmtNum(r.total_streams as number),
     earnings: `$${parseFloat(String(r.total_earnings ?? 0)).toFixed(2)}`,
     territories: (r.territories_active as number) ?? 0,
   }));
 
-  const rawTerritories = (d.territory_breakdown as Array<Record<string, unknown>>) ?? [];
+  const rawTerritories =
+    (d.territory_breakdown as Array<Record<string, unknown>>) ?? [];
   const revenueByTerritory = rawTerritories.slice(0, 10).map((t, i) => {
     const code = (t.territory ?? "") as string;
     return {
@@ -270,7 +372,7 @@ function normalise(
       rank: i + 1,
       country: TERRITORY_NAMES[code] ?? code,
       flag: TERRITORY_FLAGS[code] ?? "🌍",
-      streams:  fmtNum(t.total_streams as number),
+      streams: fmtNum(t.total_streams as number),
       earnings: `$${parseFloat(String(t.total_earnings ?? 0)).toFixed(2)}`,
       platforms: (t.platforms_active as number) ?? 0,
     };
@@ -285,24 +387,48 @@ function normalise(
   const smAvgRate = (sm.avg_rate as number) ?? 0;
   const stAvgRate = (st.avg_rate as number) ?? 0;
 
-  const socialPlatforms = (socialPlatformsRaw).map((p) => ({
-    platform: normalisePlatformName((p.platform as string ?? "").toLowerCase()),
+  const socialPlatforms = socialPlatformsRaw.map((p) => ({
+    platform: normalisePlatformName(
+      ((p.platform as string) ?? "").toLowerCase(),
+    ),
     earnings: parseFloat(String(p.total_earnings ?? 0)) || 0,
     uses: parseInt(String(p.total_uses ?? 0)) || 0,
   }));
 
-  const streamingPlatforms = (streamingPlatformsRaw).map((p) => ({
-    platform: normalisePlatformName((p.platform as string ?? "").toLowerCase()),
+  const streamingPlatforms = streamingPlatformsRaw.map((p) => ({
+    platform: normalisePlatformName(
+      ((p.platform as string) ?? "").toLowerCase(),
+    ),
     earnings: parseFloat(String(p.total_earnings ?? 0)) || 0,
     streams: (p.total_streams as number) ?? 0,
   }));
 
   return {
     stats: {
-      totalEarnings:  { value: `$${totalEarnings.toLocaleString("en-US", { minimumFractionDigits: 2 })}`, change: "", sub: "vs last period", icon: "/images/earnings.svg" },
-      totalStreams:   { value: fmtNum(totalStreams),     change: "", sub: "vs last period", icon: "/images/streams.svg" },
-      uniqueReleases: { value: String(uniqueReleases),  change: "", sub: "Avg/release",    icon: "/images/releases.svg" },
-      territories:   { value: String(territories),      change: "", sub: "Platforms",      icon: "/images/countries.svg" },
+      totalEarnings: {
+        value: `$${totalEarnings.toLocaleString("en-US", { minimumFractionDigits: 2 })}`,
+        change: "",
+        sub: "vs last period",
+        icon: "https://res.cloudinary.com/wddg7ppg/image/upload/v1790846737/earnings.svg",
+      },
+      totalStreams: {
+        value: fmtNum(totalStreams),
+        change: "",
+        sub: "vs last period",
+        icon: "https://res.cloudinary.com/wddg7ppg/image/upload/v1790850205/streams.svg",
+      },
+      uniqueReleases: {
+        value: String(uniqueReleases),
+        change: "",
+        sub: "Avg/release",
+        icon: "https://res.cloudinary.com/wddg7ppg/image/upload/v1790849292/releases.svg",
+      },
+      territories: {
+        value: String(territories),
+        change: "",
+        sub: "Platforms",
+        icon: "https://res.cloudinary.com/wddg7ppg/image/upload/v1790779212/countries.svg",
+      },
     },
     revenueByPlatform,
     topEarningReleases,
@@ -321,7 +447,9 @@ function normalise(
       socialPlatforms,
       streamingPlatforms,
     },
-    monthlyTrends: ((d.monthly_trends as Array<Record<string, unknown>>) ?? []).map((m) => ({
+    monthlyTrends: (
+      (d.monthly_trends as Array<Record<string, unknown>>) ?? []
+    ).map((m) => ({
       month: (m.month as string) ?? "",
       earnings: parseFloat(String(m.total_earnings ?? 0)) || 0,
       streams: (m.total_streams as number) ?? 0,
@@ -350,15 +478,19 @@ export function useRoyalties(platform: string = "all") {
       setError(royaltiesRes.error);
       setData(normalise(null, null));
     } else {
-      setData(normalise(
-        royaltiesRes.data as Record<string, unknown>,
-        socialRes.error ? null : socialRes.data as Record<string, unknown>,
-      ));
+      setData(
+        normalise(
+          royaltiesRes.data as Record<string, unknown>,
+          socialRes.error ? null : (socialRes.data as Record<string, unknown>),
+        ),
+      );
     }
     setIsLoading(false);
   }, [platform]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    load();
+  }, [load]);
 
   return { data, isLoading, error, refresh: load };
 }

@@ -9,12 +9,9 @@ import Image from "next/image";
 const ContactHero: React.FC = () => {
   return (
     <section className="relative w-full bg-[#140C0C] pt-32 sm:pt-36 lg:pt-40 pb-0 px-4 sm:px-6 lg:px-10 overflow-hidden">
-
       <div className="max-w-[1280px] mx-auto">
-
         {/* ── TOP ROW — heading left, body right ── */}
         <div className="flex flex-col lg:flex-row gap-8 lg:gap-16 mb-12 sm:mb-16">
-
           {/* Left — heading */}
           <div className="lg:w-[55%] shrink-0">
             <h1
@@ -38,7 +35,6 @@ const ContactHero: React.FC = () => {
               help with royalties, uploads, partnerships, and support.
             </p>
           </div>
-
         </div>
 
         {/* ── FULL-WIDTH IMAGE ── */}
@@ -47,14 +43,13 @@ const ContactHero: React.FC = () => {
           style={{ height: "clamp(240px, 38vw, 480px)" }}
         >
           <Image
-            src="/images/contact-hero.svg"
+            src="https://res.cloudinary.com/wddg7ppg/image/upload/v1790779180/contact-hero.svg"
             alt="Get in touch with Songdis"
             fill
             className="object-cover object-center"
             priority
           />
         </div>
-
       </div>
     </section>
   );

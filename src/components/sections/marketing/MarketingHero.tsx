@@ -10,12 +10,9 @@ import Image from "next/image";
 const MarketingHero: React.FC = () => {
   return (
     <section className="relative w-full bg-[#140C0C] pt-32 sm:pt-36 lg:pt-40 pb-0 px-4 sm:px-6 lg:px-10 overflow-hidden">
-
       <div className="max-w-[1280px] mx-auto">
-
         {/* ── TOP ROW — heading left, body right ── */}
         <div className="flex flex-col lg:flex-row gap-8 lg:gap-16 mb-10 sm:mb-12">
-
           {/* Left — large heading */}
           <div className="flex-1 lg:w-[55%]">
             <h1
@@ -32,22 +29,20 @@ const MarketingHero: React.FC = () => {
           {/* Right — body text */}
           <div className="lg:w-[38%] shrink-0 flex items-start pt-2">
             <p className="font-body text-white text-sm sm:text-base leading-relaxed">
-              Strategic marketing solutions designed to boost your music
-              career, increase streams, and build a dedicated fanbase
-              worldwide.
+              Strategic marketing solutions designed to boost your music career,
+              increase streams, and build a dedicated fanbase worldwide.
             </p>
           </div>
-
         </div>
 
         {/* ── BUTTONS ROW ── */}
         <div className="flex flex-col sm:flex-row items-start gap-4 mb-10 sm:mb-12">
-
           {/* EXPLORE MARKETING SERVICES */}
           <div
             className="inline-block rounded-full p-[1.34px]"
             style={{
-              background: "linear-gradient(86.92deg, #C30100 11.12%, rgba(255,255,255,0.2) 81.99%)",
+              background:
+                "linear-gradient(86.92deg, #C30100 11.12%, rgba(255,255,255,0.2) 81.99%)",
             }}
           >
             <Link
@@ -66,7 +61,8 @@ const MarketingHero: React.FC = () => {
           <div
             className="inline-block rounded-full p-[1.34px]"
             style={{
-              background: "linear-gradient(86.92deg, rgba(255,255,255,0.3) 11.12%, rgba(255,255,255,0.08) 81.99%)",
+              background:
+                "linear-gradient(86.92deg, rgba(255,255,255,0.3) 11.12%, rgba(255,255,255,0.08) 81.99%)",
             }}
           >
             <Link
@@ -80,7 +76,6 @@ const MarketingHero: React.FC = () => {
               Reach Out To Us
             </Link>
           </div>
-
         </div>
 
         {/* ── FULL-WIDTH IMAGE ── */}
@@ -89,14 +84,13 @@ const MarketingHero: React.FC = () => {
           style={{ height: "clamp(280px, 44vw, 580px)" }}
         >
           <Image
-            src="/images/marketing-hero.svg"
+            src="https://res.cloudinary.com/wddg7ppg/image/upload/v1790847648/marketing-hero.svg"
             alt="Guitar with glowing red strings — Amplify Your Music Reach"
             fill
             className="object-cover object-center"
             priority
           />
         </div>
-
       </div>
     </section>
   );

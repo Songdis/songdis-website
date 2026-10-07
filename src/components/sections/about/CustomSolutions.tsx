@@ -14,9 +14,12 @@ function useInView(threshold = 0.1) {
     if (!el) return;
     const observer = new IntersectionObserver(
       ([entry]) => {
-        if (entry.isIntersecting) { setInView(true); observer.disconnect(); }
+        if (entry.isIntersecting) {
+          setInView(true);
+          observer.disconnect();
+        }
       },
-      { threshold }
+      { threshold },
     );
     observer.observe(el);
     return () => observer.disconnect();
@@ -29,14 +32,16 @@ function useInView(threshold = 0.1) {
 ───────────────────────────────────────────────────────── */
 const CARDS = [
   {
-    image: "/images/notes.svg",
+    image:
+      "https://res.cloudinary.com/wddg7ppg/image/upload/v1790848320/notes.svg",
     alt: "White Label illustration",
     title: "White Label",
     body: "Launch your own branded digital music distribution platform powered our technology",
     delay: 0,
   },
   {
-    image: "/images/thoughts.svg",
+    image:
+      "https://res.cloudinary.com/wddg7ppg/image/upload/v1790850321/thoughts.svg",
     alt: "API Access illustration",
     title: "API Access",
     body: "Integrate our distribution capabilities into your app or platform wit powerful API access.",
@@ -82,7 +87,7 @@ const SolutionCard: React.FC<{
       ref={ref}
       className={[
         "relative flex flex-col overflow-visible transition-all duration-700",
-        "w-full sm:w-[393.89px]",               /* full width mobile, fixed desktop */
+        "w-full sm:w-[393.89px]" /* full width mobile, fixed desktop */,
         inView ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8",
       ].join(" ")}
       style={{ transitionDelay: `${delay}ms` }}
@@ -93,7 +98,7 @@ const SolutionCard: React.FC<{
       <div
         className={[
           "rounded-2xl flex flex-col overflow-hidden w-full",
-          "h-auto sm:h-[550.53px]",             /* auto height mobile, fixed desktop */
+          "h-auto sm:h-[550.53px]" /* auto height mobile, fixed desktop */,
         ].join(" ")}
         style={{
           backgroundColor: "#180F0F",
@@ -120,9 +125,7 @@ const SolutionCard: React.FC<{
           <h3 className="font-heading text-white uppercase text-xl sm:text-2xl tracking-wide mb-3">
             {title}
           </h3>
-          <p className="font-body text-white text-sm leading-relaxed">
-            {body}
-          </p>
+          <p className="font-body text-white text-sm leading-relaxed">{body}</p>
         </div>
       </div>
     </div>
@@ -137,25 +140,26 @@ const CustomSolutions: React.FC = () => {
 
   return (
     <section className="relative w-full bg-[#140C0C] py-20 sm:py-24 lg:py-32 px-4 sm:px-6 lg:px-10 overflow-hidden">
-
       {/* ── Bottom-left red glow ── */}
       <div
         aria-hidden="true"
         className="absolute bottom-0 left-0 w-[600px] h-[600px] pointer-events-none"
         style={{
-          background: "radial-gradient(ellipse at bottom left, rgba(195,1,0,0.3) 0%, transparent 65%)",
+          background:
+            "radial-gradient(ellipse at bottom left, rgba(195,1,0,0.3) 0%, transparent 65%)",
           filter: "blur(80px)",
         }}
       />
 
       <div className="relative z-10 max-w-[1280px] mx-auto">
-
         {/* ── HEADER ── */}
         <div
           ref={headRef}
           className={[
             "text-center mb-16 sm:mb-20 transition-all duration-700",
-            headInView ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6",
+            headInView
+              ? "opacity-100 translate-y-0"
+              : "opacity-0 translate-y-6",
           ].join(" ")}
         >
           <h2 className="font-heading text-white uppercase text-3xl sm:text-4xl lg:text-5xl xl:text-[56px] leading-tight mb-5">
@@ -177,7 +181,6 @@ const CustomSolutions: React.FC = () => {
             <SolutionCard key={card.title} {...card} />
           ))}
         </div>
-
       </div>
     </section>
   );

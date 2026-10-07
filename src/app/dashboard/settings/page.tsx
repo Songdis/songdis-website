@@ -93,7 +93,6 @@ function Toggle({
   );
 }
 
-
 function ArtistProfileTab() {
   const [profiles, setProfiles] = useState<ArtistProfile[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -103,12 +102,12 @@ function ArtistProfileTab() {
   );
   const [showLimitInfo, setShowLimitInfo] = useState(false);
   const [showSubscribePrompt, setShowSubscribePrompt] = useState(false);
-  const [confirmingDelete, setConfirmingDelete] = useState<ArtistProfile | null>(null);
+  const [confirmingDelete, setConfirmingDelete] =
+    useState<ArtistProfile | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const { isLocked, artists } = useBilling(0);
   const router = useRouter();
-
 
   const handleAddArtist = () => {
     if (isLocked || artists?.can_create === false) {
@@ -155,7 +154,7 @@ function ArtistProfileTab() {
             avatar: (p.profile_image ??
               p.spotify_image_url ??
               p.avatar_url ??
-              "/images/avatar-artiste.svg") as string,
+              "https://res.cloudinary.com/wddg7ppg/image/upload/v1790778572/avatar-artiste.svg") as string,
           })),
         );
       }
@@ -169,7 +168,6 @@ function ArtistProfileTab() {
     setEditingProfile(profile);
     setShowEditModal(true);
   };
-
 
   const handleDelete = async (profile: ArtistProfile) => {
     setDeleteError(null);
@@ -252,15 +250,20 @@ function ArtistProfileTab() {
         >
           <span className="text-white/40 text-2xl leading-none">+</span>
           <span className="font-montserrat text-white/50 text-sm">
-            {profiles.length === 0 ? "Create Your First Artist Profile" : "Add Another Artist"}
+            {profiles.length === 0
+              ? "Create Your First Artist Profile"
+              : "Add Another Artist"}
           </span>
         </button>
       </div>
 
- 
       <ConfirmDialog
         open={showSubscribePrompt}
-        title={profiles.length === 0 ? "Choose a plan to continue" : "Upgrade to add another artist"}
+        title={
+          profiles.length === 0
+            ? "Choose a plan to continue"
+            : "Upgrade to add another artist"
+        }
         confirmLabel="View Plans"
         cancelLabel="Not now"
         onConfirm={() => {
@@ -271,14 +274,15 @@ function ArtistProfileTab() {
         message={
           profiles.length === 0 ? (
             <p>
-              Artist profiles are part of every plan. Pick one and you can create
-              your profile and start releasing straight away.
+              Artist profiles are part of every plan. Pick one and you can
+              create your profile and start releasing straight away.
             </p>
           ) : (
             <p>
               Your current plan covers{" "}
               <span className="text-white font-medium">
-                {artists?.limit ?? 1} artist{(artists?.limit ?? 1) === 1 ? "" : "s"}
+                {artists?.limit ?? 1} artist
+                {(artists?.limit ?? 1) === 1 ? "" : "s"}
               </span>
               . Move up a plan to add more.
             </p>
@@ -328,7 +332,6 @@ function ArtistProfileTab() {
     </>
   );
 }
-
 
 function ProfileCard({
   profile,
@@ -406,7 +409,6 @@ function ProfileCard({
           Edit Profile
         </button>
 
-       
         {onDelete && (
           <button
             onClick={onDelete}
@@ -419,7 +421,6 @@ function ProfileCard({
     </div>
   );
 }
-
 
 function DeleteProfileModal({
   profile,
@@ -435,11 +436,16 @@ function DeleteProfileModal({
   onConfirm: () => void;
 }) {
   const [typed, setTyped] = useState("");
-  const matches = typed.trim().toLowerCase() === profile.stageName.trim().toLowerCase();
+  const matches =
+    typed.trim().toLowerCase() === profile.stageName.trim().toLowerCase();
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
-      <div aria-hidden className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onCancel} />
+      <div
+        aria-hidden
+        className="absolute inset-0 bg-black/70 backdrop-blur-sm"
+        onClick={onCancel}
+      />
 
       <div className="relative z-10 w-full max-w-[420px] rounded-2xl bg-[#1A0808] border border-white/[0.07] p-6">
         <p className="font-nulshock text-white uppercase text-sm tracking-wide mb-2">
@@ -453,7 +459,8 @@ function DeleteProfileModal({
         </p>
 
         <label className="block font-montserrat text-white/40 text-[11px] mb-1.5">
-          Type <span className="text-white/70">{profile.stageName}</span> to confirm
+          Type <span className="text-white/70">{profile.stageName}</span> to
+          confirm
         </label>
         <input
           value={typed}
@@ -541,8 +548,7 @@ function LimitInfoModal({
             Create your professional artist profile
           </p>
         </div>
-        <div className="rounded-xl bg-[#0E0808] border border-white/[0.06] p-4 mb-5">
-        </div>
+        <div className="rounded-xl bg-[#0E0808] border border-white/[0.06] p-4 mb-5"></div>
         <p className="font-nulshock text-white/50 uppercase text-xs tracking-widest mb-4">
           How to Add a New Artist
         </p>
@@ -595,7 +601,6 @@ function LimitInfoModal({
     </div>
   );
 }
-
 
 function AyoAITab() {
   const [proactive, setProactive] = useState(true);
@@ -817,7 +822,7 @@ function SubscriptionTab() {
       } else {
         success(
           "Subscription cancelled",
-          res.message ?? "You will keep access until your period ends."
+          res.message ?? "You will keep access until your period ends.",
         );
         refreshBilling();
       }
@@ -827,7 +832,6 @@ function SubscriptionTab() {
       setCancelling(false);
     }
   };
-
 
   const handleResume = async () => {
     setResuming(true);
@@ -845,7 +849,10 @@ function SubscriptionTab() {
         return;
       }
 
-      success("Subscription resumed", res.message ?? "Your plan will continue.");
+      success(
+        "Subscription resumed",
+        res.message ?? "Your plan will continue.",
+      );
       refreshBilling();
     } catch {
       toastError("Could not resume", "Something went wrong.");
@@ -853,7 +860,6 @@ function SubscriptionTab() {
       setResuming(false);
     }
   };
-
 
   const handlePortal = async () => {
     setOpeningPortal(true);
@@ -864,7 +870,10 @@ function SubscriptionTab() {
       if (res.data?.portal_url) {
         window.location.href = res.data.portal_url;
       } else {
-        toastError("Unavailable", res.error ?? "Billing portal could not be opened.");
+        toastError(
+          "Unavailable",
+          res.error ?? "Billing portal could not be opened.",
+        );
       }
     } catch {
       toastError("Unavailable", "Billing portal could not be opened.");
@@ -922,7 +931,9 @@ function SubscriptionTab() {
                     ? `Renews automatically on ${dateStr}`
                     : `Access until ${dateStr}`
                   : "Active"}
-                {daysUntilExpiry !== null && daysUntilExpiry <= 14 && daysUntilExpiry >= 0
+                {daysUntilExpiry !== null &&
+                daysUntilExpiry <= 14 &&
+                daysUntilExpiry >= 0
                   ? ` · ${
                       daysUntilExpiry === 0
                         ? "expires today"
@@ -931,10 +942,10 @@ function SubscriptionTab() {
                   : ""}
               </p>
 
-
               {renewsManually && !status?.cancel_at_period_end && (
                 <p className="font-montserrat text-white/30 text-[11px] mt-1">
-                  This plan does not renew automatically — pay again before it ends to stay active.
+                  This plan does not renew automatically — pay again before it
+                  ends to stay active.
                 </p>
               )}
             </div>
@@ -943,7 +954,9 @@ function SubscriptionTab() {
               <div className="text-right shrink-0">
                 <p className="font-nulshock text-white text-lg">
                   {status.artists.used}
-                  <span className="text-white/30 text-sm">/{status.artists.limit}</span>
+                  <span className="text-white/30 text-sm">
+                    /{status.artists.limit}
+                  </span>
                 </p>
                 <p className="font-montserrat text-white/30 text-[10px]">
                   artist profile{status.artists.limit === 1 ? "" : "s"}
@@ -957,15 +970,14 @@ function SubscriptionTab() {
       {!isLoading && isExpired && (
         <div className="mb-6 rounded-xl border border-[#C30100]/30 bg-[#C30100]/[0.07] px-4 py-3">
           <p className="font-montserrat text-white text-xs">
-            Your subscription {dateStr ? `expired on ${dateStr}` : "has expired"}. Choose a plan
+            Your subscription{" "}
+            {dateStr ? `expired on ${dateStr}` : "has expired"}. Choose a plan
             below to restore access.
           </p>
         </div>
       )}
 
-
       <PlanGrid onChanged={refreshBilling} />
-
 
       {isActive && status?.source !== "legacy" && (
         <div className="mt-5 pt-5 border-t border-white/[0.06] flex flex-col sm:flex-row items-center justify-center gap-3">
@@ -986,7 +998,15 @@ function SubscriptionTab() {
               className="font-nulshock uppercase text-[10px] tracking-widest rounded-full border border-[#C30100] bg-[#C30100]/10 hover:bg-[#C30100] px-5 py-2.5 text-white transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2 min-h-[44px]"
             >
               {resuming && (
-                <svg className="animate-spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <svg
+                  className="animate-spin"
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                >
                   <path d="M21 12a9 9 0 11-6.219-8.56" />
                 </svg>
               )}
@@ -1081,7 +1101,6 @@ function SettingsContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
 
-
   const requestedTab = searchParams.get("tab");
   const initialTab: Tab = TABS.some((t) => t.id === requestedTab)
     ? (requestedTab as Tab)
@@ -1092,7 +1111,11 @@ function SettingsContent() {
   const isArtistProfile = activeTab === "artist-profile";
 
   useEffect(() => {
-    if (requestedTab && TABS.some((t) => t.id === requestedTab) && requestedTab !== activeTab) {
+    if (
+      requestedTab &&
+      TABS.some((t) => t.id === requestedTab) &&
+      requestedTab !== activeTab
+    ) {
       setActiveTab(requestedTab as Tab);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1338,7 +1361,15 @@ export default function SettingsPage() {
       fallback={
         <DashboardLayout pageTitle="Settings">
           <div className="flex justify-center py-20">
-            <svg className="animate-spin" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#C30100" strokeWidth="2">
+            <svg
+              className="animate-spin"
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="#C30100"
+              strokeWidth="2"
+            >
               <path d="M21 12a9 9 0 11-6.219-8.56" />
             </svg>
           </div>

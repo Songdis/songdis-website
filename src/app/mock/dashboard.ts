@@ -8,7 +8,8 @@ export const MOCK_DASHBOARD = {
   user: {
     name: "VJazzy",
     plan: "Growth Plan",
-    avatar: "/images/avatar-artiste.svg",
+    avatar:
+      "https://res.cloudinary.com/wddg7ppg/image/upload/v1790778572/avatar-artiste.svg",
   },
 
   stats: {
@@ -28,25 +29,40 @@ export const MOCK_DASHBOARD = {
       id: "1",
       title: "Scatter The Place",
       artist: "Vjazzy",
-      cover: "/images/into-the-night.svg",
+      cover:
+        "https://res.cloudinary.com/wddg7ppg/image/upload/v1790847131/into-the-night.svg",
       status: "live" as const,
     },
     {
       id: "2",
       title: "Wisdom No Dey Old",
       artist: "Vjazzy",
-      cover: "/images/into-the-night.svg",
+      cover:
+        "https://res.cloudinary.com/wddg7ppg/image/upload/v1790847131/into-the-night.svg",
       status: "live" as const,
     },
   ],
 
   ayoInsight: {
     message:
-      "Your track \"Scatter the Place\" is gaining early traction — 4 streams in its first week. Based on similar Afrobeats releases, pitching to editorial playlists in the next 7 days could significantly boost discovery. Want me to draft a pitch?",
+      'Your track "Scatter the Place" is gaining early traction — 4 streams in its first week. Based on similar Afrobeats releases, pitching to editorial playlists in the next 7 days could significantly boost discovery. Want me to draft a pitch?',
   },
 
   analyticsChart: {
-    months: ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
+    months: [
+      "Jan",
+      "Feb",
+      "Mar",
+      "Apr",
+      "May",
+      "Jun",
+      "Jul",
+      "Aug",
+      "Sep",
+      "Oct",
+      "Nov",
+      "Dec",
+    ],
     streams: [10, 20, 30, 52, 70, 60, 65, 75, 68, 80, 85, 88],
     revenue: [5, 10, 18, 30, 50, 45, 50, 60, 55, 70, 78, 82],
   },
@@ -55,7 +71,8 @@ export const MOCK_DASHBOARD = {
     {
       id: "royalty",
       title: "Royalty Reportistration",
-      description: "Maximize your royalties with access to 50+ collection societies",
+      description:
+        "Maximize your royalties with access to 50+ collection societies",
       icon: "report",
     },
     {
@@ -67,7 +84,8 @@ export const MOCK_DASHBOARD = {
     {
       id: "pitch",
       title: "Priority Pitch",
-      description: "Submit your releases to access enhanced promotion, editorial playlists, and more opportunities.",
+      description:
+        "Submit your releases to access enhanced promotion, editorial playlists, and more opportunities.",
       icon: "pitch",
     },
     {
@@ -79,13 +97,15 @@ export const MOCK_DASHBOARD = {
     {
       id: "splitr",
       title: "Splitr",
-      description: "Automatically split your music revenues among collaborators",
+      description:
+        "Automatically split your music revenues among collaborators",
       icon: "splitr",
     },
     {
       id: "amplify",
       title: "Amplify",
-      description: "Expand your sound to a wider audience and get your music in front of more listeners worldwide.",
+      description:
+        "Expand your sound to a wider audience and get your music in front of more listeners worldwide.",
       icon: "amplify",
     },
   ],

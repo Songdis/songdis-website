@@ -125,7 +125,7 @@ const Navbar: React.FC = () => {
             className="shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C30100] rounded"
           >
             <Image
-              src="/images/logo.svg"
+              src="https://res.cloudinary.com/wddg7ppg/image/upload/v1790847552/logo.svg"
               alt="Songdis"
               width={120}
               height={32}

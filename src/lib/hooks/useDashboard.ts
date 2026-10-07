@@ -18,25 +18,79 @@ export interface DashboardPageData {
     revenue: number[];
   };
   ayoInsight: { message: string };
-  features: Array<{ id: string; title: string; description: string; icon: string }>;
+  features: Array<{
+    id: string;
+    title: string;
+    description: string;
+    icon: string;
+  }>;
   user: { name: string; plan: string; avatar: string };
 }
 
-const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+const MONTHS = [
+  "Jan",
+  "Feb",
+  "Mar",
+  "Apr",
+  "May",
+  "Jun",
+  "Jul",
+  "Aug",
+  "Sep",
+  "Oct",
+  "Nov",
+  "Dec",
+];
 
 const FALLBACK_FEATURES = [
-  { id: "royalty", title: "Royalty Report",  description: "Maximize your royalties with access to 50+ collection societies", icon: "report" },
-  { id: "links",   title: "Release Links",   description: "Share your music everywhere with pre-save campaign links.", icon: "link" },
-  { id: "pitch",   title: "Priority Pitch",  description: "Submit your releases to access enhanced promotion and editorial playlists.", icon: "pitch" },
-  { id: "ayo",     title: "Ayo AI",          description: "Smart and seamless insights powered by Ayo AI", icon: "ayo" },
-  { id: "splitr",  title: "Splitr",          description: "Automatically split your music revenues among collaborators", icon: "splitr" },
-  { id: "amplify", title: "Amplify",         description: "Expand your sound to a wider audience worldwide.", icon: "amplify" },
+  {
+    id: "royalty",
+    title: "Royalty Report",
+    description:
+      "Maximize your royalties with access to 50+ collection societies",
+    icon: "report",
+  },
+  {
+    id: "links",
+    title: "Release Links",
+    description: "Share your music everywhere with pre-save campaign links.",
+    icon: "link",
+  },
+  {
+    id: "pitch",
+    title: "Priority Pitch",
+    description:
+      "Submit your releases to access enhanced promotion and editorial playlists.",
+    icon: "pitch",
+  },
+  {
+    id: "ayo",
+    title: "Ayo AI",
+    description: "Smart and seamless insights powered by Ayo AI",
+    icon: "ayo",
+  },
+  {
+    id: "splitr",
+    title: "Splitr",
+    description: "Automatically split your music revenues among collaborators",
+    icon: "splitr",
+  },
+  {
+    id: "amplify",
+    title: "Amplify",
+    description: "Expand your sound to a wider audience worldwide.",
+    icon: "amplify",
+  },
 ];
 
 const VALID_STATUSES = [
-  "live", "pending", "delivered", "distributed", "need_documentation",
+  "live",
+  "pending",
+  "delivered",
+  "distributed",
+  "need_documentation",
 ] as const;
-type ValidStatus = typeof VALID_STATUSES[number];
+type ValidStatus = (typeof VALID_STATUSES)[number];
 
 /**
  * Never guess "live".
@@ -55,14 +109,18 @@ function toStatus(raw: string | undefined): string {
 
 function normaliseDashboard(
   statsRaw: Record<string, unknown> | null,
-  streamsRaw: { months?: string[]; streams?: number[]; revenue?: number[] } | null
+  streamsRaw: {
+    months?: string[];
+    streams?: number[];
+    revenue?: number[];
+  } | null,
 ): DashboardPageData {
-
   const d = (statsRaw?.data as Record<string, unknown>) ?? statsRaw ?? {};
 
   const activeReleases = (d.active_releases as number) ?? 0;
-  const totalEarnings  = (d.total_earnings  as number) ?? (d.royalty_balance as number) ?? 0;
-  const totalStreams    = (d.total_streams   as number) ?? 0;
+  const totalEarnings =
+    (d.total_earnings as number) ?? (d.royalty_balance as number) ?? 0;
+  const totalStreams = (d.total_streams as number) ?? 0;
 
   const wallet: WalletData = {
     totalEarnings,
@@ -71,14 +129,17 @@ function normaliseDashboard(
     avgPerStream: totalStreams > 0 ? totalEarnings / totalStreams : 0,
   };
 
-  const rawReleases = (d.recent_releases as Array<Record<string, unknown>>) ?? [];
-  const recentReleases: DashboardRelease[] = rawReleases.slice(0, 5).map((r) => ({
-    id: r.id as number,
-    title: (r.release_title ?? r.track_title ?? "") as string,
-    artist: (r.primary_artist ?? "") as string,
-    cover: (r.album_art_url ?? "") as string,
-    status: toStatus(r.status as string),
-  }));
+  const rawReleases =
+    (d.recent_releases as Array<Record<string, unknown>>) ?? [];
+  const recentReleases: DashboardRelease[] = rawReleases
+    .slice(0, 5)
+    .map((r) => ({
+      id: r.id as number,
+      title: (r.release_title ?? r.track_title ?? "") as string,
+      artist: (r.primary_artist ?? "") as string,
+      cover: (r.album_art_url ?? "") as string,
+      status: toStatus(r.status as string),
+    }));
 
   const analyticsChart = {
     months: streamsRaw?.months ?? MONTHS,
@@ -93,7 +154,12 @@ function normaliseDashboard(
     analyticsChart,
     ayoInsight: { message: "" }, // DES-005: no dummy content
     features: FALLBACK_FEATURES,
-    user: { name: "", plan: "Growth Plan", avatar: "/images/avatar-artiste.svg" },
+    user: {
+      name: "",
+      plan: "Growth Plan",
+      avatar:
+        "https://res.cloudinary.com/wddg7ppg/image/upload/v1790778572/avatar-artiste.svg",
+    },
   };
 }
 
@@ -119,8 +185,12 @@ export function useDashboard() {
         setData(
           normaliseDashboard(
             statsRes.data as Record<string, unknown>,
-            streamsRes.data as { months?: string[]; streams?: number[]; revenue?: number[] } | null,
-          )
+            streamsRes.data as {
+              months?: string[];
+              streams?: number[];
+              revenue?: number[];
+            } | null,
+          ),
         );
       }
     } catch {
@@ -131,7 +201,9 @@ export function useDashboard() {
     }
   }, []);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    load();
+  }, [load]);
 
   return { data, isLoading, error, refresh: load };
 }

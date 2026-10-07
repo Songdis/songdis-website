@@ -61,15 +61,27 @@ export interface NormalisedSplit {
   splitName: string;
 }
 
-const COLLAB_COLORS = ["#C30100", "#f59e0b", "#3b82f6", "#22c55e", "#a855f7", "#ec4899"];
+const COLLAB_COLORS = [
+  "#C30100",
+  "#f59e0b",
+  "#3b82f6",
+  "#22c55e",
+  "#a855f7",
+  "#ec4899",
+];
 
 function normaliseSplit(s: Split, userEmail?: string): NormalisedSplit {
   const music = s.music_upload;
   return {
     id: String(s.id),
-    trackTitle:  (music?.release_title ?? music?.track_title ?? s.split_name ?? "") as string,
-    trackCover:  (music?.album_art_url ?? "/images/releases/cover-blue.svg") as string,
-    pendingCount: s.recipients?.filter((r) => r.status === "pending").length ?? 0,
+    trackTitle: (music?.release_title ??
+      music?.track_title ??
+      s.split_name ??
+      "") as string,
+    trackCover: (music?.album_art_url ??
+      "https://res.cloudinary.com/wddg7ppg/image/upload/v1790779253/cover-blue.jpg") as string,
+    pendingCount:
+      s.recipients?.filter((r) => r.status === "pending").length ?? 0,
     isLocked: s.is_locked ?? false,
     splitName: s.split_name,
     musicUploadId: s.music_upload_id,
@@ -113,7 +125,9 @@ export function useSplits() {
     return res;
   }, []);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    load();
+  }, [load]);
 
   // Derived stats
   const stats = {
@@ -130,22 +144,25 @@ export function useCreateSplit() {
   const [error, setError] = useState<string | null>(null);
   const { success, error: toastError } = useToast();
 
-  const create = useCallback(async (
-    payload: CreateSplitPayload,
-    onSuccess?: () => void
-  ) => {
-    setIsLoading(true);
-    setError(null);
-    const res = await createSplit(payload);
-    if (res.error) {
-      setError(res.error);
-      toastError("Failed to create split", res.error);
-    } else {
-      success("Split agreement created!", "Collaborators have been notified via email.");
-      onSuccess?.();
-    }
-    setIsLoading(false);
-  }, [success, toastError]);
+  const create = useCallback(
+    async (payload: CreateSplitPayload, onSuccess?: () => void) => {
+      setIsLoading(true);
+      setError(null);
+      const res = await createSplit(payload);
+      if (res.error) {
+        setError(res.error);
+        toastError("Failed to create split", res.error);
+      } else {
+        success(
+          "Split agreement created!",
+          "Collaborators have been notified via email.",
+        );
+        onSuccess?.();
+      }
+      setIsLoading(false);
+    },
+    [success, toastError],
+  );
 
   return { create, isLoading, error };
 }
@@ -154,21 +171,20 @@ export function useUpdateSplit() {
   const [isLoading, setIsLoading] = useState(false);
   const { success, error: toastError } = useToast();
 
-  const update = useCallback(async (
-    id: string,
-    payload: UpdateSplitPayload,
-    onSuccess?: () => void
-  ) => {
-    setIsLoading(true);
-    const res = await updateSplit(id, payload);
-    if (res.error) {
-      toastError("Failed to update split", res.error);
-    } else {
-      success("Split updated!", "Changes saved successfully.");
-      onSuccess?.();
-    }
-    setIsLoading(false);
-  }, [success, toastError]);
+  const update = useCallback(
+    async (id: string, payload: UpdateSplitPayload, onSuccess?: () => void) => {
+      setIsLoading(true);
+      const res = await updateSplit(id, payload);
+      if (res.error) {
+        toastError("Failed to update split", res.error);
+      } else {
+        success("Split updated!", "Changes saved successfully.");
+        onSuccess?.();
+      }
+      setIsLoading(false);
+    },
+    [success, toastError],
+  );
 
   return { update, isLoading };
 }
@@ -177,51 +193,54 @@ export function useRecipients(splitId: string) {
   const [isLoading, setIsLoading] = useState(false);
   const { success, error: toastError } = useToast();
 
-  const add = useCallback(async (
-    payload: AddRecipientPayload,
-    onSuccess?: () => void
-  ) => {
-    setIsLoading(true);
-    const res = await addRecipient(splitId, payload);
-    if (res.error) {
-      toastError("Failed to add recipient", res.error);
-    } else {
-      success("Recipient added!", "Invitation sent.");
-      onSuccess?.();
-    }
-    setIsLoading(false);
-  }, [splitId, success, toastError]);
+  const add = useCallback(
+    async (payload: AddRecipientPayload, onSuccess?: () => void) => {
+      setIsLoading(true);
+      const res = await addRecipient(splitId, payload);
+      if (res.error) {
+        toastError("Failed to add recipient", res.error);
+      } else {
+        success("Recipient added!", "Invitation sent.");
+        onSuccess?.();
+      }
+      setIsLoading(false);
+    },
+    [splitId, success, toastError],
+  );
 
-  const update = useCallback(async (
-    recipientId: number,
-    payload: Partial<AddRecipientPayload>,
-    onSuccess?: () => void
-  ) => {
-    setIsLoading(true);
-    const res = await updateRecipient(splitId, recipientId, payload);
-    if (res.error) {
-      toastError("Failed to update recipient", res.error);
-    } else {
-      success("Recipient updated!");
-      onSuccess?.();
-    }
-    setIsLoading(false);
-  }, [splitId, success, toastError]);
+  const update = useCallback(
+    async (
+      recipientId: number,
+      payload: Partial<AddRecipientPayload>,
+      onSuccess?: () => void,
+    ) => {
+      setIsLoading(true);
+      const res = await updateRecipient(splitId, recipientId, payload);
+      if (res.error) {
+        toastError("Failed to update recipient", res.error);
+      } else {
+        success("Recipient updated!");
+        onSuccess?.();
+      }
+      setIsLoading(false);
+    },
+    [splitId, success, toastError],
+  );
 
-  const remove = useCallback(async (
-    recipientId: number,
-    onSuccess?: () => void
-  ) => {
-    setIsLoading(true);
-    const res = await removeRecipient(splitId, recipientId);
-    if (res.error) {
-      toastError("Failed to remove recipient", res.error);
-    } else {
-      success("Recipient removed.");
-      onSuccess?.();
-    }
-    setIsLoading(false);
-  }, [splitId, success, toastError]);
+  const remove = useCallback(
+    async (recipientId: number, onSuccess?: () => void) => {
+      setIsLoading(true);
+      const res = await removeRecipient(splitId, recipientId);
+      if (res.error) {
+        toastError("Failed to remove recipient", res.error);
+      } else {
+        success("Recipient removed.");
+        onSuccess?.();
+      }
+      setIsLoading(false);
+    },
+    [splitId, success, toastError],
+  );
 
   return { add, update, remove, isLoading };
 }
@@ -257,7 +276,9 @@ export function useSplitEarnings() {
     setIsLoading(false);
   }, []);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    load();
+  }, [load]);
 
   /*
    * `total_earnings` is the recipient's own share of a release. The old code summed

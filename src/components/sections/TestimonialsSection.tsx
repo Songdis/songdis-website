@@ -4,7 +4,6 @@ import React, { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 
-
 function useInView(threshold = 0.1) {
   const ref = useRef<HTMLDivElement>(null);
   const [inView, setInView] = useState(false);
@@ -26,7 +25,6 @@ function useInView(threshold = 0.1) {
   return { ref, inView };
 }
 
-
 interface Testimonial {
   quote: string;
   name: string;
@@ -35,7 +33,6 @@ interface Testimonial {
   avatar?: string;
 }
 
-
 const LEFT_TESTIMONIALS: Testimonial[] = [
   {
     quote:
@@ -43,7 +40,8 @@ const LEFT_TESTIMONIALS: Testimonial[] = [
     name: "Reechdee",
     flag: "🇳🇬",
     country: "Nigeria",
-    avatar: "/images/rechdee.jpg",
+    avatar:
+      "https://res.cloudinary.com/wddg7ppg/image/upload/v1790849194/rechdee.jpg",
   },
   {
     quote:
@@ -51,7 +49,8 @@ const LEFT_TESTIMONIALS: Testimonial[] = [
     name: "Kdiv Coco",
     flag: "🇳🇬",
     country: "Nigeria",
-    avatar: "/images/kdiv.jpg",
+    avatar:
+      "https://res.cloudinary.com/wddg7ppg/image/upload/v1790847165/kdiv.jpg",
   },
   {
     quote:
@@ -70,7 +69,8 @@ const CENTER_TESTIMONIALS: Testimonial[] = [
     name: "Emmybrown",
     flag: "🇳🇬",
     country: "Nigeria",
-    avatar: "/images/emmy.webp",
+    avatar:
+      "https://res.cloudinary.com/wddg7ppg/image/upload/v1790846812/emmy.webp",
   },
   {
     quote:
@@ -86,7 +86,8 @@ const CENTER_TESTIMONIALS: Testimonial[] = [
     name: "Bri Tse",
     flag: "🇳🇬",
     country: "Nigeria",
-    avatar: "/images/bri.jpg",
+    avatar:
+      "https://res.cloudinary.com/wddg7ppg/image/upload/v1790778796/bri.jpg",
   },
   {
     quote:
@@ -94,7 +95,8 @@ const CENTER_TESTIMONIALS: Testimonial[] = [
     name: "Emmybrown",
     flag: "🇳🇬",
     country: "Nigeria",
-    avatar: "/images/emmy.webp",
+    avatar:
+      "https://res.cloudinary.com/wddg7ppg/image/upload/v1790846812/emmy.webp",
   },
 ];
 
@@ -105,7 +107,8 @@ const RIGHT_TESTIMONIALS: Testimonial[] = [
     name: "R33nzo",
     flag: "🇳🇬",
     country: "Nigeria",
-    avatar: "/images/rezzno.jpg",
+    avatar:
+      "https://res.cloudinary.com/wddg7ppg/image/upload/v1790849433/rezzno.jpg",
   },
   {
     quote:
@@ -113,7 +116,8 @@ const RIGHT_TESTIMONIALS: Testimonial[] = [
     name: "Reechdee",
     flag: "🇳🇬",
     country: "Nigeria",
-    avatar: "/images/rechdee.jpg",
+    avatar:
+      "https://res.cloudinary.com/wddg7ppg/image/upload/v1790849194/rechdee.jpg",
   },
   {
     quote:
@@ -121,10 +125,10 @@ const RIGHT_TESTIMONIALS: Testimonial[] = [
     name: "Reechdee",
     flag: "🇳🇬",
     country: "Nigeria",
-    avatar: "/images/rechdee.jpg",
+    avatar:
+      "https://res.cloudinary.com/wddg7ppg/image/upload/v1790849194/rechdee.jpg",
   },
 ];
-
 
 const QuoteIcon: React.FC<{ size?: "sm" | "md" }> = ({ size = "md" }) => (
   <div
@@ -149,7 +153,6 @@ const QuoteIcon: React.FC<{ size?: "sm" | "md" }> = ({ size = "md" }) => (
   </div>
 );
 
-
 const TestimonialCard: React.FC<{ testimonial: Testimonial }> = ({
   testimonial,
 }) => (
@@ -162,7 +165,10 @@ const TestimonialCard: React.FC<{ testimonial: Testimonial }> = ({
       <div className="flex items-center gap-3">
         <div className="relative w-10 h-10 rounded-full overflow-hidden shrink-0 border border-white/10">
           <Image
-            src={testimonial.avatar ?? "/images/avatar-artiste.svg"}
+            src={
+              testimonial.avatar ??
+              "https://res.cloudinary.com/wddg7ppg/image/upload/v1790778572/avatar-artiste.svg"
+            }
             alt={testimonial.name}
             fill
             className="object-cover object-top"
@@ -183,7 +189,6 @@ const TestimonialCard: React.FC<{ testimonial: Testimonial }> = ({
   </div>
 );
 
-
 const ScrollingColumn: React.FC<{
   testimonials: Testimonial[];
   direction?: "up" | "down";
@@ -199,7 +204,8 @@ const ScrollingColumn: React.FC<{
         aria-hidden="true"
         className="absolute inset-x-0 top-0 h-20 z-10 pointer-events-none"
         style={{
-          background: "linear-gradient(to bottom, #140C0C 0%, transparent 100%)",
+          background:
+            "linear-gradient(to bottom, #140C0C 0%, transparent 100%)",
         }}
       />
       {/* Bottom fade */}
@@ -265,7 +271,9 @@ const TestimonialsSection: React.FC = () => {
           ref={headRef}
           className={[
             "text-center mb-14 sm:mb-16 lg:mb-20 transition-all duration-700",
-            headInView ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6",
+            headInView
+              ? "opacity-100 translate-y-0"
+              : "opacity-0 translate-y-6",
           ].join(" ")}
         >
           <h2 className="font-heading text-white uppercase text-3xl sm:text-4xl lg:text-5xl xl:text-[56px] leading-tight mb-5">
@@ -282,7 +290,9 @@ const TestimonialsSection: React.FC = () => {
           ref={colsRef}
           className={[
             "grid grid-cols-1 lg:grid-cols-3 gap-4 transition-all duration-700",
-            colsInView ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8",
+            colsInView
+              ? "opacity-100 translate-y-0"
+              : "opacity-0 translate-y-8",
           ].join(" ")}
         >
           {/* Left — scrolls UP, slowest */}
@@ -315,7 +325,9 @@ const TestimonialsSection: React.FC = () => {
         <div
           className={[
             "flex justify-center mt-14 sm:mt-16 transition-all duration-700 delay-300",
-            colsInView ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6",
+            colsInView
+              ? "opacity-100 translate-y-0"
+              : "opacity-0 translate-y-6",
           ].join(" ")}
         >
           <div

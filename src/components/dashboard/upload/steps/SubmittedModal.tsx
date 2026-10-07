@@ -7,12 +7,22 @@ interface SubmittedProps {
   onPitchDSPs: () => void;
 }
 
-export default function SubmittedModal({ onClose, onPitchDSPs }: SubmittedProps) {
+export default function SubmittedModal({
+  onClose,
+  onPitchDSPs,
+}: SubmittedProps) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4">
-      <div aria-hidden className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
+      <div
+        aria-hidden
+        className="absolute inset-0 bg-black/70 backdrop-blur-sm"
+        onClick={onClose}
+      />
       <div className="relative z-10 w-full max-w-[520px] rounded-2xl bg-[#1A0808] border border-white/[0.07] p-6 sm:p-10 text-center overflow-hidden max-h-[90vh] overflow-y-auto">
-        <button onClick={onClose} className="absolute top-5 right-5 text-white/40 hover:text-white transition-colors">
+        <button
+          onClick={onClose}
+          className="absolute top-5 right-5 text-white/40 hover:text-white transition-colors"
+        >
           <CloseIcon />
         </button>
 
@@ -21,33 +31,59 @@ export default function SubmittedModal({ onClose, onPitchDSPs }: SubmittedProps)
           <div className="relative">
             <div
               className="absolute inset-0 rounded-full blur-xl"
-              style={{ background: "radial-gradient(circle, rgba(195,1,0,0.35) 0%, rgba(195,1,0,0) 70%)" }}
+              style={{
+                background:
+                  "radial-gradient(circle, rgba(195,1,0,0.35) 0%, rgba(195,1,0,0) 70%)",
+              }}
             />
-            <svg width="90" height="90" viewBox="0 0 90 90" fill="none" className="relative">
+            <svg
+              width="90"
+              height="90"
+              viewBox="0 0 90 90"
+              fill="none"
+              className="relative"
+            >
               <circle cx="45" cy="45" r="43" stroke="#C30100" strokeWidth="2" />
-              <path d="M28 45L40 57L62 33" stroke="#C30100" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+              <path
+                d="M28 45L40 57L62 33"
+                stroke="#C30100"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
             </svg>
           </div>
         </div>
 
-        <h2 className="font-body text-white text-xl font-bold mb-3">Release Submitted!</h2>
+        <h2 className="font-body text-white text-xl font-bold mb-3">
+          Release Submitted!
+        </h2>
         <p className="font-body text-white/60 text-sm mb-3">
           Your release has been successfully submitted for distribution.
         </p>
-        <p className="font-body text-white/40 text-sm mb-8">Next step — Pitch to DSPs</p>
+        <p className="font-body text-white/40 text-sm mb-8">
+          Next step — Pitch to DSPs
+        </p>
 
         {/* Platform cards mock */}
         <div className="relative h-40 mb-6 sm:mb-8 flex items-center justify-center scale-75 sm:scale-100">
           {/* Back card: TIDAL */}
           <div
             className="absolute w-56 rounded-xl bg-[#0E1420] border border-blue-400/[0.15] p-4 text-left shadow-lg"
-            style={{ transform: "translate(-64px, -18px) rotate(-10deg)", zIndex: 1 }}
+            style={{
+              transform: "translate(-64px, -18px) rotate(-10deg)",
+              zIndex: 1,
+            }}
           >
             <div className="flex items-center gap-2.5 mb-8">
               <TidalIcon />
               <div>
-                <p className="font-body text-white text-sm font-semibold leading-tight">TIDAL Rising</p>
-                <p className="font-body text-white/30 text-xs mt-0.5">TIDAL · Editorial</p>
+                <p className="font-body text-white text-sm font-semibold leading-tight">
+                  TIDAL Rising
+                </p>
+                <p className="font-body text-white/30 text-xs mt-0.5">
+                  TIDAL · Editorial
+                </p>
               </div>
             </div>
           </div>
@@ -55,13 +91,20 @@ export default function SubmittedModal({ onClose, onPitchDSPs }: SubmittedProps)
           {/* Middle card: Spotify */}
           <div
             className="absolute w-56 rounded-xl bg-[#0E1410] border border-green-400/[0.15] p-4 text-left shadow-lg"
-            style={{ transform: "translate(-24px, -6px) rotate(-5deg)", zIndex: 2 }}
+            style={{
+              transform: "translate(-24px, -6px) rotate(-5deg)",
+              zIndex: 2,
+            }}
           >
             <div className="flex items-center gap-2.5 mb-8">
               <SpotifyIcon />
               <div>
-                <p className="font-body text-white text-sm font-semibold leading-tight">Fresh Finds</p>
-                <p className="font-body text-white/30 text-xs mt-0.5">Spotify · Editorial</p>
+                <p className="font-body text-white text-sm font-semibold leading-tight">
+                  Fresh Finds
+                </p>
+                <p className="font-body text-white/30 text-xs mt-0.5">
+                  Spotify · Editorial
+                </p>
               </div>
             </div>
           </div>
@@ -69,31 +112,54 @@ export default function SubmittedModal({ onClose, onPitchDSPs }: SubmittedProps)
           {/* Front card: Apple Music, with real thumbnails */}
           <div
             className="absolute w-52 rounded-xl bg-[#150808] border border-white/[0.08] p-3 text-left shadow-2xl"
-            style={{ transform: "translate(20px, 8px) rotate(3deg)", zIndex: 3 }}
+            style={{
+              transform: "translate(20px, 8px) rotate(3deg)",
+              zIndex: 3,
+            }}
           >
             <div className="flex items-center gap-2 mb-3">
               <AppleMusicIcon />
               <div>
-                <p className="font-body text-white text-xs font-semibold leading-tight">New Music Daily</p>
-                <p className="font-body text-white/30 text-[10px]">Apple Music · Editorial</p>
+                <p className="font-body text-white text-xs font-semibold leading-tight">
+                  New Music Daily
+                </p>
+                <p className="font-body text-white/30 text-[10px]">
+                  Apple Music · Editorial
+                </p>
               </div>
             </div>
             <div className="flex gap-1.5">
               <div className="relative flex-1 aspect-square rounded-md overflow-hidden">
-                <Image src="/images/pitch-thumb-1.png" alt="Africa Now" fill className="object-cover" />
+                <Image
+                  src="https://res.cloudinary.com/wddg7ppg/image/upload/v1790848477/pitch-thumb-1.png"
+                  alt="Africa Now"
+                  fill
+                  className="object-cover"
+                />
               </div>
               <div className="relative flex-1 aspect-square rounded-md overflow-hidden">
-                <Image src="/images/pitch-thumb-2.png" alt="Playlist cover" fill className="object-cover" />
+                <Image
+                  src="https://res.cloudinary.com/wddg7ppg/image/upload/v1790848500/pitch-thumb-2.png"
+                  alt="Playlist cover"
+                  fill
+                  className="object-cover"
+                />
               </div>
               <div className="relative flex-1 aspect-square rounded-md overflow-hidden">
-                <Image src="/images/pitch-thumb-3.png" alt="Heat" fill className="object-cover" />
+                <Image
+                  src="https://res.cloudinary.com/wddg7ppg/image/upload/v1790848524/pitch-thumb-3.png"
+                  alt="Heat"
+                  fill
+                  className="object-cover"
+                />
               </div>
             </div>
           </div>
         </div>
 
         <p className="font-body text-white/50 text-sm mb-8">
-          Submit your track directly to curators on Apple Music, Spotify, TIDAL and more.
+          Submit your track directly to curators on Apple Music, Spotify, TIDAL
+          and more.
         </p>
 
         <button
@@ -112,7 +178,16 @@ export default function SubmittedModal({ onClose, onPitchDSPs }: SubmittedProps)
 
 function CloseIcon() {
   return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg
+      width="20"
+      height="20"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
       <line x1="18" y1="6" x2="6" y2="18" />
       <line x1="6" y1="6" x2="18" y2="18" />
     </svg>

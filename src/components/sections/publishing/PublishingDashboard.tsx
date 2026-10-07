@@ -67,7 +67,7 @@ const PublishingDashboard: React.FC = () => {
           style={{ height: "clamp(280px, 46vw, 620px)" }}
         >
           <Image
-            src="/images/dashboard-blank.svg"
+            src="https://res.cloudinary.com/wddg7ppg/image/upload/v1790846417/dashboard-blank.svg"
             alt="Publishing dashboard"
             fill
             className="object-cover object-top"

@@ -1,6 +1,5 @@
 import { request, setToken, removeToken, getToken } from "./core";
 
-
 export interface RegisterPayload {
   first_name: string;
   last_name: string;
@@ -79,7 +78,6 @@ export interface ProfileResponse {
   profiles: ArtistProfile[];
 }
 
-
 export async function signUp(payload: {
   fullName: string;
   email: string;
@@ -103,7 +101,6 @@ export async function signUp(payload: {
   });
 }
 
-
 export async function signIn(payload: LoginPayload) {
   const res = await request<AuthSuccessResponse>("/login", {
     method: "POST",
@@ -114,7 +111,6 @@ export async function signIn(payload: LoginPayload) {
     setToken(res.data.token);
   }
 
-
   if (res.data?.user) {
     try {
       sessionStorage.setItem("songdis_user", JSON.stringify(res.data.user));
@@ -124,7 +120,6 @@ export async function signIn(payload: LoginPayload) {
   return res;
 }
 
-
 export async function forgotPassword(payload: ForgotPasswordPayload) {
   return request<{ message: string }>("/forgot-password", {
     method: "POST",
@@ -132,10 +127,9 @@ export async function forgotPassword(payload: ForgotPasswordPayload) {
   });
 }
 
-
 export async function resetPassword(payload: {
   email: string;
-  otp: string;       
+  otp: string;
   newPassword: string;
   confirmPassword: string;
 }) {
@@ -149,7 +143,6 @@ export async function resetPassword(payload: {
     }),
   });
 }
-
 
 /**
  * First password for an invited (contract) artist.
@@ -179,7 +172,6 @@ export async function getUser() {
   return request<AuthUser>("/user", { method: "GET" }, true);
 }
 
-
 export async function getProfile() {
   return request<ProfileResponse>("/profile", { method: "GET" }, true);
 }
@@ -200,20 +192,26 @@ export interface CreateProfilePayload {
   youtube_url: string;
 }
 
-
 export async function createProfile(payload: CreateProfilePayload) {
-  return request<ArtistProfile>("/create-profile", {
-    method: "POST",
-    body: JSON.stringify(payload),
-  }, true);
+  return request<ArtistProfile>(
+    "/create-profile",
+    {
+      method: "POST",
+      body: JSON.stringify(payload),
+    },
+    true,
+  );
 }
 
-
 export async function updateProfile(id: number, payload: CreateProfilePayload) {
-  return request<ArtistProfile>(`/profile/${id}`, {
-    method: "PUT",
-    body: JSON.stringify(payload),
-  }, true);
+  return request<ArtistProfile>(
+    `/profile/${id}`,
+    {
+      method: "PUT",
+      body: JSON.stringify(payload),
+    },
+    true,
+  );
 }
 
 export interface SpotifyArtist {
@@ -226,21 +224,28 @@ export interface SpotifyArtist {
   spotify_url: string;
 }
 
-
 export async function searchSpotifyArtists(query: string) {
-  return request<{ artists: SpotifyArtist[] }>(`/search/artists?query=${encodeURIComponent(query)}`, {
-    method: "GET",
-  }, true);
+  return request<{ artists: SpotifyArtist[] }>(
+    `/search/artists?query=${encodeURIComponent(query)}`,
+    {
+      method: "GET",
+    },
+    true,
+  );
 }
 
 /**
  * Verify a Spotify artist URL.
  */
 export async function verifySpotifyUrl(spotify_url: string) {
-  return request<{ status: string; artist: SpotifyArtist }>("/verify-spotify-url", {
-    method: "POST",
-    body: JSON.stringify({ spotify_url }),
-  }, true);
+  return request<{ status: string; artist: SpotifyArtist }>(
+    "/verify-spotify-url",
+    {
+      method: "POST",
+      body: JSON.stringify({ spotify_url }),
+    },
+    true,
+  );
 }
 
 /**
@@ -253,7 +258,7 @@ export async function changePassword(payload: ChangePasswordPayload) {
       method: "PUT",
       body: JSON.stringify(payload),
     },
-    true
+    true,
   );
 }
 
@@ -264,7 +269,7 @@ export async function logout() {
   const res = await request<{ message: string }>(
     "/logout",
     { method: "POST" },
-    true
+    true,
   );
   removeToken();
   return res;
@@ -277,7 +282,6 @@ export function isAuthenticated(): boolean {
   return !!getToken();
 }
 
-
 export async function verifyOtp(payload: { email: string; otp: string }) {
   return request<{ message: string }>("/verify-otp", {
     method: "POST",
@@ -285,14 +289,12 @@ export async function verifyOtp(payload: { email: string; otp: string }) {
   });
 }
 
-
 export async function resendOtp(email: string) {
   return request<{ message: string }>("/resend-otp", {
     method: "POST",
     body: JSON.stringify({ email }),
   });
 }
-
 
 export async function getGoogleAuthUrl() {
   return request<{ url: string }>("/auth/google/redirect", { method: "GET" });

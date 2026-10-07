@@ -5,7 +5,6 @@ import Link from "next/link";
 import Image from "next/image";
 import NeonWordmark from "../ui/NeonWordmark";
 
-
 const USEFUL_LINKS = [
   { label: "About", href: "/about" },
   { label: "Community", href: "/community" },
@@ -20,20 +19,19 @@ const SOCIALS = [
   {
     label: "Instagram",
     href: "https://instagram.com",
-    icon: "/images/instagram.svg",
+    icon: "https://res.cloudinary.com/wddg7ppg/image/upload/v1790847104/instagram.svg",
   },
   {
     label: "Linkedin",
     href: "https://linkedin.com",
-    icon: "/images/linkedin.svg",
+    icon: "https://res.cloudinary.com/wddg7ppg/image/upload/v1790847386/linkedin.svg",
   },
   {
     label: "X (Formerly twitter)",
     href: "https://x.com",
-    icon: "/images/twitter.svg",
+    icon: "https://res.cloudinary.com/wddg7ppg/image/upload/v1790850765/twitter.svg",
   },
 ];
-
 
 const Footer: React.FC = () => {
   const [email, setEmail] = useState("");
@@ -89,7 +87,7 @@ const Footer: React.FC = () => {
             {/* Right — cta-icons image, bleeds flush to card edges */}
             <div className="relative w-full lg:w-[48%] min-h-[240px] lg:min-h-0 shrink-0">
               <Image
-                src="/images/cta-icons.svg"
+                src="https://res.cloudinary.com/wddg7ppg/image/upload/v1790779675/cta-icons.svg"
                 alt=""
                 fill
                 className="object-contain object-right"

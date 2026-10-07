@@ -82,16 +82,40 @@ export const STATUS_CONFIG: Record<
   ReleaseStatus,
   { label: string; color: string; bg: string }
 > = {
-  live:               { label: "Live",               color: "#22c55e", bg: "rgba(34,197,94,0.15)"   },
-  pending:            { label: "Pending",            color: "#f97316", bg: "rgba(249,115,22,0.15)"  },
-  delivered:          { label: "Delivered",          color: "#60a5fa", bg: "rgba(96,165,250,0.15)"  },
-  distributed:        { label: "Distributed",        color: "#2dd4bf", bg: "rgba(45,212,191,0.15)"  },
-  need_documentation: { label: "Need Documentation", color: "#facc15", bg: "rgba(250,204,21,0.15)"  },
-  draft:              { label: "Draft",              color: "#ffffff", bg: "rgba(255,255,255,0.15)" },
-  takedown:           { label: "Takedown",           color: "#f97316", bg: "rgba(249,115,22,0.15)"  },
-  rejected:           { label: "Rejected",           color: "#ef4444", bg: "rgba(239,68,68,0.15)"   },
-  under_review:       { label: "Under Review",       color: "#a78bfa", bg: "rgba(167,139,250,0.15)" },
-  approved:           { label: "Approved",           color: "#34d399", bg: "rgba(52,211,153,0.15)"  },
+  live: { label: "Live", color: "#22c55e", bg: "rgba(34,197,94,0.15)" },
+  pending: { label: "Pending", color: "#f97316", bg: "rgba(249,115,22,0.15)" },
+  delivered: {
+    label: "Delivered",
+    color: "#60a5fa",
+    bg: "rgba(96,165,250,0.15)",
+  },
+  distributed: {
+    label: "Distributed",
+    color: "#2dd4bf",
+    bg: "rgba(45,212,191,0.15)",
+  },
+  need_documentation: {
+    label: "Need Documentation",
+    color: "#facc15",
+    bg: "rgba(250,204,21,0.15)",
+  },
+  draft: { label: "Draft", color: "#ffffff", bg: "rgba(255,255,255,0.15)" },
+  takedown: {
+    label: "Takedown",
+    color: "#f97316",
+    bg: "rgba(249,115,22,0.15)",
+  },
+  rejected: { label: "Rejected", color: "#ef4444", bg: "rgba(239,68,68,0.15)" },
+  under_review: {
+    label: "Under Review",
+    color: "#a78bfa",
+    bg: "rgba(167,139,250,0.15)",
+  },
+  approved: {
+    label: "Approved",
+    color: "#34d399",
+    bg: "rgba(52,211,153,0.15)",
+  },
 };
 
 /** Always use this instead of indexing STATUS_CONFIG directly. */
@@ -110,8 +134,8 @@ export function statusConfigFor(raw?: string | null) {
 /* ─── Mock releases ───────────────────────────────────────────── */
 // cover paths point to Figma exports — drop SVGs in /public/images/releases/
 const COVERS = {
-  blue: "/images/releases/cover-blue.svg",
-  dark: "/images/releases/cover-dark.svg",
+  blue: "https://res.cloudinary.com/wddg7ppg/image/upload/v1790779253/cover-blue.jpg",
+  dark: "https://res.cloudinary.com/wddg7ppg/image/upload/v1790779234/cover-black.jpg",
 };
 
 const MOCK_TRACK = (id: string): Track => ({
@@ -128,7 +152,7 @@ const MOCK_TRACK = (id: string): Track => ({
 const makeRelease = (
   id: string,
   status: ReleaseStatus,
-  cover: string
+  cover: string,
 ): Release => ({
   id,
   title: "Scatter the Place",
@@ -142,17 +166,17 @@ const makeRelease = (
 });
 
 export const MOCK_RELEASES: Release[] = [
-  makeRelease("1",  "live",               COVERS.blue),
-  makeRelease("2",  "pending",            COVERS.dark),
-  makeRelease("3",  "delivered",          COVERS.blue),
-  makeRelease("4",  "need_documentation", COVERS.dark),
-  makeRelease("5",  "live",               COVERS.blue),
-  makeRelease("6",  "pending",            COVERS.dark),
-  makeRelease("7",  "distributed",        COVERS.blue),
-  makeRelease("8",  "need_documentation", COVERS.dark),
-  makeRelease("9",  "live",               COVERS.blue),
-  makeRelease("10", "pending",            COVERS.dark),
-  makeRelease("11", "delivered",          COVERS.blue),
+  makeRelease("1", "live", COVERS.blue),
+  makeRelease("2", "pending", COVERS.dark),
+  makeRelease("3", "delivered", COVERS.blue),
+  makeRelease("4", "need_documentation", COVERS.dark),
+  makeRelease("5", "live", COVERS.blue),
+  makeRelease("6", "pending", COVERS.dark),
+  makeRelease("7", "distributed", COVERS.blue),
+  makeRelease("8", "need_documentation", COVERS.dark),
+  makeRelease("9", "live", COVERS.blue),
+  makeRelease("10", "pending", COVERS.dark),
+  makeRelease("11", "delivered", COVERS.blue),
   makeRelease("12", "need_documentation", COVERS.dark),
 ];
 
@@ -169,9 +193,10 @@ export const MOCK_EDIT_HISTORY: EditHistoryItem[] = Array.from(
     releaseCover: COVERS.blue,
     releaseTitle: "Scatter the Place",
     description: 'Metadata updated — "Scatter the Place"',
-    detail: "Genre changed from Afropop to Afrobeats · Affects playlist recommendations",
+    detail:
+      "Genre changed from Afropop to Afrobeats · Affects playlist recommendations",
     timestamp: "2 hours ago",
-  })
+  }),
 );
 
 export const MOCK_MUSIC_STATS = {

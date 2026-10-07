@@ -9,12 +9,9 @@ import Image from "next/image";
 const PrivacyHero: React.FC = () => {
   return (
     <section className="relative w-full bg-[#140C0C] pt-32 sm:pt-36 lg:pt-40 pb-0 px-4 sm:px-6 lg:px-10 overflow-hidden">
-
       <div className="max-w-[1280px] mx-auto">
-
         {/* ── TOP ROW — heading left, body right ── */}
         <div className="flex flex-col lg:flex-row gap-8 lg:gap-16 mb-10 sm:mb-14">
-
           {/* Left — heading */}
           <div className="lg:w-[55%] shrink-0">
             <h1
@@ -34,13 +31,12 @@ const PrivacyHero: React.FC = () => {
               Learn how we collect, use, and protect your personal information.
             </p>
           </div>
-
         </div>
 
         {/* ── HERO IMAGE — object-contain to preserve the notched shape ── */}
         <div className="relative w-full">
           <Image
-            src="/images/privacy-hero.svg"
+            src="https://res.cloudinary.com/wddg7ppg/image/upload/v1790849091/privacy-hero.svg"
             alt="Privacy Policy — artist holding vinyl record"
             width={1280}
             height={560}
@@ -48,7 +44,6 @@ const PrivacyHero: React.FC = () => {
             priority
           />
         </div>
-
       </div>
     </section>
   );

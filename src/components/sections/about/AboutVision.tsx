@@ -10,17 +10,15 @@ const AboutVision: React.FC = () => {
   return (
     <section className="relative w-full bg-[#140C0C] py-10 sm:py-12 lg:py-14 px-4 sm:px-6 lg:px-10">
       <div className="max-w-[1280px] mx-auto">
-
         {/* ── CARD — subtle border, dark bg ── */}
         <div className="relative rounded-2xl bg-[#180F0F] border border-white/10 px-8 sm:px-16 lg:px-28 xl:px-40 py-14 sm:py-16 lg:py-20 overflow-hidden">
-
           {/* ── Founder — top right, absolutely positioned ── */}
           <div className="absolute top-8 right-8 sm:top-10 sm:right-10 flex flex-col items-end z-10">
             <div className="relative">
               {/* Circle avatar */}
               <div className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-full overflow-hidden border-2 border-white/10">
                 <Image
-                  src="/images/melody.webp"
+                  src="https://res.cloudinary.com/wddg7ppg/image/upload/v1790847769/melody.webp"
                   alt="Founder"
                   fill
                   className="object-cover object-center"
@@ -45,7 +43,7 @@ const AboutVision: React.FC = () => {
               {/* Circle avatar */}
               <div className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-full overflow-hidden border-2 border-white/10">
                 <Image
-                  src="/images/obed.webp"
+                  src="https://res.cloudinary.com/wddg7ppg/image/upload/v1790848387/obed.webp"
                   alt="Co-Founder"
                   fill
                   className="object-cover object-center"
@@ -76,8 +74,8 @@ const AboutVision: React.FC = () => {
               global music distribution work for African artists. Our founder,
               Melody Nehemiah, saw how independent artists across the continent
               were underserved by existing platforms. Delayed royalty payments,
-              limited access to local currencies, and a lack of real support were
-              holding back incredible talent.
+              limited access to local currencies, and a lack of real support
+              were holding back incredible talent.
             </p>
             <p className="font-body text-white/75 text-sm sm:text-base leading-relaxed">
               What started as a small team of passionate music industry
@@ -91,7 +89,6 @@ const AboutVision: React.FC = () => {
               on their own terms and reach global audiences.
             </p>
           </div>
-
         </div>
       </div>
     </section>

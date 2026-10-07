@@ -27,11 +27,24 @@ const INITIAL_MESSAGE: Message = {
   id: "initial",
   role: "ayo",
   content: `Hey! I'm Ayo your music intelligence assistant.\n\nI can help you grow your career, plan releases, and navigate the music industry. I can also chat in English, Pidgin, Igbo, Hausa, and Yoruba. What would you like to work on today?`,
-  chips: ["Draft my editorial pitch", "Plan my next release", "Help me grow my streams", "Generate bio"],
+  chips: [
+    "Draft my editorial pitch",
+    "Plan my next release",
+    "Help me grow my streams",
+    "Generate bio",
+  ],
   timestamp: new Date(),
 };
 
-function Field({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
+function Field({
+  label,
+  hint,
+  children,
+}: {
+  label: string;
+  hint?: string;
+  children: React.ReactNode;
+}) {
   return (
     <div className="flex flex-col gap-1.5">
       <label className="font-body text-white/70 text-xs">{label}</label>
@@ -41,7 +54,8 @@ function Field({ label, hint, children }: { label: string; hint?: string; childr
   );
 }
 
-const inputCls = "w-full bg-[#0E0808] border border-white/10 rounded-lg px-4 py-3 font-body text-white text-sm placeholder:text-white/25 outline-none focus:border-[#C30100] transition-colors";
+const inputCls =
+  "w-full bg-[#0E0808] border border-white/10 rounded-lg px-4 py-3 font-body text-white text-sm placeholder:text-white/25 outline-none focus:border-[#C30100] transition-colors";
 const textareaCls = `${inputCls} resize-none`;
 
 function BioGenerator() {
@@ -92,26 +106,50 @@ function BioGenerator() {
   return (
     <div className="flex flex-col gap-5 max-w-2xl">
       <div className="rounded-2xl border border-white/[0.06] bg-[#180F0F] p-6">
-        <h3 className="font-heading text-white uppercase text-sm tracking-wide mb-5">Artist Bio Generator</h3>
+        <h3 className="font-heading text-white uppercase text-sm tracking-wide mb-5">
+          Artist Bio Generator
+        </h3>
         <div className="flex flex-col gap-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Field label="Artist Name">
-              <input value={form.artist_name} onChange={(e) => update("artist_name", e.target.value)}
-                placeholder="e.g. Vjazzy" className={inputCls} />
+              <input
+                value={form.artist_name}
+                onChange={(e) => update("artist_name", e.target.value)}
+                placeholder="e.g. Vjazzy"
+                className={inputCls}
+              />
             </Field>
             <Field label="Genre">
-              <input value={form.genre} onChange={(e) => update("genre", e.target.value)}
-                placeholder="e.g. Afrobeats" className={inputCls} />
+              <input
+                value={form.genre}
+                onChange={(e) => update("genre", e.target.value)}
+                placeholder="e.g. Afrobeats"
+                className={inputCls}
+              />
             </Field>
           </div>
-          <Field label="Popular Work" hint="Your most known song, album, or achievement">
-            <input value={form.popular_work} onChange={(e) => update("popular_work", e.target.value)}
-              placeholder="e.g. Scatter the Place" className={inputCls} />
+          <Field
+            label="Popular Work"
+            hint="Your most known song, album, or achievement"
+          >
+            <input
+              value={form.popular_work}
+              onChange={(e) => update("popular_work", e.target.value)}
+              placeholder="e.g. Scatter the Place"
+              className={inputCls}
+            />
           </Field>
-          <Field label="What makes you unique?" hint="Accolades, achievements, or distinctive qualities">
-            <textarea value={form.uniqueness} onChange={(e) => update("uniqueness", e.target.value)}
+          <Field
+            label="What makes you unique?"
+            hint="Accolades, achievements, or distinctive qualities"
+          >
+            <textarea
+              value={form.uniqueness}
+              onChange={(e) => update("uniqueness", e.target.value)}
               placeholder="e.g. 10 songs on Top 100 Billboard Nigeria, known for blending Afrobeats with Highlife..."
-              rows={3} className={textareaCls} />
+              rows={3}
+              className={textareaCls}
+            />
           </Field>
           <button
             onClick={handleGenerate}
@@ -120,10 +158,22 @@ function BioGenerator() {
           >
             {isLoading ? (
               <span className="flex items-center justify-center gap-2">
-                <svg className="animate-spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 12a9 9 0 11-6.219-8.56" /></svg>
+                <svg
+                  className="animate-spin"
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                >
+                  <path d="M21 12a9 9 0 11-6.219-8.56" />
+                </svg>
                 Generating...
               </span>
-            ) : "Generate Bio"}
+            ) : (
+              "Generate Bio"
+            )}
           </button>
         </div>
       </div>
@@ -132,10 +182,15 @@ function BioGenerator() {
       {result && bio && (
         <div className="rounded-2xl border border-[#C30100]/30 bg-[#180F0F] p-6">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="font-heading text-white uppercase text-sm tracking-wide">Generated Bio</h3>
+            <h3 className="font-heading text-white uppercase text-sm tracking-wide">
+              Generated Bio
+            </h3>
             <div className="flex items-center gap-2">
               <button
-                onClick={() => { navigator.clipboard.writeText(bio); toast({ type: "success", title: "Bio copied" }); }}
+                onClick={() => {
+                  navigator.clipboard.writeText(bio);
+                  toast({ type: "success", title: "Bio copied" });
+                }}
                 className="font-body text-white/50 text-xs border border-white/10 hover:border-white/25 rounded-full px-3 py-1.5 transition-colors hover:text-white flex items-center gap-1.5"
               >
                 <CopyIcon /> Copy
@@ -150,18 +205,28 @@ function BioGenerator() {
               </button>
             </div>
           </div>
-          <p className="font-body text-white/70 text-sm leading-relaxed whitespace-pre-wrap">{bio}</p>
+          <p className="font-body text-white/70 text-sm leading-relaxed whitespace-pre-wrap">
+            {bio}
+          </p>
 
           {result.short_bio && result.short_bio !== bio && (
             <div className="mt-4 pt-4 border-t border-white/[0.06]">
-              <p className="font-body text-white/40 text-xs uppercase tracking-wider mb-2">Short Bio</p>
-              <p className="font-body text-white/60 text-sm leading-relaxed">{result.short_bio}</p>
+              <p className="font-body text-white/40 text-xs uppercase tracking-wider mb-2">
+                Short Bio
+              </p>
+              <p className="font-body text-white/60 text-sm leading-relaxed">
+                {result.short_bio}
+              </p>
             </div>
           )}
           {result.long_bio && result.long_bio !== bio && (
             <div className="mt-4 pt-4 border-t border-white/[0.06]">
-              <p className="font-body text-white/40 text-xs uppercase tracking-wider mb-2">Long Bio</p>
-              <p className="font-body text-white/60 text-sm leading-relaxed whitespace-pre-wrap">{result.long_bio}</p>
+              <p className="font-body text-white/40 text-xs uppercase tracking-wider mb-2">
+                Long Bio
+              </p>
+              <p className="font-body text-white/60 text-sm leading-relaxed whitespace-pre-wrap">
+                {result.long_bio}
+              </p>
             </div>
           )}
         </div>
@@ -170,21 +235,38 @@ function BioGenerator() {
   );
 }
 
-function AyoMessage({ message, onChipClick }: { message: Message; onChipClick?: (chip: string) => void }) {
+function AyoMessage({
+  message,
+  onChipClick,
+}: {
+  message: Message;
+  onChipClick?: (chip: string) => void;
+}) {
   return (
     <div className="flex items-start gap-3 max-w-[90%] sm:max-w-[80%]">
       <div className="w-9 h-9 rounded-full bg-yellow-500/20 flex items-center justify-center shrink-0 mt-1">
-        <Image src="/images/ayo.svg" alt="Ayo" width={18} height={18} unoptimized />
+        <Image
+          src="https://res.cloudinary.com/wddg7ppg/image/upload/v1790778707/ayo.svg"
+          alt="Ayo"
+          width={18}
+          height={18}
+          unoptimized
+        />
       </div>
       <div className="flex flex-col gap-2">
         <div className="rounded-2xl rounded-tl-none bg-[#1A0808] border border-white/[0.07] px-5 py-4">
-          <p className="font-body text-white/80 text-sm leading-relaxed whitespace-pre-line">{message.content}</p>
+          <p className="font-body text-white/80 text-sm leading-relaxed whitespace-pre-line">
+            {message.content}
+          </p>
         </div>
         {message.chips && message.chips.length > 0 && (
           <div className="flex flex-wrap gap-2">
             {message.chips.map((chip) => (
-              <button key={chip} onClick={() => onChipClick?.(chip)}
-                className="font-body text-white text-xs bg-[#C30100]/20 border border-[#C30100]/30 hover:bg-[#C30100]/40 rounded-full px-3 py-1.5 transition-colors">
+              <button
+                key={chip}
+                onClick={() => onChipClick?.(chip)}
+                className="font-body text-white text-xs bg-[#C30100]/20 border border-[#C30100]/30 hover:bg-[#C30100]/40 rounded-full px-3 py-1.5 transition-colors"
+              >
                 {chip}
               </button>
             ))}
@@ -199,7 +281,9 @@ function UserMessage({ message }: { message: Message }) {
   return (
     <div className="flex items-start gap-3 justify-end">
       <div className="rounded-2xl rounded-tr-none bg-[#C30100]/15 border border-[#C30100]/20 px-4 sm:px-5 py-3 sm:py-4 max-w-[90%] sm:max-w-[75%]">
-        <p className="font-body text-white/80 text-sm leading-relaxed">{message.content}</p>
+        <p className="font-body text-white/80 text-sm leading-relaxed">
+          {message.content}
+        </p>
       </div>
     </div>
   );
@@ -209,13 +293,22 @@ function TypingIndicator() {
   return (
     <div className="flex items-start gap-3 max-w-[90%] sm:max-w-[80%]">
       <div className="w-9 h-9 rounded-full bg-yellow-500/20 flex items-center justify-center shrink-0">
-        <Image src="/images/ayo.svg" alt="Ayo" width={18} height={18} unoptimized />
+        <Image
+          src="https://res.cloudinary.com/wddg7ppg/image/upload/v1790778707/ayo.svg"
+          alt="Ayo"
+          width={18}
+          height={18}
+          unoptimized
+        />
       </div>
       <div className="rounded-2xl rounded-tl-none bg-[#1A0808] border border-white/[0.07] px-5 py-4">
         <div className="flex items-center gap-1.5">
           {[0, 1, 2].map((i) => (
-            <div key={i} className="w-1.5 h-1.5 rounded-full bg-white/40 animate-bounce"
-              style={{ animationDelay: `${i * 0.15}s` }} />
+            <div
+              key={i}
+              className="w-1.5 h-1.5 rounded-full bg-white/40 animate-bounce"
+              style={{ animationDelay: `${i * 0.15}s` }}
+            />
           ))}
         </div>
       </div>
@@ -239,7 +332,7 @@ function ChatTab({ initialMessage }: { initialMessage?: string }) {
       sentInitialRef.current = true;
       sendMessage(initialMessage);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialMessage]);
 
   const sendMessage = async (text: string) => {
@@ -294,18 +387,23 @@ function ChatTab({ initialMessage }: { initialMessage?: string }) {
           started = true;
           // The typing dot has served its purpose once real text is on screen.
           setIsLoading(false);
-          setMessages((prev) => [...prev, {
-            id: replyId,
-            role: "ayo",
-            content: delta,
-            timestamp: new Date(),
-          }]);
+          setMessages((prev) => [
+            ...prev,
+            {
+              id: replyId,
+              role: "ayo",
+              content: delta,
+              timestamp: new Date(),
+            },
+          ]);
           return;
         }
 
-        setMessages((prev) => prev.map((m) =>
-          m.id === replyId ? { ...m, content: m.content + delta } : m
-        ));
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === replyId ? { ...m, content: m.content + delta } : m,
+          ),
+        );
       });
 
       const finalReply = reply.trim();
@@ -316,34 +414,44 @@ function ChatTab({ initialMessage }: { initialMessage?: string }) {
          * worse, be sent back in the next request's history where the API rejects it as
          * a missing field — breaking every following turn, not just this one.
          */
-        setMessages((prev) => [...prev.filter((m) => m.id !== replyId), {
-          id: `err-${Date.now()}`,
-          role: "ayo",
-          content: error
-            ? "Sorry, I'm having trouble connecting right now. Please try again in a moment."
-            : "Sorry, I didn't manage to put that into words. Try asking again.",
-          timestamp: new Date(),
-        }]);
+        setMessages((prev) => [
+          ...prev.filter((m) => m.id !== replyId),
+          {
+            id: `err-${Date.now()}`,
+            role: "ayo",
+            content: error
+              ? "Sorry, I'm having trouble connecting right now. Please try again in a moment."
+              : "Sorry, I didn't manage to put that into words. Try asking again.",
+            timestamp: new Date(),
+          },
+        ]);
       } else {
         // Truncated replies stop mid-sentence; the chip re-asks in one tap. An error that
         // arrived mid-answer is treated the same way: there is more to say.
-        setMessages((prev) => prev.map((m) =>
-          m.id === replyId
-            ? {
-                ...m,
-                content: finalReply,
-                chips: truncated || error ? ["Finish that thought"] : undefined,
-              }
-            : m
-        ));
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === replyId
+              ? {
+                  ...m,
+                  content: finalReply,
+                  chips:
+                    truncated || error ? ["Finish that thought"] : undefined,
+                }
+              : m,
+          ),
+        );
       }
     } catch {
-      setMessages((prev) => [...prev, {
-        id: `err-${Date.now()}`,
-        role: "ayo",
-        content: "Sorry, I'm having trouble connecting right now. Please try again in a moment.",
-        timestamp: new Date(),
-      }]);
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: `err-${Date.now()}`,
+          role: "ayo",
+          content:
+            "Sorry, I'm having trouble connecting right now. Please try again in a moment.",
+          timestamp: new Date(),
+        },
+      ]);
     } finally {
       setIsLoading(false);
     }
@@ -368,9 +476,15 @@ function ChatTab({ initialMessage }: { initialMessage?: string }) {
       {/* Messages */}
       <div className="flex-1 overflow-y-auto flex flex-col gap-5 pr-2 pb-4">
         {messages.map((m) =>
-          m.role === "ayo"
-            ? <AyoMessage key={m.id} message={m} onChipClick={(chip) => sendMessage(chip)} />
-            : <UserMessage key={m.id} message={m} />
+          m.role === "ayo" ? (
+            <AyoMessage
+              key={m.id}
+              message={m}
+              onChipClick={(chip) => sendMessage(chip)}
+            />
+          ) : (
+            <UserMessage key={m.id} message={m} />
+          ),
         )}
         {isLoading && <TypingIndicator />}
         <div ref={bottomRef} />
@@ -383,7 +497,10 @@ function ChatTab({ initialMessage }: { initialMessage?: string }) {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(input); }
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage(input);
+              }
             }}
             placeholder="Ask Ayo anything..."
             rows={1}
@@ -398,7 +515,8 @@ function ChatTab({ initialMessage }: { initialMessage?: string }) {
           </button>
         </div>
         <p className="font-body text-white/20 text-[10px] text-center mt-2">
-          Ayo is an AI assistant. Always verify important decisions with professionals.
+          Ayo is an AI assistant. Always verify important decisions with
+          professionals.
         </p>
       </div>
     </div>
@@ -417,20 +535,30 @@ function AyoAIContent() {
   return (
     <DashboardLayout pageTitle="Ayo">
       <div className="flex flex-col gap-5">
-
         {/* Header */}
         <div className="rounded-2xl border border-white/[0.06] bg-[#180F0F] p-5">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-full bg-yellow-500/20 flex items-center justify-center shrink-0">
-              <Image src="/images/ayo.svg" alt="Ayo" width={22} height={22} unoptimized />
+              <Image
+                src="https://res.cloudinary.com/wddg7ppg/image/upload/v1790778707/ayo.svg"
+                alt="Ayo"
+                width={22}
+                height={22}
+                unoptimized
+              />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <p className="font-heading text-white uppercase text-sm tracking-wide">Ayo</p>
-                <span className="font-body text-[10px] text-yellow-400 bg-yellow-400/10 border border-yellow-400/30 rounded-full px-2 py-0.5 uppercase tracking-wider">AI Powered</span>
+                <p className="font-heading text-white uppercase text-sm tracking-wide">
+                  Ayo
+                </p>
+                <span className="font-body text-[10px] text-yellow-400 bg-yellow-400/10 border border-yellow-400/30 rounded-full px-2 py-0.5 uppercase tracking-wider">
+                  AI Powered
+                </span>
               </div>
               <p className="font-body text-white/50 text-xs mt-0.5">
-                Your music intelligence assistant · Speaks English, Pidgin, Igbo, Hausa & Yoruba
+                Your music intelligence assistant · Speaks English, Pidgin,
+                Igbo, Hausa & Yoruba
               </p>
             </div>
           </div>
@@ -444,7 +572,9 @@ function AyoAIContent() {
               onClick={() => setTab(t.id)}
               className={[
                 "font-heading uppercase text-sm tracking-wide pb-3 border-b-2 transition-all",
-                tab === t.id ? "text-white border-white" : "text-white/40 border-transparent hover:text-white/70",
+                tab === t.id
+                  ? "text-white border-white"
+                  : "text-white/40 border-transparent hover:text-white/70",
               ].join(" ")}
             >
               {t.label}
@@ -453,9 +583,10 @@ function AyoAIContent() {
         </div>
 
         {/* Tab content */}
-        {tab === "chat" && <ChatTab initialMessage={searchParams.get("msg") ?? undefined} />}
+        {tab === "chat" && (
+          <ChatTab initialMessage={searchParams.get("msg") ?? undefined} />
+        )}
         {tab === "bio" && <BioGenerator />}
-
       </div>
     </DashboardLayout>
   );
@@ -469,5 +600,37 @@ export default function AyoAIPage() {
   );
 }
 
-function SendIcon() { return <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>; }
-function CopyIcon() { return <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>; }
+function SendIcon() {
+  return (
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="white"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <line x1="22" y1="2" x2="11" y2="13" />
+      <polygon points="22 2 15 22 11 13 2 9 22 2" />
+    </svg>
+  );
+}
+function CopyIcon() {
+  return (
+    <svg
+      width="12"
+      height="12"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <rect x="9" y="9" width="13" height="13" rx="2" />
+      <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" />
+    </svg>
+  );
+}

@@ -14,9 +14,12 @@ function useInView(threshold = 0.1) {
     if (!el) return;
     const observer = new IntersectionObserver(
       ([entry]) => {
-        if (entry.isIntersecting) { setInView(true); observer.disconnect(); }
+        if (entry.isIntersecting) {
+          setInView(true);
+          observer.disconnect();
+        }
       },
-      { threshold }
+      { threshold },
     );
     observer.observe(el);
     return () => observer.disconnect();
@@ -28,11 +31,36 @@ function useInView(threshold = 0.1) {
    DATA
 ───────────────────────────────────────────────────────── */
 const CARDS = [
-  { title: "Films",           image: "/images/film.svg",   alt: "Cinema theatre"           },
-  { title: "TV Shows",        image: "/images/tv.svg",     alt: "TV film production"       },
-  { title: "Adverts",         image: "/images/advert.svg", alt: "Billboard advert"         },
-  { title: "Brand Campaigns", image: "/images/brand.svg",  alt: "Brand campaign billboard" },
-  { title: "Games",           image: "/images/game.svg",   alt: "Gaming neon sign"         },
+  {
+    title: "Films",
+    image:
+      "https://res.cloudinary.com/wddg7ppg/image/upload/v1790846867/film.svg",
+    alt: "Cinema theatre",
+  },
+  {
+    title: "TV Shows",
+    image:
+      "https://res.cloudinary.com/wddg7ppg/image/upload/v1790850585/tv.svg",
+    alt: "TV film production",
+  },
+  {
+    title: "Adverts",
+    image:
+      "https://res.cloudinary.com/wddg7ppg/image/upload/v1790778240/advert.svg",
+    alt: "Billboard advert",
+  },
+  {
+    title: "Brand Campaigns",
+    image:
+      "https://res.cloudinary.com/wddg7ppg/image/upload/v1790778769/brand.svg",
+    alt: "Brand campaign billboard",
+  },
+  {
+    title: "Games",
+    image:
+      "https://res.cloudinary.com/wddg7ppg/image/upload/v1790846925/game.svg",
+    alt: "Gaming neon sign",
+  },
 ];
 
 /* ─────────────────────────────────────────────────────────
@@ -89,15 +117,15 @@ const SyncLicensing: React.FC = () => {
 
   return (
     <section className="relative w-full bg-[#140C0C] py-20 sm:py-24 lg:py-32 px-4 sm:px-6 lg:px-10 overflow-hidden">
-
       <div className="relative z-10 max-w-[1280px] mx-auto">
-
         {/* ── HEADER ── */}
         <div
           ref={headRef}
           className={[
             "text-center mb-14 sm:mb-16 transition-all duration-700",
-            headInView ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6",
+            headInView
+              ? "opacity-100 translate-y-0"
+              : "opacity-0 translate-y-6",
           ].join(" ")}
         >
           <h2 className="font-heading text-white uppercase text-3xl sm:text-4xl lg:text-5xl xl:text-[56px] leading-tight mb-5">
@@ -117,7 +145,6 @@ const SyncLicensing: React.FC = () => {
 
         {/* ── DESKTOP — staggered 3-column grid ── */}
         <div className="hidden lg:block space-y-4">
-
           {/* Row 1 — empty left, Films center, TV Shows right */}
           <div className="grid grid-cols-3 gap-4">
             <div /> {/* empty cell */}
@@ -131,9 +158,7 @@ const SyncLicensing: React.FC = () => {
             <SyncCard {...CARDS[3]} delay={150} />
             <SyncCard {...CARDS[4]} delay={250} />
           </div>
-
         </div>
-
       </div>
     </section>
   );

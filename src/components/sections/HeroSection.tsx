@@ -30,20 +30,69 @@ interface FeatureItem {
    DATA
 ───────────────────────────────────────────────────────── */
 const COVER_ARTS: CoverArt[] = [
-  { id: "c1", src: "/images/cover-one.png", alt: "Artist album cover 1" },
-  { id: "c2", src: "/images/cover-two.png", alt: "Artist album cover 2" },
-  { id: "c3", src: "/images/cover-three.png", alt: "Artist album cover 3" },
-  { id: "c4", src: "/images/cover-four.png", alt: "Artist album cover 4" },
-  { id: "c5", src: "/images/cover-five.png", alt: "Artist album cover 5" },
-  { id: "c6", src: "/images/cover-six.png", alt: "Artist album cover 6" },
+  {
+    id: "c1",
+    src: "https://res.cloudinary.com/wddg7ppg/image/upload/v1790779431/cover-one.png",
+    alt: "Artist album cover 1",
+  },
+  {
+    id: "c2",
+    src: "https://res.cloudinary.com/wddg7ppg/image/upload/v1790779518/cover-two.png",
+    alt: "Artist album cover 2",
+  },
+  {
+    id: "c3",
+    src: "https://res.cloudinary.com/wddg7ppg/image/upload/v1790779497/cover-three.png",
+    alt: "Artist album cover 3",
+  },
+  {
+    id: "c4",
+    src: "https://res.cloudinary.com/wddg7ppg/image/upload/v1790779332/cover-four.png",
+    alt: "Artist album cover 4",
+  },
+  {
+    id: "c5",
+    src: "https://res.cloudinary.com/wddg7ppg/image/upload/v1790779281/cover-five.png",
+    alt: "Artist album cover 5",
+  },
+  {
+    id: "c6",
+    src: "https://res.cloudinary.com/wddg7ppg/image/upload/v1790779450/cover-six.png",
+    alt: "Artist album cover 6",
+  },
 ];
 
 const PLATFORMS: Platform[] = [
-  { id: "p1", name: "Apple Music", logoSrc: "/images/apple-music.svg" },
-  { id: "p2", name: "Meta", logoSrc: "/images/meta.svg" },
-  { id: "p3", name: "Musixmatch", logoSrc: "/images/musicmatch.svg" },
-  { id: "p4", name: "Spotify", logoSrc: "/images/spotify.svg" },
-  { id: "p5", name: "YouTube Music", logoSrc: "/images/youtube-new.svg" },
+  {
+    id: "p1",
+    name: "Apple Music",
+    logoSrc:
+      "https://res.cloudinary.com/wddg7ppg/image/upload/v1790848084/music.svg",
+  },
+  {
+    id: "p2",
+    name: "Meta",
+    logoSrc:
+      "https://res.cloudinary.com/wddg7ppg/image/upload/v1790847932/meta.svg",
+  },
+  {
+    id: "p3",
+    name: "Musixmatch",
+    logoSrc:
+      "https://res.cloudinary.com/wddg7ppg/image/upload/v1790848138/musicmatch.svg",
+  },
+  {
+    id: "p4",
+    name: "Spotify",
+    logoSrc:
+      "https://res.cloudinary.com/wddg7ppg/image/upload/v1790850054/spotify.svg",
+  },
+  {
+    id: "p5",
+    name: "YouTube Music",
+    logoSrc:
+      "https://res.cloudinary.com/wddg7ppg/image/upload/v1790851569/youtube-new.svg",
+  },
 ];
 
 const FEATURES: FeatureItem[] = [

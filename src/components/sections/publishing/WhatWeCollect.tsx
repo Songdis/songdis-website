@@ -14,9 +14,12 @@ function useInView(threshold = 0.1) {
     if (!el) return;
     const observer = new IntersectionObserver(
       ([entry]) => {
-        if (entry.isIntersecting) { setInView(true); observer.disconnect(); }
+        if (entry.isIntersecting) {
+          setInView(true);
+          observer.disconnect();
+        }
       },
-      { threshold }
+      { threshold },
     );
     observer.observe(el);
     return () => observer.disconnect();
@@ -53,7 +56,8 @@ const PhotoCard: React.FC<{
     <div
       className="absolute inset-0"
       style={{
-        background: "linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.2) 55%, transparent 100%)",
+        background:
+          "linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.2) 55%, transparent 100%)",
       }}
       aria-hidden="true"
     />
@@ -69,7 +73,10 @@ const PhotoCard: React.FC<{
             </p>
           )}
         </div>
-        <span className="font-heading text-2xl shrink-0" style={{ color: "#C30100" }}>
+        <span
+          className="font-heading text-2xl shrink-0"
+          style={{ color: "#C30100" }}
+        >
           {number}
         </span>
       </div>
@@ -80,7 +87,10 @@ const PhotoCard: React.FC<{
 /* ─────────────────────────────────────────────────────────
    PILL CARD
 ───────────────────────────────────────────────────────── */
-const PillCard: React.FC<{ number: string; title: string }> = ({ number, title }) => (
+const PillCard: React.FC<{ number: string; title: string }> = ({
+  number,
+  title,
+}) => (
   <div
     className="relative rounded-full shrink-0 flex flex-col items-center justify-between py-6"
     style={{
@@ -118,32 +128,32 @@ const WhatWeCollect: React.FC = () => {
 
   return (
     <section className="relative w-full bg-[#140C0C] py-20 sm:py-24 lg:py-32 overflow-hidden">
-
       {/* ── Top red glow ── */}
       <div
         aria-hidden="true"
         className="absolute top-0 right-0 w-[600px] h-[600px] pointer-events-none opacity-20"
         style={{
-          background: "radial-gradient(ellipse at top right, rgba(195,1,0,0.6) 0%, transparent 65%)",
+          background:
+            "radial-gradient(ellipse at top right, rgba(195,1,0,0.6) 0%, transparent 65%)",
           filter: "blur(80px)",
         }}
       />
 
       <div className="relative z-10 max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-10">
-
         {/* ── HEADER ── */}
         <div
           ref={headRef}
           className={[
             "text-center mb-14 sm:mb-16 transition-all duration-700",
-            headInView ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6",
+            headInView
+              ? "opacity-100 translate-y-0"
+              : "opacity-0 translate-y-6",
           ].join(" ")}
         >
           <h2 className="font-heading text-white uppercase text-3xl sm:text-4xl lg:text-5xl xl:text-[56px] leading-tight">
             What We Collect For You
           </h2>
         </div>
-
       </div>
 
       {/* ── ITEMS ROW — full bleed horizontal scroll ── */}
@@ -161,7 +171,7 @@ const WhatWeCollect: React.FC = () => {
           >
             {/* 01 — Performance Royalties */}
             <PhotoCard
-              image="/images/workshop-big.svg"
+              image="https://res.cloudinary.com/wddg7ppg/image/upload/v1790851437/workshop-big.svg"
               alt="Performance Royalties"
               number="01"
               title="Performance Royalties"
@@ -174,7 +184,7 @@ const WhatWeCollect: React.FC = () => {
 
             {/* 03 — YouTube Composition Revenue */}
             <PhotoCard
-              image="/images/workshop.svg"
+              image="https://res.cloudinary.com/wddg7ppg/image/upload/v1790850806/workshop.svg"
               alt="YouTube Composition Revenue"
               number="03"
               title="YouTube Composition Revenue"
@@ -184,7 +194,6 @@ const WhatWeCollect: React.FC = () => {
 
             {/* 04 — International Royalties */}
             <PillCard number="04" title="International Royalties" />
-
           </div>
         </div>
       </div>
@@ -219,7 +228,6 @@ const WhatWeCollect: React.FC = () => {
           </p>
         </div>
       </div>
-
     </section>
   );
 };

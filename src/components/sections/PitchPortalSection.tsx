@@ -15,9 +15,12 @@ function useInView(threshold = 0.1) {
     if (!el) return;
     const observer = new IntersectionObserver(
       ([entry]) => {
-        if (entry.isIntersecting) { setInView(true); observer.disconnect(); }
+        if (entry.isIntersecting) {
+          setInView(true);
+          observer.disconnect();
+        }
       },
-      { threshold }
+      { threshold },
     );
     observer.observe(el);
     return () => observer.disconnect();
@@ -34,25 +37,26 @@ const PitchPortalSection: React.FC = () => {
 
   return (
     <section className="relative w-full bg-[#140C0C] py-20 sm:py-24 lg:py-32 px-4 sm:px-6 lg:px-10 overflow-hidden">
-
       {/* ── Red glow ── */}
       <div
         aria-hidden="true"
         className="absolute top-0 left-1/2 -translate-x-1/2 w-[700px] h-[400px] pointer-events-none opacity-20"
         style={{
-          background: "radial-gradient(ellipse at top, rgba(195,1,0,0.6) 0%, transparent 70%)",
+          background:
+            "radial-gradient(ellipse at top, rgba(195,1,0,0.6) 0%, transparent 70%)",
           filter: "blur(80px)",
         }}
       />
 
       <div className="relative z-10 w-full max-w-[1280px] mx-auto">
-
         {/* ── HEADER ── */}
         <div
           ref={headRef}
           className={[
             "text-center mb-10 sm:mb-14 transition-all duration-700",
-            headInView ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6",
+            headInView
+              ? "opacity-100 translate-y-0"
+              : "opacity-0 translate-y-6",
           ].join(" ")}
         >
           <h2 className="font-heading text-white uppercase text-3xl sm:text-4xl lg:text-5xl xl:text-[56px] leading-tight mb-5">
@@ -69,14 +73,16 @@ const PitchPortalSection: React.FC = () => {
           ref={cardRef}
           className={[
             "rounded-2xl p-[1.34px] transition-all duration-1000",
-            cardInView ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10",
+            cardInView
+              ? "opacity-100 translate-y-0"
+              : "opacity-0 translate-y-10",
           ].join(" ")}
           style={{
-            background: "linear-gradient(86.92deg, #C30100 11.12%, rgba(255,255,255,0.08) 81.99%)",
+            background:
+              "linear-gradient(86.92deg, #C30100 11.12%, rgba(255,255,255,0.08) 81.99%)",
           }}
         >
           <div className="relative w-full rounded-2xl bg-[#1A0808] overflow-hidden">
-
             {/* ── "GET YOUR MUSIC FEATURED" — top of card ── */}
             <div className="px-8 sm:px-10 lg:px-14 pt-8 sm:pt-10 lg:pt-12 pb-6">
               <h3 className="font-heading text-white uppercase text-2xl sm:text-4xl lg:text-5xl xl:text-[52px] leading-tight">
@@ -86,11 +92,10 @@ const PitchPortalSection: React.FC = () => {
 
             {/* ── CARD BODY — photo left, text right ── */}
             <div className="flex flex-col lg:flex-row items-stretch min-h-[480px] lg:min-h-[540px]">
-
               {/* Left — photo, bleeds to card edges */}
               <div className="relative w-full lg:w-[62%] min-h-[320px] lg:min-h-0 overflow-hidden">
                 <Image
-                  src="/images/music-combo.svg"
+                  src="https://res.cloudinary.com/wddg7ppg/image/upload/v1790848111/music-combo.svg"
                   alt="Artists — Pitch Portal"
                   fill
                   className="object-cover object-center"
@@ -102,15 +107,16 @@ const PitchPortalSection: React.FC = () => {
               <div className="flex flex-col justify-center px-8 sm:px-10 lg:px-12 py-10 lg:py-0 lg:w-[38%] shrink-0">
                 <p className="font-body text-white text-sm sm:text-base leading-relaxed mb-10">
                   Submit your tracks to top editorial playlists, sync
-                  opportunities, brand partnerships, and media placements
-                  — all in one place.
+                  opportunities, brand partnerships, and media placements — all
+                  in one place.
                 </p>
 
                 {/* Gradient border button */}
                 <div
                   className="inline-block rounded-full p-[1.34px]"
                   style={{
-                    background: "linear-gradient(86.92deg, #C30100 11.12%, rgba(255,255,255,0.2) 81.99%)",
+                    background:
+                      "linear-gradient(86.92deg, #C30100 11.12%, rgba(255,255,255,0.2) 81.99%)",
                   }}
                 >
                   <Link
@@ -125,11 +131,9 @@ const PitchPortalSection: React.FC = () => {
                   </Link>
                 </div>
               </div>
-
             </div>
           </div>
         </div>
-
       </div>
     </section>
   );

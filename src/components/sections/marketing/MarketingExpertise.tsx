@@ -14,9 +14,12 @@ function useInView(threshold = 0.1) {
     if (!el) return;
     const observer = new IntersectionObserver(
       ([entry]) => {
-        if (entry.isIntersecting) { setInView(true); observer.disconnect(); }
+        if (entry.isIntersecting) {
+          setInView(true);
+          observer.disconnect();
+        }
       },
-      { threshold }
+      { threshold },
     );
     observer.observe(el);
     return () => observer.disconnect();
@@ -69,7 +72,6 @@ const MarketingExpertise: React.FC = () => {
 
   return (
     <section className="relative w-full bg-[#140C0C] pb-20 sm:pb-24 lg:pb-32 px-4 sm:px-6 lg:px-10">
-
       <style>{`
         @media (min-width: 1024px) {
           .marketing-expertise-card { height: 794px; }
@@ -77,21 +79,21 @@ const MarketingExpertise: React.FC = () => {
       `}</style>
 
       <div className="max-w-[1280px] mx-auto">
-
         {/* ── CARD ── */}
         <div
           ref={cardRef}
           className={[
             "marketing-expertise-card rounded-2xl flex flex-col lg:flex-row",
             "transition-all duration-700",
-            cardInView ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8",
+            cardInView
+              ? "opacity-100 translate-y-0"
+              : "opacity-0 translate-y-8",
           ].join(" ")}
           style={{
             backgroundColor: "#180F0F",
             border: "1px solid rgba(255,255,255,0.08)",
           }}
         >
-
           {/* Left — text, vertically centered */}
           <div className="flex flex-col justify-center p-8 sm:p-10 lg:p-14 lg:w-[52%] shrink-0">
             <h2 className="font-heading text-white uppercase text-2xl sm:text-3xl lg:text-4xl tracking-wide mb-6">
@@ -122,10 +124,14 @@ const MarketingExpertise: React.FC = () => {
           >
             <div
               className="relative w-full h-full"
-              style={{ borderRadius: "24px", overflow: "hidden", minHeight: "320px" }}
+              style={{
+                borderRadius: "24px",
+                overflow: "hidden",
+                minHeight: "320px",
+              }}
             >
               <Image
-                src="/images/artist-guitar.svg"
+                src="https://res.cloudinary.com/wddg7ppg/image/upload/v1790778537/artist-guitar.svg"
                 alt="Artist playing guitar"
                 fill
                 className="object-cover object-center"
@@ -133,7 +139,6 @@ const MarketingExpertise: React.FC = () => {
               />
             </div>
           </div>
-
         </div>
       </div>
     </section>

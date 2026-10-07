@@ -5,7 +5,7 @@ export default function PressKitNotFound() {
   return (
     <main className="flex min-h-screen flex-col items-center justify-center bg-[#170F0F] px-6 py-16 text-center font-body text-white">
       <Image
-        src="/images/logo.svg"
+        src="https://res.cloudinary.com/wddg7ppg/image/upload/v1790847552/logo.svg"
         alt="Songdis"
         width={108}
         height={39}
@@ -17,8 +17,8 @@ export default function PressKitNotFound() {
       </h1>
 
       <p className="mt-4 max-w-[420px] text-[15px] leading-relaxed text-white/65">
-        This link doesn&apos;t point to a published press kit. The address may be
-        mistyped, or the artist may have taken the page down.
+        This link doesn&apos;t point to a published press kit. The address may
+        be mistyped, or the artist may have taken the page down.
       </p>
 
       <div className="mt-9 flex flex-wrap items-center justify-center gap-3">

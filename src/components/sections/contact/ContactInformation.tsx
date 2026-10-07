@@ -14,9 +14,12 @@ function useInView(threshold = 0.1) {
     if (!el) return;
     const observer = new IntersectionObserver(
       ([entry]) => {
-        if (entry.isIntersecting) { setInView(true); observer.disconnect(); }
+        if (entry.isIntersecting) {
+          setInView(true);
+          observer.disconnect();
+        }
       },
-      { threshold }
+      { threshold },
     );
     observer.observe(el);
     return () => observer.disconnect();
@@ -33,25 +36,26 @@ const ContactInformation: React.FC = () => {
 
   return (
     <section className="relative w-full bg-[#140C0C] py-20 sm:py-24 lg:py-32 overflow-hidden">
-
       {/* ── Red glow — bottom center ── */}
       <div
         aria-hidden="true"
         className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[800px] h-[500px] pointer-events-none opacity-30"
         style={{
-          background: "radial-gradient(ellipse at bottom, rgba(195,1,0,0.6) 0%, transparent 70%)",
+          background:
+            "radial-gradient(ellipse at bottom, rgba(195,1,0,0.6) 0%, transparent 70%)",
           filter: "blur(80px)",
         }}
       />
 
       <div className="relative z-10 max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-10">
-
         {/* ── HEADER ── */}
         <div
           ref={headRef}
           className={[
             "text-center mb-12 sm:mb-16 transition-all duration-700",
-            headInView ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6",
+            headInView
+              ? "opacity-100 translate-y-0"
+              : "opacity-0 translate-y-6",
           ].join(" ")}
         >
           <h2 className="font-heading text-white uppercase text-3xl sm:text-4xl lg:text-5xl xl:text-[56px] leading-tight mb-5">
@@ -61,7 +65,6 @@ const ContactInformation: React.FC = () => {
             Reach out to our team for support, partnerships, or artist services.
           </p>
         </div>
-
       </div>
 
       {/* ── CONTACT CHART IMAGE — full bleed ── */}
@@ -73,7 +76,7 @@ const ContactInformation: React.FC = () => {
         ].join(" ")}
       >
         <Image
-          src="/images/contact-chart.svg"
+          src="https://res.cloudinary.com/wddg7ppg/image/upload/v1790779095/contact-chart.svg"
           alt="Contact information — Email, Phone, Address and opening hours"
           width={1440}
           height={700}
@@ -81,7 +84,6 @@ const ContactInformation: React.FC = () => {
           loading="lazy"
         />
       </div>
-
     </section>
   );
 };

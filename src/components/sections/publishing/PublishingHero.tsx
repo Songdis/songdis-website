@@ -4,15 +4,11 @@ import React from "react";
 import Link from "next/link";
 import Image from "next/image";
 
-
 const PublishingHero: React.FC = () => {
   return (
     <section className="relative w-full bg-[#140C0C] pt-32 sm:pt-36 lg:pt-40 pb-0 px-4 sm:px-6 lg:px-10 overflow-hidden">
-
       <div className="max-w-[1280px] mx-auto">
-
         <div className="flex flex-col lg:flex-row gap-8 lg:gap-16 mb-12 sm:mb-16">
-
           <div className="flex flex-col gap-8 lg:w-[45%] shrink-0 justify-center">
             <h1
               className="font-heading text-white uppercase leading-[0.95]"
@@ -27,7 +23,8 @@ const PublishingHero: React.FC = () => {
             <div
               className="inline-block rounded-full p-[1.34px] self-start"
               style={{
-                background: "linear-gradient(86.92deg, #C30100 11.12%, rgba(255,255,255,0.2) 81.99%)",
+                background:
+                  "linear-gradient(86.92deg, #C30100 11.12%, rgba(255,255,255,0.2) 81.99%)",
               }}
             >
               <Link
@@ -52,7 +49,6 @@ const PublishingHero: React.FC = () => {
               SongDis helps you collect them worldwide.
             </p>
           </div>
-
         </div>
 
         <div
@@ -60,7 +56,7 @@ const PublishingHero: React.FC = () => {
           style={{ height: "clamp(240px, 38vw, 500px)" }}
         >
           <Image
-            src="/images/publishing-hero.svg"
+            src="https://res.cloudinary.com/wddg7ppg/image/upload/v1790849144/publishing-hero.svg"
             alt="Publishing — musical notes and treble clef"
             fill
             className="object-cover object-center"
@@ -69,7 +65,6 @@ const PublishingHero: React.FC = () => {
         </div>
 
         <div className="flex flex-col lg:flex-row gap-8 lg:gap-16 py-16 sm:py-20 lg:py-24">
-
           {/* Left — heading */}
           <div className="lg:w-[40%] shrink-0">
             <h2
@@ -94,9 +89,7 @@ const PublishingHero: React.FC = () => {
               If you created the song, this income belongs to you.
             </p>
           </div>
-
         </div>
-
       </div>
     </section>
   );

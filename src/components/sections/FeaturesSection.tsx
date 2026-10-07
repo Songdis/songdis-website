@@ -4,7 +4,6 @@ import React, { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 
-
 function useInView(threshold = 0.12) {
   const ref = useRef<HTMLDivElement>(null);
   const [inView, setInView] = useState(false);
@@ -25,7 +24,6 @@ function useInView(threshold = 0.12) {
   }, [threshold]);
   return { ref, inView };
 }
-
 
 const GradientBorderButton: React.FC<{
   href: string;
@@ -51,7 +49,7 @@ const GradientBorderButton: React.FC<{
           "transition-all duration-300",
           "hover:bg-white hover:text-[#140C0C]",
           "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white",
-          "whitespace-nowrap", 
+          "whitespace-nowrap",
           className,
         ].join(" ")}
         style={{
@@ -65,45 +63,43 @@ const GradientBorderButton: React.FC<{
   );
 };
 
-
 const FLOAT_ICONS = [
   {
-    src: "/images/apple-music.svg",
+    src: "https://res.cloudinary.com/wddg7ppg/image/upload/v1790848084/music.svg",
     alt: "Apple Music",
     pos: "top-[4%] right-[18%]",
     delay: "0s",
     size: "w-16 h-16 sm:w-20 sm:h-20",
   },
   {
-    src: "/images/meta.svg",
+    src: "https://res.cloudinary.com/wddg7ppg/image/upload/v1790847932/meta.svg",
     alt: "Meta",
     pos: "top-[22%] right-[48%]",
     delay: "0.6s",
     size: "w-14 h-14 sm:w-16 sm:h-16",
   },
   {
-    src: "/images/musicmatch.svg",
+    src: "https://res.cloudinary.com/wddg7ppg/image/upload/v1790848138/musicmatch.svg",
     alt: "Musixmatch",
     pos: "top-[52%] right-[46%]",
     delay: "1.1s",
     size: "w-14 h-14 sm:w-16 sm:h-16",
   },
   {
-    src: "/images/apple-music.svg",
+    src: "https://res.cloudinary.com/wddg7ppg/image/upload/v1790848084/music.svg",
     alt: "Apple Music 2",
     pos: "bottom-[8%] right-[30%]",
     delay: "0.3s",
     size: "w-16 h-16 sm:w-20 sm:h-20",
   },
   {
-    src: "/images/youtube.svg",
+    src: "https://res.cloudinary.com/wddg7ppg/image/upload/v1790851482/youtube.svg",
     alt: "YouTube",
     pos: "top-[30%] right-[4%]",
     delay: "0.9s",
     size: "w-14 h-14 sm:w-16 sm:h-16",
   },
 ];
-
 
 const PlatformIconsDisplay: React.FC = () => (
   <div
@@ -139,7 +135,6 @@ const PlatformIconsDisplay: React.FC = () => (
       style={{
         width: "100%",
         height: "100%",
-        
       }}
     >
       <Image
@@ -153,14 +148,13 @@ const PlatformIconsDisplay: React.FC = () => (
   </div>
 );
 
-
 const SmartLinkCard: React.FC = () => (
   <div className="w-full max-w-[480px] rounded-2xl bg-[#1A0A0A] border border-white/10 p-6 sm:p-8">
     {/* Album row */}
     <div className="flex items-center gap-4 mb-6">
       <div className="relative w-[100px] h-[100px] rounded-xl overflow-hidden shrink-0">
         <Image
-          src="/images/into-the-night.svg"
+          src="https://res.cloudinary.com/wddg7ppg/image/upload/v1790847131/into-the-night.svg"
           alt="Into The Night"
           fill
           className="object-cover"
@@ -183,11 +177,26 @@ const SmartLinkCard: React.FC = () => (
 
     <div className="flex flex-wrap items-center gap-3 sm:gap-4 mb-8">
       {[
-        { src: "/images/spotify-frame.svg", alt: "Spotify" },
-        { src: "/images/music.svg", alt: "Musixmatch" },
-        { src: "/images/meta-frame.svg", alt: "Meta" },
-        { src: "/images/apple-frame.svg", alt: "Apple Music" },
-        { src: "/images/youtube-frame.svg", alt: "YouTube" },
+        {
+          src: "https://res.cloudinary.com/wddg7ppg/image/upload/v1790850077/spotify-frame.svg",
+          alt: "Spotify",
+        },
+        {
+          src: "https://res.cloudinary.com/wddg7ppg/image/upload/v1790848084/music.svg",
+          alt: "Musixmatch",
+        },
+        {
+          src: "https://res.cloudinary.com/wddg7ppg/image/upload/v1790847980/meta-frame.svg",
+          alt: "Meta",
+        },
+        {
+          src: "https://res.cloudinary.com/wddg7ppg/image/upload/v1790778495/apple-frame.svg",
+          alt: "Apple Music",
+        },
+        {
+          src: "https://res.cloudinary.com/wddg7ppg/image/upload/v1790851524/youtube-frame.svg",
+          alt: "YouTube",
+        },
       ].map((p) => (
         <div
           key={p.alt}
@@ -225,7 +234,6 @@ const SmartLinkCard: React.FC = () => (
   </div>
 );
 
-
 const FeatureCard: React.FC<{
   children: React.ReactNode;
   className?: string;
@@ -248,7 +256,6 @@ const FeatureCard: React.FC<{
     </div>
   );
 };
-
 
 const FeaturesSection: React.FC = () => {
   const { ref: headRef, inView: headInView } = useInView(0.3);
@@ -284,7 +291,6 @@ const FeaturesSection: React.FC = () => {
             Everything You Need to Succeed
           </h2>
         </div>
-
 
         <FeatureCard delay={0}>
           <div className="flex flex-col lg:flex-row items-center gap-10 lg:gap-0 min-h-[360px]">
@@ -322,7 +328,7 @@ const FeaturesSection: React.FC = () => {
               {/* Image */}
               <div className="relative w-full h-[240px] sm:h-full flex items-center justify-center">
                 <Image
-                  src="/images/new-analytics.svg"
+                  src="https://res.cloudinary.com/wddg7ppg/image/upload/v1790848224/new-analytics.svg"
                   alt="Analytics dashboard"
                   fill
                   className="object-contain p-2"
@@ -347,7 +353,7 @@ const FeaturesSection: React.FC = () => {
           <FeatureCard delay={200} bg="bg-[#201515]" className="sm:col-span-2">
             <div className="relative w-full h-[320px] sm:h-[380px] overflow-hidden">
               <Image
-                src="/images/linemap.svg"
+                src="https://res.cloudinary.com/wddg7ppg/image/upload/v1790847337/linemap.svg"
                 alt="Pro tools diagram"
                 fill
                 className="object-contain p-2"
@@ -384,7 +390,7 @@ const FeaturesSection: React.FC = () => {
               {/* Image — fills remaining height/width */}
               <div className="relative flex-1 min-h-[240px] sm:min-h-0 overflow-hidden">
                 <Image
-                  src="/images/publishing.svg"
+                  src="https://res.cloudinary.com/wddg7ppg/image/upload/v1790849114/publishing.svg"
                   alt="Artist playing guitar"
                   fill
                   className="object-cover object-center"
@@ -411,7 +417,7 @@ const FeaturesSection: React.FC = () => {
               {/* Image — bottom, fills remaining space */}
               <div className="relative flex-1 min-h-[260px] overflow-hidden">
                 <Image
-                  src="/images/revenue.svg"
+                  src="https://res.cloudinary.com/wddg7ppg/image/upload/v1790849410/revenue.svg"
                   alt="Headphones and phone"
                   fill
                   className="object-contain p-6"
@@ -422,21 +428,20 @@ const FeaturesSection: React.FC = () => {
           </FeatureCard>
         </div>
 
-
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
           {/* Split Royalties */}
           <FeatureCard delay={0} className="lg:col-span-2">
             <div className="flex flex-col h-full">
               <div className="relative w-full h-[280px] sm:h-[320px] overflow-hidden shrink-0">
                 <Image
-                  src="/images/new-split.svg"
+                  src="https://res.cloudinary.com/wddg7ppg/image/upload/v1790848278/new-split.svg"
                   alt="Money fan"
                   fill
                   className="object-contain"
                   loading="lazy"
                 />
               </div>
-              
+
               <div className="flex flex-col items-center text-center p-6 sm:p-8">
                 <h3 className="font-heading text-white uppercase text-xl sm:text-2xl tracking-wide mb-3">
                   Split Royalties
@@ -459,7 +464,7 @@ const FeaturesSection: React.FC = () => {
               {/* Image — full width on mobile, half width on desktop */}
               <div className="relative w-full lg:w-1/2 h-[280px] lg:h-auto overflow-hidden shrink-0">
                 <Image
-                  src="/images/communitysupport.svg"
+                  src="https://res.cloudinary.com/wddg7ppg/image/upload/v1790779043/communitysupport.svg"
                   alt="Community hands together"
                   fill
                   className="object-cover object-center"

@@ -11,7 +11,8 @@ const TESTIMONIALS = [
     name: "Kdiv Coco",
     country: "Nigeria",
     flag: "🇳🇬",
-    avatar: "/images/kdiv.jpg",
+    avatar:
+      "https://res.cloudinary.com/wddg7ppg/image/upload/v1790847165/kdiv.jpg",
   },
   {
     quote:
@@ -19,7 +20,8 @@ const TESTIMONIALS = [
     name: "Reechdee",
     country: "Nigeria",
     flag: "🇳🇬",
-    avatar: "/images/rechdee.jpg",
+    avatar:
+      "https://res.cloudinary.com/wddg7ppg/image/upload/v1790849194/rechdee.jpg",
   },
   {
     quote:
@@ -27,7 +29,8 @@ const TESTIMONIALS = [
     name: "Emmybrown",
     country: "Nigeria",
     flag: "🇳🇬",
-    avatar: "/images/emmy.webp",
+    avatar:
+      "https://res.cloudinary.com/wddg7ppg/image/upload/v1790846812/emmy.webp",
   },
   {
     quote:
@@ -43,7 +46,8 @@ const TESTIMONIALS = [
     name: "Bri Tse",
     country: "Nigeria",
     flag: "🇳🇬",
-    avatar: "/images/bri.jpg",
+    avatar:
+      "https://res.cloudinary.com/wddg7ppg/image/upload/v1790778796/bri.jpg",
   },
 ];
 
@@ -52,8 +56,14 @@ interface AuthLayoutProps {
   heroImage?: "singer" | "guitar";
 }
 
-export default function AuthLayout({ children, heroImage = "singer" }: AuthLayoutProps) {
-  const imageSrc = heroImage === "singer" ? "/images/new-singer.svg" : "/images/new-guitar.svg";
+export default function AuthLayout({
+  children,
+  heroImage = "singer",
+}: AuthLayoutProps) {
+  const imageSrc =
+    heroImage === "singer"
+      ? "https://res.cloudinary.com/wddg7ppg/image/upload/v1790848261/new-singer.svg"
+      : "https://res.cloudinary.com/wddg7ppg/image/upload/v1790848246/new-guitar.svg";
 
   const [activeIndex, setActiveIndex] = useState(0);
 
@@ -69,7 +79,6 @@ export default function AuthLayout({ children, heroImage = "singer" }: AuthLayou
 
   return (
     <div className="min-h-screen w-full flex bg-[#0E0808]">
-
       {/* LEFT PANEL */}
       <div className="relative w-full lg:w-[40%] shrink-0 flex flex-col min-h-screen overflow-y-auto bg-[#140C0C]">
         <div
@@ -83,34 +92,65 @@ export default function AuthLayout({ children, heroImage = "singer" }: AuthLayou
         <div
           aria-hidden
           className="pointer-events-none absolute -top-20 -left-20 w-72 h-72 rounded-full opacity-20"
-          style={{ background: "radial-gradient(circle, rgba(195,1,0,0.5) 0%, transparent 70%)", filter: "blur(60px)" }}
+          style={{
+            background:
+              "radial-gradient(circle, rgba(195,1,0,0.5) 0%, transparent 70%)",
+            filter: "blur(60px)",
+          }}
         />
 
         <div className="relative z-10 flex flex-col flex-1 px-10 sm:px-12 py-8">
-          <Link href="/" className="inline-flex items-center gap-2.5 mb-10 self-start group">
-            <Image src="/images/logo.svg" alt="Songdis logo" width={120} height={32} className="object-contain h-12 w-auto" priority />
+          <Link
+            href="/"
+            className="inline-flex items-center gap-2.5 mb-10 self-start group"
+          >
+            <Image
+              src="https://res.cloudinary.com/wddg7ppg/image/upload/v1790847552/logo.svg"
+              alt="Songdis logo"
+              width={120}
+              height={32}
+              className="object-contain h-12 w-auto"
+              priority
+            />
           </Link>
-          <div className="flex-1 flex flex-col justify-center">
-            {children}
-          </div>
+          <div className="flex-1 flex flex-col justify-center">{children}</div>
         </div>
       </div>
 
       {/* RIGHT PANEL */}
       <div className="hidden lg:flex w-[60%] p-4">
         <div className="flex-1 relative rounded-2xl overflow-hidden">
-          <Image src={imageSrc} alt="" fill className="object-cover object-center" priority aria-hidden="true" />
+          <Image
+            src={imageSrc}
+            alt=""
+            fill
+            className="object-cover object-center"
+            priority
+            aria-hidden="true"
+          />
 
           <div
             aria-hidden
             className="absolute inset-0"
-            style={{ background: "linear-gradient(to bottom, rgba(14,8,8,0.05) 40%, rgba(14,8,8,0.92) 100%)" }}
+            style={{
+              background:
+                "linear-gradient(to bottom, rgba(14,8,8,0.05) 40%, rgba(14,8,8,0.92) 100%)",
+            }}
           />
 
           {/* Testimonial overlay */}
           <div className="absolute bottom-0 left-0 right-0 z-10 px-8 py-8">
-            <svg className="mb-3 opacity-60" width="20" height="16" viewBox="0 0 20 16" fill="none">
-              <path d="M0 16V10.24C0 8.777 0.29 7.394 0.87 6.09 1.467 4.77 2.267 3.613 3.27 2.62 4.29 1.61 5.453 0.793 6.76 0.17L8.32 2.15C7.28 2.62 6.37 3.277 5.6 4.12 4.847 4.963 4.363 5.943 4.15 7.06H8.32V16H0ZM11.68 16V10.24C11.68 8.777 11.97 7.394 12.55 6.09 13.147 4.77 13.947 3.613 14.95 2.62 15.97 1.61 17.133 0.793 18.44 0.17L20 2.15C18.96 2.62 18.05 3.277 17.28 4.12 16.527 4.963 16.043 5.943 15.83 7.06H20V16H11.68Z" fill="white" />
+            <svg
+              className="mb-3 opacity-60"
+              width="20"
+              height="16"
+              viewBox="0 0 20 16"
+              fill="none"
+            >
+              <path
+                d="M0 16V10.24C0 8.777 0.29 7.394 0.87 6.09 1.467 4.77 2.267 3.613 3.27 2.62 4.29 1.61 5.453 0.793 6.76 0.17L8.32 2.15C7.28 2.62 6.37 3.277 5.6 4.12 4.847 4.963 4.363 5.943 4.15 7.06H8.32V16H0ZM11.68 16V10.24C11.68 8.777 11.97 7.394 12.55 6.09 13.147 4.77 13.947 3.613 14.95 2.62 15.97 1.61 17.133 0.793 18.44 0.17L20 2.15C18.96 2.62 18.05 3.277 17.28 4.12 16.527 4.963 16.043 5.943 15.83 7.06H20V16H11.68Z"
+                fill="white"
+              />
             </svg>
 
             {/* Animated testimonial text */}
@@ -124,13 +164,23 @@ export default function AuthLayout({ children, heroImage = "singer" }: AuthLayou
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="relative w-10 h-10 rounded-full overflow-hidden border border-white/20 shrink-0">
-                  <Image src={t.avatar} alt={t.name} fill className="object-cover object-top" unoptimized />
+                  <Image
+                    src={t.avatar}
+                    alt={t.name}
+                    fill
+                    className="object-cover object-top"
+                    unoptimized
+                  />
                 </div>
-                <span className="font-heading text-white uppercase text-sm tracking-wide">{t.name}</span>
+                <span className="font-heading text-white uppercase text-sm tracking-wide">
+                  {t.name}
+                </span>
               </div>
               <div className="flex items-center gap-2">
                 <span className="text-xl">{t.flag}</span>
-                <span className="font-body text-white/60 text-xs">{t.country}</span>
+                <span className="font-body text-white/60 text-xs">
+                  {t.country}
+                </span>
               </div>
             </div>
 
@@ -142,7 +192,9 @@ export default function AuthLayout({ children, heroImage = "singer" }: AuthLayou
                   onClick={() => setActiveIndex(i)}
                   className={[
                     "rounded-full transition-all duration-300",
-                    i === activeIndex ? "w-4 h-1.5 bg-white" : "w-1.5 h-1.5 bg-white/30",
+                    i === activeIndex
+                      ? "w-4 h-1.5 bg-white"
+                      : "w-1.5 h-1.5 bg-white/30",
                   ].join(" ")}
                   aria-label={`Testimonial ${i + 1}`}
                 />

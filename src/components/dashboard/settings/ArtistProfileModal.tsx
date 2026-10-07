@@ -1,7 +1,12 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
-import { createProfile, updateProfile, searchSpotifyArtists, verifySpotifyUrl } from "@/lib/api/auth";
+import {
+  createProfile,
+  updateProfile,
+  searchSpotifyArtists,
+  verifySpotifyUrl,
+} from "@/lib/api/auth";
 import type { SpotifyArtist } from "@/lib/api/auth";
 import { useToast } from "@/components/ui/Toast";
 
@@ -115,7 +120,9 @@ export default function ArtistProfileModal({
   const [searchResults, setSearchResults] = useState<SpotifyArtist[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [showSearchResults, setShowSearchResults] = useState(false);
-  const [selectedArtist, setSelectedArtist] = useState<SpotifyArtist | null>(null);
+  const [selectedArtist, setSelectedArtist] = useState<SpotifyArtist | null>(
+    null,
+  );
   const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const searchContainerRef = useRef<HTMLDivElement>(null);
 
@@ -123,7 +130,8 @@ export default function ArtistProfileModal({
   const [spotifyUrlInput, setSpotifyUrlInput] = useState("");
   const [isVerifyingUrl, setIsVerifyingUrl] = useState(false);
   const [spotifyVerified, setSpotifyVerified] = useState(false);
-  const [verifiedArtistData, setVerifiedArtistData] = useState<SpotifyArtist | null>(null);
+  const [verifiedArtistData, setVerifiedArtistData] =
+    useState<SpotifyArtist | null>(null);
 
   const isEdit = !!profile;
 
@@ -142,7 +150,10 @@ export default function ArtistProfileModal({
   /* Close search dropdown on outside click */
   useEffect(() => {
     const handler = (e: MouseEvent) => {
-      if (searchContainerRef.current && !searchContainerRef.current.contains(e.target as Node)) {
+      if (
+        searchContainerRef.current &&
+        !searchContainerRef.current.contains(e.target as Node)
+      ) {
         setShowSearchResults(false);
       }
     };
@@ -151,7 +162,12 @@ export default function ArtistProfileModal({
   }, []);
 
   /* Cleanup debounce on unmount */
-  useEffect(() => () => { if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current); }, []);
+  useEffect(
+    () => () => {
+      if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
+    },
+    [],
+  );
 
   /* ── Spotify artist search (debounced) ── */
   const handleArtistSearch = useCallback((query: string) => {
@@ -200,7 +216,10 @@ export default function ArtistProfileModal({
   const handleVerifyUrl = async () => {
     if (!spotifyUrlInput) return;
     if (!spotifyUrlInput.includes("spotify.com/artist/")) {
-      toastError("Invalid URL", "That doesn't look like a Spotify artist URL. It should look like: https://open.spotify.com/artist/...");
+      toastError(
+        "Invalid URL",
+        "That doesn't look like a Spotify artist URL. It should look like: https://open.spotify.com/artist/...",
+      );
       return;
     }
     setIsVerifyingUrl(true);
@@ -261,9 +280,10 @@ export default function ArtistProfileModal({
     // while the API client's is a number. Same mismatch that broke draft deletion before.
     const editingId = profile ? Number(profile.id) : NaN;
 
-    const res = isEdit && Number.isFinite(editingId)
-      ? await updateProfile(editingId, payload)
-      : await createProfile(payload);
+    const res =
+      isEdit && Number.isFinite(editingId)
+        ? await updateProfile(editingId, payload)
+        : await createProfile(payload);
     setIsSaving(false);
 
     if (res.error) {
@@ -273,8 +293,17 @@ export default function ArtistProfileModal({
           flattened[key] = Array.isArray(msgs) ? msgs[0] : String(msgs);
         }
         setFieldErrors(flattened);
-        const step1Fields = ["full_name", "stage_name", "dob", "location", "phone"];
-        if (Object.keys(res.errors).some((k) => step1Fields.includes(k)) && step === "social") {
+        const step1Fields = [
+          "full_name",
+          "stage_name",
+          "dob",
+          "location",
+          "phone",
+        ];
+        if (
+          Object.keys(res.errors).some((k) => step1Fields.includes(k)) &&
+          step === "social"
+        ) {
           setStep("info");
         }
       } else {
@@ -301,7 +330,10 @@ export default function ArtistProfileModal({
       appleMusic,
       spotify: spotifyUrlInput,
       cover: profile?.cover ?? "",
-      avatar: (created?.profile_image ?? created?.avatar_url ?? profile?.avatar ?? "/images/avatar-artiste.svg") as string,
+      avatar: (created?.profile_image ??
+        created?.avatar_url ??
+        profile?.avatar ??
+        "https://res.cloudinary.com/wddg7ppg/image/upload/v1790778572/avatar-artiste.svg") as string,
     });
   };
 
@@ -372,7 +404,9 @@ export default function ArtistProfileModal({
               {apiError && (
                 <div className="rounded-xl border border-red-500/30 bg-red-500/10 p-3 flex items-start gap-2">
                   <AlertIcon />
-                  <p className="font-montserrat text-red-400 text-sm">{apiError}</p>
+                  <p className="font-montserrat text-red-400 text-sm">
+                    {apiError}
+                  </p>
                 </div>
               )}
               {/* ── Spotify Artist Search ── */}
@@ -381,13 +415,17 @@ export default function ArtistProfileModal({
                   <p className="font-montserrat text-white text-xs font-semibold flex items-center gap-2">
                     <SpotifyIcon /> Find Your Spotify Profile
                   </p>
-                  <span className="text-[10px] bg-white/10 text-white/40 px-2 py-0.5 rounded-full">Optional</span>
+                  <span className="text-[10px] bg-white/10 text-white/40 px-2 py-0.5 rounded-full">
+                    Optional
+                  </span>
                 </div>
                 <p className="font-montserrat text-white/50 text-[11px] mb-1">
-                  Search for your artist name on Spotify to auto-fill your profile and get a verified badge.
+                  Search for your artist name on Spotify to auto-fill your
+                  profile and get a verified badge.
                 </p>
                 <p className="font-montserrat text-white/30 text-[11px] mb-3">
-                  Don&apos;t have Spotify or can&apos;t find yourself? You can skip this section entirely.
+                  Don&apos;t have Spotify or can&apos;t find yourself? You can
+                  skip this section entirely.
                 </p>
 
                 {!selectedArtist ? (
@@ -425,13 +463,20 @@ export default function ArtistProfileModal({
                                     </div>
                                   )}
                                   <div className="flex-1 min-w-0">
-                                    <div className="font-montserrat text-white text-sm truncate">{artist.name}</div>
+                                    <div className="font-montserrat text-white text-sm truncate">
+                                      {artist.name}
+                                    </div>
                                     <div className="flex items-center gap-3 text-[11px] text-white/40 mt-0.5">
                                       {artist.followers > 0 && (
-                                        <span>{artist.followers.toLocaleString()} followers</span>
+                                        <span>
+                                          {artist.followers.toLocaleString()}{" "}
+                                          followers
+                                        </span>
                                       )}
                                       {artist.popularity > 0 && (
-                                        <span>{artist.popularity}% popularity</span>
+                                        <span>
+                                          {artist.popularity}% popularity
+                                        </span>
                                       )}
                                     </div>
                                     {artist.genres?.length > 0 && (
@@ -450,7 +495,8 @@ export default function ArtistProfileModal({
                               No artists found for &ldquo;{searchQuery}&rdquo;.
                             </p>
                             <p className="text-[11px] text-white/30">
-                              Try a different spelling, or paste your Spotify artist URL below.
+                              Try a different spelling, or paste your Spotify
+                              artist URL below.
                             </p>
                           </div>
                         )}
@@ -474,11 +520,16 @@ export default function ArtistProfileModal({
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
                           <CheckCircleIcon />
-                          <span className="font-montserrat text-white font-semibold text-sm truncate">{selectedArtist.name}</span>
+                          <span className="font-montserrat text-white font-semibold text-sm truncate">
+                            {selectedArtist.name}
+                          </span>
                         </div>
                         <div className="flex flex-wrap gap-3 text-[11px] text-white/50">
                           {selectedArtist.followers > 0 && (
-                            <span>{selectedArtist.followers.toLocaleString()} followers</span>
+                            <span>
+                              {selectedArtist.followers.toLocaleString()}{" "}
+                              followers
+                            </span>
                           )}
                           {selectedArtist.popularity > 0 && (
                             <span>{selectedArtist.popularity}% popularity</span>
@@ -509,18 +560,25 @@ export default function ArtistProfileModal({
                   <div className="w-full border-t border-white/10" />
                 </div>
                 <div className="relative flex justify-center">
-                  <span className="px-3 bg-[#140C0C] text-white/40 text-[11px] font-montserrat">OR paste your Spotify artist URL</span>
+                  <span className="px-3 bg-[#140C0C] text-white/40 text-[11px] font-montserrat">
+                    OR paste your Spotify artist URL
+                  </span>
                 </div>
               </div>
 
               {/* ── Spotify URL Verification ── */}
               <div className="rounded-xl border border-dashed border-[#C30100]/30 p-4">
                 <div className="flex items-center justify-between mb-0.5">
-                  <p className="font-montserrat text-white text-xs font-semibold">Verify by Spotify URL</p>
-                  <span className="text-[10px] bg-white/10 text-white/40 px-2 py-0.5 rounded-full">Optional</span>
+                  <p className="font-montserrat text-white text-xs font-semibold">
+                    Verify by Spotify URL
+                  </p>
+                  <span className="text-[10px] bg-white/10 text-white/40 px-2 py-0.5 rounded-full">
+                    Optional
+                  </span>
                 </div>
                 <p className="font-montserrat text-white/50 text-[11px] mb-3">
-                  Can&apos;t find yourself in the search above? Paste your Spotify artist page URL directly.
+                  Can&apos;t find yourself in the search above? Paste your
+                  Spotify artist page URL directly.
                 </p>
 
                 {spotifyVerified && verifiedArtistData ? (
@@ -528,8 +586,12 @@ export default function ArtistProfileModal({
                     <div className="flex items-center gap-2">
                       <CheckCircleIcon />
                       <div>
-                        <p className="font-montserrat text-white text-sm font-medium">{verifiedArtistData.name} verified</p>
-                        <p className="font-montserrat text-green-400 text-[11px]">Spotify artist URL confirmed</p>
+                        <p className="font-montserrat text-white text-sm font-medium">
+                          {verifiedArtistData.name} verified
+                        </p>
+                        <p className="font-montserrat text-green-400 text-[11px]">
+                          Spotify artist URL confirmed
+                        </p>
                       </div>
                     </div>
                     <button
@@ -551,13 +613,19 @@ export default function ArtistProfileModal({
                     <button
                       type="button"
                       onClick={handleVerifyUrl}
-                      disabled={isVerifyingUrl || !spotifyUrlInput || !!selectedArtist}
+                      disabled={
+                        isVerifyingUrl || !spotifyUrlInput || !!selectedArtist
+                      }
                       className="shrink-0 font-nulshock text-white uppercase text-[10px] tracking-widest rounded-full border border-[#C30100] bg-[#C30100]/10 hover:bg-[#C30100] px-4 py-2.5 transition-all flex items-center gap-1.5 whitespace-nowrap min-h-[48px] disabled:opacity-40 disabled:cursor-not-allowed"
                     >
                       {isVerifyingUrl ? (
-                        <><SpinIcon /> Verifying...</>
+                        <>
+                          <SpinIcon /> Verifying...
+                        </>
                       ) : (
-                        <><CheckSmallIcon /> Verify</>
+                        <>
+                          <CheckSmallIcon /> Verify
+                        </>
                       )}
                     </button>
                   </div>
@@ -565,7 +633,8 @@ export default function ArtistProfileModal({
 
                 {selectedArtist && !spotifyVerified && (
                   <p className="text-[11px] text-white/30 mt-2">
-                    You already selected an artist above. Remove that selection first to use URL verification instead.
+                    You already selected an artist above. Remove that selection
+                    first to use URL verification instead.
                   </p>
                 )}
               </div>
@@ -579,21 +648,31 @@ export default function ArtistProfileModal({
                   <Field label="Full Name">
                     <Input
                       value={fullName}
-                      onChange={(v) => { setFullName(v); clearFieldError("full_name"); }}
+                      onChange={(v) => {
+                        setFullName(v);
+                        clearFieldError("full_name");
+                      }}
                       placeholder="Your full legal name"
                     />
                   </Field>
-                  {fieldErrors.full_name && <FieldError message={fieldErrors.full_name} />}
+                  {fieldErrors.full_name && (
+                    <FieldError message={fieldErrors.full_name} />
+                  )}
                 </div>
                 <div>
                   <Field label="Stage Name">
                     <Input
                       value={stageName}
-                      onChange={(v) => { setStageName(v); clearFieldError("stage_name"); }}
+                      onChange={(v) => {
+                        setStageName(v);
+                        clearFieldError("stage_name");
+                      }}
                       placeholder="Your artist name"
                     />
                   </Field>
-                  {fieldErrors.stage_name && <FieldError message={fieldErrors.stage_name} />}
+                  {fieldErrors.stage_name && (
+                    <FieldError message={fieldErrors.stage_name} />
+                  )}
                 </div>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -601,17 +680,25 @@ export default function ArtistProfileModal({
                   <Field label="Phone number">
                     <Input
                       value={phone}
-                      onChange={(v) => { setPhone(v); clearFieldError("phone"); }}
+                      onChange={(v) => {
+                        setPhone(v);
+                        clearFieldError("phone");
+                      }}
                       placeholder="Phone number"
                     />
                   </Field>
-                  {fieldErrors.phone && <FieldError message={fieldErrors.phone} />}
+                  {fieldErrors.phone && (
+                    <FieldError message={fieldErrors.phone} />
+                  )}
                 </div>
                 <div>
                   <Field label="Date of birth">
                     <Input
                       value={dob}
-                      onChange={(v) => { setDob(v); clearFieldError("dob"); }}
+                      onChange={(v) => {
+                        setDob(v);
+                        clearFieldError("dob");
+                      }}
                       placeholder="mm/dd/yyyy"
                       type="date"
                       icon={<CalendarIcon />}
@@ -624,11 +711,16 @@ export default function ArtistProfileModal({
                 <Field label="Location">
                   <Input
                     value={location}
-                    onChange={(v) => { setLocation(v); clearFieldError("location"); }}
+                    onChange={(v) => {
+                      setLocation(v);
+                      clearFieldError("location");
+                    }}
                     placeholder="City, Country"
                   />
                 </Field>
-                {fieldErrors.location && <FieldError message={fieldErrors.location} />}
+                {fieldErrors.location && (
+                  <FieldError message={fieldErrors.location} />
+                )}
               </div>
               <div className="flex gap-3 mt-2">
                 <button
@@ -653,7 +745,9 @@ export default function ArtistProfileModal({
               {apiError && (
                 <div className="rounded-xl border border-red-500/30 bg-red-500/10 p-3 flex items-start gap-2">
                   <AlertIcon />
-                  <p className="font-montserrat text-red-400 text-sm">{apiError}</p>
+                  <p className="font-montserrat text-red-400 text-sm">
+                    {apiError}
+                  </p>
                 </div>
               )}
 
@@ -671,11 +765,16 @@ export default function ArtistProfileModal({
                   <Field label="Twitter">
                     <Input
                       value={twitter}
-                      onChange={(v) => { setTwitter(v); clearFieldError("twitter_url"); }}
+                      onChange={(v) => {
+                        setTwitter(v);
+                        clearFieldError("twitter_url");
+                      }}
                       placeholder="Twitter handle"
                     />
                   </Field>
-                  {fieldErrors.twitter_url && <FieldError message={fieldErrors.twitter_url} />}
+                  {fieldErrors.twitter_url && (
+                    <FieldError message={fieldErrors.twitter_url} />
+                  )}
                   <label className="flex items-center gap-2 mt-2 cursor-pointer">
                     <input
                       type="checkbox"
@@ -692,11 +791,16 @@ export default function ArtistProfileModal({
                   <Field label="Instagram">
                     <Input
                       value={instagram}
-                      onChange={(v) => { setInstagram(v); clearFieldError("instagram_url"); }}
+                      onChange={(v) => {
+                        setInstagram(v);
+                        clearFieldError("instagram_url");
+                      }}
                       placeholder="Instagram handle"
                     />
                   </Field>
-                  {fieldErrors.instagram_url && <FieldError message={fieldErrors.instagram_url} />}
+                  {fieldErrors.instagram_url && (
+                    <FieldError message={fieldErrors.instagram_url} />
+                  )}
                   <label className="flex items-center gap-2 mt-2 cursor-pointer">
                     <input
                       type="checkbox"
@@ -715,11 +819,16 @@ export default function ArtistProfileModal({
                   <Field label="Facebook">
                     <Input
                       value={facebook}
-                      onChange={(v) => { setFacebook(v); clearFieldError("facebook_url"); }}
+                      onChange={(v) => {
+                        setFacebook(v);
+                        clearFieldError("facebook_url");
+                      }}
                       placeholder="Facebook handle"
                     />
                   </Field>
-                  {fieldErrors.facebook_url && <FieldError message={fieldErrors.facebook_url} />}
+                  {fieldErrors.facebook_url && (
+                    <FieldError message={fieldErrors.facebook_url} />
+                  )}
                   <label className="flex items-center gap-2 mt-2 cursor-pointer">
                     <input
                       type="checkbox"
@@ -736,11 +845,16 @@ export default function ArtistProfileModal({
                   <Field label="Apple Music">
                     <Input
                       value={appleMusic}
-                      onChange={(v) => { setAppleMusic(v); clearFieldError("apple_music_url"); }}
+                      onChange={(v) => {
+                        setAppleMusic(v);
+                        clearFieldError("apple_music_url");
+                      }}
                       placeholder="Apple Music artist URL"
                     />
                   </Field>
-                  {fieldErrors.apple_music_url && <FieldError message={fieldErrors.apple_music_url} />}
+                  {fieldErrors.apple_music_url && (
+                    <FieldError message={fieldErrors.apple_music_url} />
+                  )}
                   <label className="flex items-center gap-2 mt-2 cursor-pointer">
                     <input
                       type="checkbox"
@@ -759,11 +873,16 @@ export default function ArtistProfileModal({
                   <Field label="TikTok">
                     <Input
                       value={tiktok}
-                      onChange={(v) => { setTiktok(v); clearFieldError("tiktok_url"); }}
+                      onChange={(v) => {
+                        setTiktok(v);
+                        clearFieldError("tiktok_url");
+                      }}
                       placeholder="TikTok profile URL"
                     />
                   </Field>
-                  {fieldErrors.tiktok_url && <FieldError message={fieldErrors.tiktok_url} />}
+                  {fieldErrors.tiktok_url && (
+                    <FieldError message={fieldErrors.tiktok_url} />
+                  )}
                   <label className="flex items-center gap-2 mt-2 cursor-pointer">
                     <input
                       type="checkbox"
@@ -780,11 +899,16 @@ export default function ArtistProfileModal({
                   <Field label="YouTube">
                     <Input
                       value={youtube}
-                      onChange={(v) => { setYoutube(v); clearFieldError("youtube_url"); }}
+                      onChange={(v) => {
+                        setYoutube(v);
+                        clearFieldError("youtube_url");
+                      }}
                       placeholder="YouTube channel URL"
                     />
                   </Field>
-                  {fieldErrors.youtube_url && <FieldError message={fieldErrors.youtube_url} />}
+                  {fieldErrors.youtube_url && (
+                    <FieldError message={fieldErrors.youtube_url} />
+                  )}
                   <label className="flex items-center gap-2 mt-2 cursor-pointer">
                     <input
                       type="checkbox"
@@ -810,7 +934,11 @@ export default function ArtistProfileModal({
                   disabled={isSaving}
                   className="flex-1 font-nulshock text-white uppercase text-xs tracking-widest rounded-full border border-[#C30100] bg-[#C30100]/10 hover:bg-[#C30100] py-3.5 transition-all min-h-[48px] disabled:opacity-40"
                 >
-                  {isSaving ? "Creating..." : isEdit ? "Save Changes" : "Create Profile"}
+                  {isSaving
+                    ? "Creating..."
+                    : isEdit
+                      ? "Save Changes"
+                      : "Create Profile"}
                 </button>
               </div>
             </div>
@@ -833,7 +961,16 @@ function FieldError({ message }: { message: string }) {
 /* ─── Icons ───────────────────────────────────────────────────── */
 function CloseIcon() {
   return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg
+      width="20"
+      height="20"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
       <line x1="18" y1="6" x2="6" y2="18" />
       <line x1="6" y1="6" x2="18" y2="18" />
     </svg>
@@ -841,14 +978,32 @@ function CloseIcon() {
 }
 function CheckSmallIcon() {
   return (
-    <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+    <svg
+      width="8"
+      height="8"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="white"
+      strokeWidth="3"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
       <polyline points="20 6 9 17 4 12" />
     </svg>
   );
 }
 function CheckCircleIcon() {
   return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="#22c55e"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
       <path d="M22 11.08V12a10 10 0 11-5.93-9.14" />
       <polyline points="22 4 12 14.01 9 11.01" />
     </svg>
@@ -856,7 +1011,16 @@ function CheckCircleIcon() {
 }
 function CalendarIcon() {
   return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg
+      width="14"
+      height="14"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
       <rect x="3" y="4" width="18" height="18" rx="2" />
       <line x1="16" y1="2" x2="16" y2="6" />
       <line x1="8" y1="2" x2="8" y2="6" />
@@ -866,14 +1030,31 @@ function CalendarIcon() {
 }
 function SpinIcon() {
   return (
-    <svg className="animate-spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <svg
+      className="animate-spin"
+      width="14"
+      height="14"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+    >
       <path d="M21 12a9 9 0 11-6.219-8.56" />
     </svg>
   );
 }
 function SearchIcon() {
   return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg
+      width="14"
+      height="14"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
       <circle cx="11" cy="11" r="8" />
       <line x1="21" y1="21" x2="16.65" y2="16.65" />
     </svg>
@@ -881,7 +1062,17 @@ function SearchIcon() {
 }
 function MusicIcon() {
   return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-white/30">
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className="text-white/30"
+    >
       <path d="M9 18V5l12-2v13" />
       <circle cx="6" cy="18" r="3" />
       <circle cx="18" cy="16" r="3" />
@@ -897,7 +1088,17 @@ function SpotifyIcon() {
 }
 function AlertIcon() {
   return (
-    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-red-400 shrink-0 mt-0.5">
+    <svg
+      width="12"
+      height="12"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className="text-red-400 shrink-0 mt-0.5"
+    >
       <circle cx="12" cy="12" r="10" />
       <line x1="12" y1="8" x2="12" y2="12" />
       <line x1="12" y1="16" x2="12.01" y2="16" />
