@@ -43,6 +43,12 @@ export interface Release {
   primary_genre?: string;
   platforms?: string;          
   created_at: string;
+  /**
+   * Server-assigned identifier for the submission this row belongs to. An Album/EP is one
+   * row per track, and two submissions of the same album share title, artist, date and UPC,
+   * so this is the only thing that separates them. Group on it; never on the title.
+   */
+  submission_key?: string;
   upc_code?: string;
   label?: string;
   metadata_language?: string;
