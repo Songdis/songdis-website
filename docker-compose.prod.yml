@@ -1,17 +1,10 @@
-# The artist site in production: songdis.com
-#
-# Deliberately shaped like the API's compose file on the same box, so there is one pattern to
-# learn rather than two. No database here — the site talks to the Laravel API over HTTPS and
-# holds nothing itself.
-
 services:
   web:
     build:
       context: .
       dockerfile: Dockerfile
       args:
-        # Baked into the bundle at build time, which is why production and dev are separate
-        # images rather than one image with different environment variables. See the Dockerfile.
+
         NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
         NEXT_PUBLIC_AYO_URL: ${NEXT_PUBLIC_AYO_URL}
 
@@ -21,16 +14,11 @@ services:
     environment:
       NODE_ENV: production
 
-    # Bound to loopback, exactly as the API is. The only way in is the host's nginx, which
-    # terminates TLS and sets the forwarding headers; the container is never reachable from
-    # the internet directly.
     ports:
       - "127.0.0.1:3000:3000"
 
     restart: unless-stopped
 
-    # Enough to stop one runaway render taking the box down with the API on it. The host has
-    # 23GB and six cores, so this is a guard rail rather than a constraint.
     deploy:
       resources:
         limits:
