@@ -56,17 +56,28 @@ function readLastPage(raw: unknown): number {
 
 /** Groups album/EP tracks into one entry per release; singles pass through. */
 function groupReleases(rows: Release[]): NormalisedRelease[] {
-  return rows.map(normaliseRelease).reduce<NormalisedRelease[]>((acc, r) => {
+  return rows.reduce<NormalisedRelease[]>((acc, raw) => {
+    const r = normaliseRelease(raw);
     if (r.type === "album_ep") {
-      // Keyed on title AND artist: on a label account two artists can each have an
-      // album called the same thing, and title alone would merge them into one card.
-      const existing = acc.find(
-        (a) => a.title === r.title && a.artist === r.artist && a.type === "album_ep"
-      );
+      // Keyed on submission_key, which the API assigns per submission.
+      //
+      // This was title + artist. That separates two artists on a label account who each have
+      // an album of the same name, but it does NOT separate two submissions of one album by
+      // one artist — a correction, or a re-upload after a takedown, which shares the title,
+      // artist, release date and even the UPC. Both batches folded into a single card and
+      // every row incremented its count, so a resubmitted 6-track album read "12 tracks"
+      // while the detail modal, which scopes to one submission, showed 6.
+      //
+      // The fallback keeps the old behaviour for a response without the field, so a stale
+      // cached payload or an older API degrades to one card per title rather than one per
+      // track.
+      const key = raw.submission_key ?? `${r.title}|${r.artist}`;
+      const existing = acc.find((a) => a.submissionKey === key && a.type === "album_ep");
       if (existing) {
         existing.trackCount += 1;
         return acc;
       }
+      r.submissionKey = key;
     }
     acc.push(r);
     return acc;
@@ -86,6 +97,8 @@ export interface NormalisedRelease {
   platforms: string[];
   createdAt: string;
   trackCount: number;
+  /** Set for album_ep rows: the submission these tracks were grouped by. */
+  submissionKey?: string;
 }
 
 /**
@@ -139,6 +152,7 @@ function normaliseRelease(r: Release): NormalisedRelease {
     platforms: safeParse<string[]>(r.platforms, []),
     createdAt: r.created_at ?? "",
     trackCount: 1,
+    submissionKey: r.submission_key,
   };
 }
 
