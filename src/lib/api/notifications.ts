@@ -1,6 +1,25 @@
 import { request } from "./core";
 
-export type NotificationType = "release_status" | "split" | "withdrawal" | "request" | "subscription";
+/**
+ * Must cover every type the API's Notification::createForUser() is called with.
+ *
+ * "edit_request" and "private_link_comment" were missing, and because the union was the only
+ * thing telling TypeScript what could arrive, the icon switch in NotificationPanel looked
+ * exhaustive and compiled clean while rendering nothing for either — an empty circle in the
+ * panel. edit_request is the most frequently sent type in the backend, so that was most of
+ * the blank ones. The string is widened so a type the UI does not know about is a value it
+ * must still handle, rather than one the compiler pretends cannot exist.
+ */
+export type KnownNotificationType =
+  | "release_status"
+  | "split"
+  | "withdrawal"
+  | "request"
+  | "subscription"
+  | "edit_request"
+  | "private_link_comment";
+
+export type NotificationType = KnownNotificationType | (string & {});
 
 export interface Notification {
   id: number;
