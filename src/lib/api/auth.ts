@@ -87,8 +87,19 @@ export async function signUp(payload: {
   confirmPassword: string;
   referralCode?: string;
 }) {
-  const [first_name, ...rest] = payload.fullName.trim().split(" ");
-  const last_name = rest.join(" ") || first_name;
+  // Split on any run of whitespace, not a single " ".
+  //
+  // The form takes one "Full Name" field and the API wants first_name and last_name, so the
+  // split happens here. split(" ") broke on anything but exactly one plain space: two spaces
+  // between names produced an empty token, so last_name came through with a leading space,
+  // and a non-breaking space — which mobile keyboards insert — did not split at all, sending
+  // the whole name as first_name and tripping the letters-only rule on the API.
+  //
+  // A single-word name still falls back to using it for both, which is what the API's
+  // required last_name needs.
+  const parts = payload.fullName.trim().split(/\s+/).filter(Boolean);
+  const first_name = parts[0] ?? "";
+  const last_name = parts.slice(1).join(" ") || first_name;
 
   return request<AuthSuccessResponse>("/register", {
     method: "POST",
