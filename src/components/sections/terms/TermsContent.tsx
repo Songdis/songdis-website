@@ -173,9 +173,17 @@ const TermsContent: React.FC = () => {
           <PolicySection number="06" title="Payment and Fees">
             <div className="flex flex-col gap-2">
               <BodyText>a. Royalty Distribution:</BodyText>
+              {/*
+                These two lines named a Starter Plan and a Professional Plan, neither of which
+                exists — the plans are Basic, Growth and Label — and promised Basic and Growth
+                artists 100% of revenue while every account is in fact created with a 10%
+                deduction. Contracted artists are the exception and always have been: their
+                rate is whatever their individual agreement sets, which is why some sit at 20%
+                and one at 8%.
+              */}
               <BulletList items={[
-                "For artists on the Starter Plan and Growth Plan, Songdis will remit 100% of the revenue received from Digital Stores for your Recordings.",
-                "For artists on the Professional Plan, Songdis will remit 90% of the revenue received from Digital Stores for your Recordings, with Songdis retaining 10% as a co-management and administrative fee.",
+                "For artists on the Basic Plan and Growth Plan, Songdis will remit 90% of the revenue received from Digital Stores for your Recordings, with Songdis retaining 10% as a distribution and administrative fee.",
+                "Artists on an individually negotiated contract with Songdis are paid at the rate set out in that contract, which takes precedence over the rate above.",
               ]} />
             </div>
             <SubPoint>b. Currency and Exchange Rates: Songdis collects revenue in U.S. Dollars (USD). Artists requesting payment in their local currency are responsible for all exchange rate conversions and associated fees. Conversion rates are determined by your chosen payment provider or bank, and Songdis holds no responsibility for discrepancies in exchange values.</SubPoint>

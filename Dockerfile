@@ -19,9 +19,15 @@ COPY . .
 
 ARG NEXT_PUBLIC_API_URL
 ARG NEXT_PUBLIC_AYO_URL
+# Gates the /dashboard/analytics-v2 route. Its layout calls notFound() when this is unset,
+# so leaving it out of the build does not disable a feature quietly — it 404s the whole
+# section. It was set in .env.local only, which is gitignored and never reaches the image,
+# so v2 worked locally and was missing in production.
+ARG NEXT_PUBLIC_ANALYTICS_V2
 
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL \
     NEXT_PUBLIC_AYO_URL=$NEXT_PUBLIC_AYO_URL \
+    NEXT_PUBLIC_ANALYTICS_V2=$NEXT_PUBLIC_ANALYTICS_V2 \
     NEXT_TELEMETRY_DISABLED=1
 
 RUN npm run build && find .next -name "*.map" -type f -delete
