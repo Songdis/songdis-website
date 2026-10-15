@@ -70,6 +70,14 @@ function TypeIcon({ type }: { type: NotificationType }) {
           <path d="M18.5 2.5a2.12 2.12 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
         </svg>
       );
+    // Headphones: someone is listening to a private link.
+    case "private_link_listen":
+      return (
+        <svg className={iconClass} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M3 18v-6a9 9 0 0118 0v6" />
+          <path d="M21 19a2 2 0 01-2 2h-1a2 2 0 01-2-2v-3a2 2 0 012-2h3zM3 19a2 2 0 002 2h1a2 2 0 002-2v-3a2 2 0 00-2-2H3z" />
+        </svg>
+      );
     case "private_link_comment":
       return (
         <svg className={iconClass} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

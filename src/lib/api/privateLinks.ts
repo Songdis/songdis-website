@@ -286,6 +286,55 @@ export async function toggleTrackLike(
   }
 }
 
+/**
+ * How long a track must play before it counts as a listen.
+ *
+ * Thirty seconds is the line the DSPs themselves draw for a countable stream, and the API
+ * enforces the same number — this constant only avoids making a call the server will throw
+ * away. Below it, someone opened a track and moved on, which is worth nothing to the artist
+ * being notified.
+ */
+export const LISTEN_THRESHOLD_SECONDS = 30;
+
+/**
+ * Tell the API a track was genuinely listened to.
+ *
+ * Fire-and-forget by design: this hangs off an audio player, and nothing it does may
+ * interrupt playback. Failures are swallowed — a listen that went uncounted is a far
+ * smaller problem than a player that stutters because telemetry threw.
+ *
+ * The server collapses repeats to one listen per track per day, so calling this more than
+ * once for the same track is harmless.
+ */
+export async function reportTrackPlay(
+  token: string,
+  musicUploadId: number,
+  seconds: number,
+  passcode?: string | null
+): Promise<void> {
+  if (!BASE_URL || !isValidToken(token)) return;
+  if (seconds < LISTEN_THRESHOLD_SECONDS) return;
+
+  try {
+    await fetch(`${BASE_URL}/public/listen/${token}/plays`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+        "X-Listener-Id": listenerId(),
+        ...(passcode ? { "X-Link-Passcode": passcode } : {}),
+      },
+      body: JSON.stringify({ music_upload_id: musicUploadId, seconds: Math.round(seconds) }),
+      cache: "no-store",
+      // Survives the tab closing mid-track, which is exactly when a listen is most likely
+      // to be lost.
+      keepalive: true,
+    });
+  } catch {
+    /* telemetry only — never surfaced, never retried */
+  }
+}
+
 /** Server-side fetch for the page shell.
  *
  * Never cached: the audio URLs it carries are signed and short-lived, so a cached copy
