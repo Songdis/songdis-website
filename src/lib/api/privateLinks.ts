@@ -175,6 +175,17 @@ export async function getPrivateLinks() {
   return request<PrivateLink[]>("/private-links", { method: "GET" }, true);
 }
 
+/**
+ * Who is listening to one link right now.
+ *
+ * Its own endpoint because it is polled. Re-fetching the whole link list every few seconds
+ * to refresh one number would pull comments, ratings and the full listen history with it;
+ * this reads the presence cache and returns nothing else.
+ */
+export async function getLinkLive(linkId: number) {
+  return request<LinkLive>(`/private-links/${linkId}/live`, { method: "GET" }, true);
+}
+
 export async function createPrivateLink(payload: {
   music_upload_id: number;
   visibility: LinkVisibility;
