@@ -89,11 +89,11 @@ const Footer: React.FC = () => {
             {/* Right — cta-icons image, bleeds flush to card edges */}
             <div className="relative w-full lg:w-[48%] min-h-[240px] lg:min-h-0 shrink-0">
               <Image
-                src="/images/cta-icons.svg"
+                src="/images/cta-icons.webp"
                 alt=""
                 fill
+                sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 40vw"
                 className="object-contain object-right"
-                priority
                 aria-hidden="true"
               />
             </div>
@@ -173,6 +173,7 @@ const Footer: React.FC = () => {
                         src={s.icon}
                         alt={s.label}
                         fill
+                        sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 40vw"
                         className="object-contain"
                         loading="lazy"
                       />
