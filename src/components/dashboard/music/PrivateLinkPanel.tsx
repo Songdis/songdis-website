@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 
-import type { LinkListens, LinkVisibility, PrivateLink } from "@/lib/api/privateLinks";
+import type { LinkListens, LinkLive, LinkVisibility, PrivateLink } from "@/lib/api/privateLinks";
 
 /** "2 hours ago" / "3 days ago", or an empty string when we have nothing to show. */
 function timeAgo(iso: string | null): string {
@@ -27,6 +27,46 @@ function timeAgo(iso: string | null): string {
  * the artist has only just created reads as a verdict on the music rather than a count
  * that has not started, and the opens line above already covers the quiet case.
  */
+/**
+ * Someone is listening at this moment.
+ *
+ * Says only what is true. Nobody is named, because a private link is unlisted and the
+ * listener has no account - the honest report is that a person is playing the record,
+ * which track, and the country it is coming from.
+ *
+ * Disappears on its own about a minute after they stop, because the badge is driven by
+ * the listener's player still saying it is running. A live indicator that lingers is
+ * worse than none: the artist learns to distrust it.
+ */
+function LiveNow({ live }: { live?: LinkLive }) {
+  if (!live || live.count === 0) return null;
+
+  const countries = Array.from(
+    new Set(live.listeners.map((l) => l.country).filter(Boolean) as string[])
+  );
+
+  return (
+    <div className="rounded-lg border border-emerald-400/25 bg-emerald-400/[0.07] px-3 py-2.5 flex items-start gap-2.5">
+      {/* The pulse is the point: it is the one thing on the page that says "now". */}
+      <span className="relative flex h-2 w-2 mt-1 shrink-0">
+        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+        <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-400" />
+      </span>
+      <div className="min-w-0">
+        <p className="font-body text-emerald-200 text-[11px] font-medium">
+          {live.count === 1
+            ? "Someone is listening right now"
+            : `${live.count} people are listening right now`}
+          {countries.length > 0 ? ` - ${countries.join(", ")}` : ""}
+        </p>
+        <p className="font-body text-emerald-200/50 text-[10px] mt-0.5">
+          Updates on its own while they play.
+        </p>
+      </div>
+    </div>
+  );
+}
+
 function ListenSummary({ listens }: { listens?: LinkListens }) {
   if (!listens || listens.total === 0) return null;
 
@@ -206,6 +246,7 @@ export default function PrivateLinkPanel({
         {link.label ? ` · ${link.label}` : ""}
       </p>
 
+      <LiveNow live={link.live} />
       <ListenSummary listens={link.listens} />
 
       {/* No delete here on purpose: a link may already be with a playlist editor, and it
