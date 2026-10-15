@@ -2,7 +2,58 @@
 
 import { useState } from "react";
 
-import type { LinkVisibility, PrivateLink } from "@/lib/api/privateLinks";
+import type { LinkListens, LinkVisibility, PrivateLink } from "@/lib/api/privateLinks";
+
+/** "2 hours ago" / "3 days ago", or an empty string when we have nothing to show. */
+function timeAgo(iso: string | null): string {
+  if (!iso) return "";
+  const diff = (Date.now() - new Date(iso).getTime()) / 1000;
+  if (!Number.isFinite(diff) || diff < 0) return "";
+  if (diff < 60) return "just now";
+  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+  if (diff < 604800) return `${Math.floor(diff / 86400)}d ago`;
+  return new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+}
+
+/**
+ * Who actually listened.
+ *
+ * Kept deliberately to one line plus a short tail. The artist's question is "did anyone
+ * play it, and where from" — a table would answer a question nobody asked and would not
+ * fit beside the link anyway.
+ *
+ * Says nothing at all until there is a listen. An empty "0 listens" sitting under a link
+ * the artist has only just created reads as a verdict on the music rather than a count
+ * that has not started, and the opens line above already covers the quiet case.
+ */
+function ListenSummary({ listens }: { listens?: LinkListens }) {
+  if (!listens || listens.total === 0) return null;
+
+  const { total, people, countries, last_at } = listens;
+  const when = timeAgo(last_at);
+
+  return (
+    <div className="rounded-lg border border-[#C30100]/20 bg-[#C30100]/[0.06] px-3 py-2.5 flex flex-col gap-1">
+      <p className="font-body text-white text-[11px]">
+        <span className="font-medium">
+          {total} {total === 1 ? "listen" : "listens"}
+        </span>
+        <span className="text-white/45">
+          {" · "}
+          {people} {people === 1 ? "person" : "people"}
+          {countries.length > 0 ? ` · ${countries.slice(0, 4).join(", ")}` : ""}
+          {countries.length > 4 ? ` +${countries.length - 4}` : ""}
+          {when ? ` · ${when}` : ""}
+        </span>
+      </p>
+      {/* The distinction that matters, said once rather than inferred from two numbers. */}
+      <p className="font-body text-white/30 text-[10px]">
+        Someone played at least 30 seconds — not just opened the page.
+      </p>
+    </div>
+  );
+}
 
 /**
  * Create and manage the private listening link for one release.
@@ -154,6 +205,8 @@ export default function PrivateLinkPanel({
         {link.view_count} {link.view_count === 1 ? "open" : "opens"}
         {link.label ? ` · ${link.label}` : ""}
       </p>
+
+      <ListenSummary listens={link.listens} />
 
       {/* No delete here on purpose: a link may already be with a playlist editor, and it
           must not stop working from this screen. Support can take one down. */}

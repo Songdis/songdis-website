@@ -20,6 +20,7 @@ export interface PrivateLink {
   has_passcode: boolean;
   label: string | null;
   view_count: number;
+  listens?: LinkListens;
   last_viewed_at: string | null;
   created_at: string | null;
   release: {
@@ -29,6 +30,27 @@ export interface PrivateLink {
   } | null;
   comments?: LinkComment[];
   ratings?: TrackRating[];
+}
+
+/**
+ * Who actually listened, as opposed to who opened the page.
+ *
+ * `total` counts listens and `people` counts distinct listeners — an album played through
+ * is one person, so the two differ and showing only the first would overstate how many
+ * ears a pitch reached. A private link is unlisted and the listener has no account, so
+ * country is the most we honestly know about them.
+ */
+export interface LinkListens {
+  total: number;
+  people: number;
+  countries: string[];
+  last_at: string | null;
+  recent: Array<{
+    music_upload_id: number;
+    country: string | null;
+    seconds: number;
+    at: string | null;
+  }>;
 }
 
 /** How a track was rated. Seen by the artist and support only — never on the public page. */
