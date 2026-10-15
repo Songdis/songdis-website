@@ -143,7 +143,7 @@ const PlatformIconsDisplay: React.FC = () => (
       }}
     >
       <Image
-        src="/images/platforms.png"
+        src="/images/platforms.webp"
         alt="Music platforms — Spotify, Apple Music, Meta, YouTube Music and more"
         fill
         sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 40vw"

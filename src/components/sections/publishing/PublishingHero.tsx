@@ -60,7 +60,7 @@ const PublishingHero: React.FC = () => {
           style={{ height: "clamp(240px, 38vw, 500px)" }}
         >
           <Image
-            src="/images/publishing-hero.svg"
+            src="/images/publishing-hero.webp"
             alt="Publishing — musical notes and treble clef"
             fill
             className="object-cover object-center"

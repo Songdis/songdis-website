@@ -40,7 +40,7 @@ const PrivacyHero: React.FC = () => {
         {/* ── HERO IMAGE — object-contain to preserve the notched shape ── */}
         <div className="relative w-full">
           <Image
-            src="/images/privacy-hero.svg"
+            src="/images/privacy-hero.webp"
             alt="Privacy Policy — artist holding vinyl record"
             width={1280}
             height={560}

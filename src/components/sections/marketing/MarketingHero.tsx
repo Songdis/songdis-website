@@ -89,7 +89,7 @@ const MarketingHero: React.FC = () => {
           style={{ height: "clamp(280px, 44vw, 580px)" }}
         >
           <Image
-            src="/images/marketing-hero.svg"
+            src="/images/marketing-hero.webp"
             alt="Guitar with glowing red strings — Amplify Your Music Reach"
             fill
             className="object-cover object-center"

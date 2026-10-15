@@ -24,7 +24,7 @@ export const MOCK_EARNINGS = {
       {
         id: "1",
         title: "Scatter the Place",
-        cover: "/images/cover-blue.jpg",
+        cover: "/images/cover-blue.webp",
         collaborators: 3,
         amount: 2860.00,
         yourShare: 70,

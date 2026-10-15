@@ -149,7 +149,7 @@ const ContactForm: React.FC = () => {
           {/* Right — image flush to card edges */}
           <div className="relative flex-1 min-h-[320px] lg:min-h-0 overflow-hidden">
             <Image
-              src="/images/contact-form.svg"
+              src="/images/contact-form.webp"
               alt="Songdis artists"
               fill
               className="object-cover object-center"

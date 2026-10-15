@@ -184,7 +184,7 @@ const WhatYouCanExpect: React.FC = () => {
 
             {/* 01 — Workshops & Webinars */}
             <PhotoCard
-              image="/images/workshop-big.svg"
+              image="/images/workshop-big.webp"
               alt="Workshops and Webinars"
               number="01"
               title="Workshops & Webinars"
@@ -200,7 +200,7 @@ const WhatYouCanExpect: React.FC = () => {
 
             {/* 04 — Interactive Q&A Sessions */}
             <PhotoCard
-              image="/images/workshop.svg"
+              image="/images/workshop.webp"
               alt="Interactive Q&A Sessions"
               number="04"
               title="Interactive Q&A Sessions"
