@@ -21,6 +21,7 @@ export interface PrivateLink {
   label: string | null;
   view_count: number;
   listens?: LinkListens;
+  live?: LinkLive;
   last_viewed_at: string | null;
   created_at: string | null;
   release: {
@@ -30,6 +31,24 @@ export interface PrivateLink {
   } | null;
   comments?: LinkComment[];
   ratings?: TrackRating[];
+}
+
+/**
+ * Who is on the link at this moment.
+ *
+ * Presence, not history: true for about a minute after the listener's player last said it
+ * was running, then gone. Nobody is identified - a private link is unlisted and the
+ * listener has no account - so this reports that someone is listening, which track, and
+ * where from, and claims nothing beyond that.
+ */
+export interface LinkLive {
+  count: number;
+  listeners: Array<{
+    music_upload_id: number;
+    country: string | null;
+    /** Seconds since this listener started, for telling a real play from an idle tab. */
+    listening_for: number;
+  }>;
 }
 
 /**
@@ -354,6 +373,44 @@ export async function reportTrackPlay(
     });
   } catch {
     /* telemetry only — never surfaced, never retried */
+  }
+}
+
+/** How often the player says "still playing" while audio is running. */
+export const HEARTBEAT_SECONDS = 20;
+
+/**
+ * Tell the API this listener is still playing, right now.
+ *
+ * Presence, not a listen — the permanent record is reportTrackPlay(). This has no
+ * 30-second threshold on purpose: someone fifteen seconds in IS listening at this moment,
+ * even if they stop before it counts.
+ *
+ * Fire-and-forget, like the play report. A dropped beat costs a badge flicker on the
+ * artist's dashboard and nothing else, and must never disturb playback.
+ */
+export async function sendListenHeartbeat(
+  token: string,
+  musicUploadId: number,
+  passcode?: string | null
+): Promise<void> {
+  if (!BASE_URL || !isValidToken(token)) return;
+
+  try {
+    await fetch(`${BASE_URL}/public/listen/${token}/heartbeat`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+        "X-Listener-Id": listenerId(),
+        ...(passcode ? { "X-Link-Passcode": passcode } : {}),
+      },
+      body: JSON.stringify({ music_upload_id: musicUploadId }),
+      cache: "no-store",
+      keepalive: true,
+    });
+  } catch {
+    /* presence only — never surfaced, never retried */
   }
 }
 

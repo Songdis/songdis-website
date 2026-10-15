@@ -4,10 +4,12 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 
 import {
+  HEARTBEAT_SECONDS,
   LISTEN_THRESHOLD_SECONDS,
   postListenComment,
   rateTrack,
   reportTrackPlay,
+  sendListenHeartbeat,
   toggleTrackLike,
   unlockListenPage,
   type ListenComment,
@@ -145,6 +147,28 @@ export default function ListenView({
    * The server collapses repeats to one listen per day anyway — this just avoids the calls.
    */
   const reportedRef = useRef<Set<number>>(new Set());
+
+  /*
+   * "Still playing", while audio is actually running.
+   *
+   * Tied to `playing` rather than to the page being open: a tab left on a paused track is
+   * not someone listening, and showing the artist a live badge for it would make the badge
+   * worthless. Pausing stops the beats and the listener drops out of presence within the
+   * minute, on its own, with nothing to clean up.
+   *
+   * Beats immediately on play as well as on the interval, so the artist sees it at once
+   * instead of up to twenty seconds later.
+   */
+  useEffect(() => {
+    if (!playing || activeId == null) return;
+
+    const beat = () => void sendListenHeartbeat(token, activeId, passcode || null);
+
+    beat();
+    const timer = setInterval(beat, HEARTBEAT_SECONDS * 1000);
+
+    return () => clearInterval(timer);
+  }, [playing, activeId, token, passcode]);
 
   const reportListenOnce = useCallback(
     (at: number) => {
