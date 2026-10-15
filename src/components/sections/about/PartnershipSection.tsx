@@ -213,7 +213,7 @@ export const BecomeAPartner: React.FC = () => {
           {/* Right — handshake image, fills flush to card edges */}
           <div className="relative flex-1 min-h-[280px] lg:min-h-0 overflow-hidden">
             <Image
-              src="/images/hand-shake.svg"
+              src="/images/hand-shake.webp"
               alt="Partnership handshake"
               fill
               className="object-cover object-center"

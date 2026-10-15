@@ -18,7 +18,7 @@ export const MOCK_ROYALTIES = {
     rank: i + 1,
     title: "Gratitude",
     artist: "KdivCoco",
-    cover: "/images/small-blue-cover.svg",
+    cover: "/images/small-blue-cover.webp",
     plays: "1.5K",
     streams: "3.3M",
     territories: 172,

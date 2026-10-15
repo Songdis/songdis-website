@@ -50,7 +50,7 @@ const AboutHero: React.FC = () => {
         {/* ── FULL-WIDTH IMAGE ── */}
         <div className="relative w-full rounded-2xl overflow-hidden" style={{ height: "clamp(320px, 42vw, 580px)" }}>
           <Image
-            src="/images/about-bg.svg"
+            src="/images/about-bg.webp"
             alt="Artist performing on stage"
             fill
             className="object-cover object-center"

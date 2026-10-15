@@ -125,7 +125,7 @@ const MarketingExpertise: React.FC = () => {
               style={{ borderRadius: "24px", overflow: "hidden", minHeight: "320px" }}
             >
               <Image
-                src="/images/artist-guitar.svg"
+                src="/images/artist-guitar.webp"
                 alt="Artist playing guitar"
                 fill
                 className="object-cover object-center"

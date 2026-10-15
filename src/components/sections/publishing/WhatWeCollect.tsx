@@ -161,7 +161,7 @@ const WhatWeCollect: React.FC = () => {
           >
             {/* 01 — Performance Royalties */}
             <PhotoCard
-              image="/images/workshop-big.svg"
+              image="/images/workshop-big.webp"
               alt="Performance Royalties"
               number="01"
               title="Performance Royalties"
@@ -174,7 +174,7 @@ const WhatWeCollect: React.FC = () => {
 
             {/* 03 — YouTube Composition Revenue */}
             <PhotoCard
-              image="/images/workshop.svg"
+              image="/images/workshop.webp"
               alt="YouTube Composition Revenue"
               number="03"
               title="YouTube Composition Revenue"

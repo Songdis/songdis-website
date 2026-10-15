@@ -11,7 +11,7 @@ const TESTIMONIALS = [
     name: "Kdiv Coco",
     country: "Nigeria",
     flag: "🇳🇬",
-    avatar: "/images/kdiv.jpg",
+    avatar: "/images/kdiv.webp",
   },
   {
     quote:
@@ -19,7 +19,7 @@ const TESTIMONIALS = [
     name: "Reechdee",
     country: "Nigeria",
     flag: "🇳🇬",
-    avatar: "/images/rechdee.jpg",
+    avatar: "/images/rechdee.webp",
   },
   {
     quote:
@@ -35,7 +35,7 @@ const TESTIMONIALS = [
     name: "Switorla",
     country: "Ghana",
     flag: "🇬🇭",
-    avatar: "/images/swirtola.jpg",
+    avatar: "/images/swirtola.webp",
   },
   {
     quote:
@@ -43,7 +43,7 @@ const TESTIMONIALS = [
     name: "Bri Tse",
     country: "Nigeria",
     flag: "🇳🇬",
-    avatar: "/images/bri.jpg",
+    avatar: "/images/bri.webp",
   },
 ];
 
@@ -53,7 +53,7 @@ interface AuthLayoutProps {
 }
 
 export default function AuthLayout({ children, heroImage = "singer" }: AuthLayoutProps) {
-  const imageSrc = heroImage === "singer" ? "/images/new-singer.svg" : "/images/new-guitar.svg";
+  const imageSrc = heroImage === "singer" ? "/images/new-singer.webp" : "/images/new-guitar.webp";
 
   const [activeIndex, setActiveIndex] = useState(0);
 

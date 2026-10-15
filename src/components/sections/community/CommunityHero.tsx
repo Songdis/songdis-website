@@ -87,7 +87,7 @@ const CommunityHero: React.FC = () => {
         <div className="relative w-full rounded-2xl overflow-hidden" style={{ height: "clamp(320px, 48vw, 620px)" }}>
 
           <Image
-            src="/images/singer.svg"
+            src="/images/singer.webp"
             alt="Songdis artist community"
             fill
             className="object-cover object-center"

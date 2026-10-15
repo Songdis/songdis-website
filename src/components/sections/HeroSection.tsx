@@ -30,12 +30,12 @@ interface FeatureItem {
    DATA
 ───────────────────────────────────────────────────────── */
 const COVER_ARTS: CoverArt[] = [
-  { id: "c1", src: "/images/cover-one.png", alt: "Artist album cover 1" },
-  { id: "c2", src: "/images/cover-two.png", alt: "Artist album cover 2" },
-  { id: "c3", src: "/images/cover-three.png", alt: "Artist album cover 3" },
-  { id: "c4", src: "/images/cover-four.png", alt: "Artist album cover 4" },
-  { id: "c5", src: "/images/cover-five.png", alt: "Artist album cover 5" },
-  { id: "c6", src: "/images/cover-six.png", alt: "Artist album cover 6" },
+  { id: "c1", src: "/images/cover-one.webp", alt: "Artist album cover 1" },
+  { id: "c2", src: "/images/cover-two.webp", alt: "Artist album cover 2" },
+  { id: "c3", src: "/images/cover-three.webp", alt: "Artist album cover 3" },
+  { id: "c4", src: "/images/cover-four.webp", alt: "Artist album cover 4" },
+  { id: "c5", src: "/images/cover-five.webp", alt: "Artist album cover 5" },
+  { id: "c6", src: "/images/cover-six.webp", alt: "Artist album cover 6" },
 ];
 
 const PLATFORMS: Platform[] = [

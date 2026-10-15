@@ -41,7 +41,7 @@ const TermsHero: React.FC = () => {
         {/* ── HERO IMAGE — object-contain preserves unique vinyl/record shape ── */}
         <div className="relative w-full">
           <Image
-            src="/images/terms-hero.svg"
+            src="/images/terms-hero.webp"
             alt="Terms and Conditions — vinyl record illustration"
             width={1280}
             height={560}

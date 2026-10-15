@@ -43,7 +43,7 @@ const LEFT_TESTIMONIALS: Testimonial[] = [
     name: "Reechdee",
     flag: "🇳🇬",
     country: "Nigeria",
-    avatar: "/images/rechdee.jpg",
+    avatar: "/images/rechdee.webp",
   },
   {
     quote:
@@ -51,7 +51,7 @@ const LEFT_TESTIMONIALS: Testimonial[] = [
     name: "Kdiv Coco",
     flag: "🇳🇬",
     country: "Nigeria",
-    avatar: "/images/kdiv.jpg",
+    avatar: "/images/kdiv.webp",
   },
   {
     quote:
@@ -59,7 +59,7 @@ const LEFT_TESTIMONIALS: Testimonial[] = [
     name: "Switorla",
     flag: "🇬🇭",
     country: "Ghana",
-    avatar: "/images/swirtola.jpg",
+    avatar: "/images/swirtola.webp",
   },
 ];
 
@@ -78,7 +78,7 @@ const CENTER_TESTIMONIALS: Testimonial[] = [
     name: "Switorla",
     flag: "🇬🇭",
     country: "Ghana",
-    avatar: "/images/swirtola.jpg",
+    avatar: "/images/swirtola.webp",
   },
   {
     quote:
@@ -86,7 +86,7 @@ const CENTER_TESTIMONIALS: Testimonial[] = [
     name: "Bri Tse",
     flag: "🇳🇬",
     country: "Nigeria",
-    avatar: "/images/bri.jpg",
+    avatar: "/images/bri.webp",
   },
   {
     quote:
@@ -113,7 +113,7 @@ const RIGHT_TESTIMONIALS: Testimonial[] = [
     name: "Reechdee",
     flag: "🇳🇬",
     country: "Nigeria",
-    avatar: "/images/rechdee.jpg",
+    avatar: "/images/rechdee.webp",
   },
   {
     quote:
@@ -121,7 +121,7 @@ const RIGHT_TESTIMONIALS: Testimonial[] = [
     name: "Reechdee",
     flag: "🇳🇬",
     country: "Nigeria",
-    avatar: "/images/rechdee.jpg",
+    avatar: "/images/rechdee.webp",
   },
 ];
 
