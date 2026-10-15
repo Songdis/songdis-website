@@ -4,8 +4,10 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 
 import {
+  LISTEN_THRESHOLD_SECONDS,
   postListenComment,
   rateTrack,
+  reportTrackPlay,
   toggleTrackLike,
   unlockListenPage,
   type ListenComment,
@@ -129,6 +131,33 @@ export default function ListenView({
   const [shuffle, setShuffle] = useState(false);
 
   const active = tracks.find((t) => t.id === activeId) ?? null;
+
+  /*
+   * Tell the artist a track was actually heard.
+   *
+   * Reported from onTimeUpdate rather than onPlay: pressing play is not listening, and the
+   * artist is notified off the back of this, so it has to mean something. The threshold is
+   * the same thirty seconds the DSPs use for a countable stream.
+   *
+   * Once per track per page load. The ref, not state, because onTimeUpdate fires about four
+   * times a second and a re-render on each would be wasteful; and because the guard has to
+   * be read and written synchronously within one handler, which setState cannot promise.
+   * The server collapses repeats to one listen per day anyway — this just avoids the calls.
+   */
+  const reportedRef = useRef<Set<number>>(new Set());
+
+  const reportListenOnce = useCallback(
+    (at: number) => {
+      const id = activeId;
+      if (id == null) return;
+      if (at < LISTEN_THRESHOLD_SECONDS) return;
+      if (reportedRef.current.has(id)) return;
+
+      reportedRef.current.add(id);
+      void reportTrackPlay(token, id, at, passcode || null);
+    },
+    [activeId, token, passcode]
+  );
 
   /*
    * The order tracks actually play in.
@@ -992,7 +1021,11 @@ export default function ListenView({
           onPlay={() => setPlaying(true)}
           onPause={() => setPlaying(false)}
           onEnded={handleEnded}
-          onTimeUpdate={(e) => setPosition(e.currentTarget.currentTime)}
+          onTimeUpdate={(e) => {
+            const at = e.currentTarget.currentTime;
+            setPosition(at);
+            reportListenOnce(at);
+          }}
           onLoadedMetadata={(e) => setLength(e.currentTarget.duration)}
           onContextMenu={(e) => e.preventDefault()}
           controlsList="nodownload noplaybackrate"

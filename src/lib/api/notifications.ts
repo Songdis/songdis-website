@@ -17,7 +17,8 @@ export type KnownNotificationType =
   | "request"
   | "subscription"
   | "edit_request"
-  | "private_link_comment";
+  | "private_link_comment"
+  | "private_link_listen";
 
 export type NotificationType = KnownNotificationType | (string & {});
 
