@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
+import { getLinkLive } from "@/lib/api/privateLinks";
 import type { LinkListens, LinkLive, LinkVisibility, PrivateLink } from "@/lib/api/privateLinks";
 
 /** "2 hours ago" / "3 days ago", or an empty string when we have nothing to show. */
@@ -118,6 +119,49 @@ export default function PrivateLinkPanel({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+
+  /*
+   * Poll the live listener count.
+   *
+   * Without this the badge renders whatever the page happened to fetch when it loaded,
+   * which for a "listening right now" indicator is worse than showing nothing: the artist
+   * opens the panel while someone is playing and sees an empty box, or sees a listener who
+   * left ten minutes ago. Presence only lasts a minute server-side, so it has to be re-read
+   * on roughly that cadence to mean anything.
+   *
+   * Fifteen seconds against a sixty-second window, so a listener is picked up well within
+   * the first beat and disappears promptly once they stop. Only while a link exists, and
+   * the interval is cleared on unmount so closing the modal stops the requests.
+   */
+  const [livePresence, setLivePresence] = useState<LinkLive | undefined>(link?.live);
+  const liveSeedRef = useRef<number | undefined>(link?.id);
+
+  useEffect(() => {
+    if (!link?.id) return;
+
+    // A different link means the seeded value belongs to the previous one.
+    if (liveSeedRef.current !== link.id) {
+      liveSeedRef.current = link.id;
+      setLivePresence(link.live);
+    }
+
+    let cancelled = false;
+
+    const poll = async () => {
+      const res = await getLinkLive(link.id);
+      // Failures are left alone rather than blanking the badge: a dropped request is not
+      // evidence that everybody stopped listening.
+      if (!cancelled && !res.error && res.data) setLivePresence(res.data);
+    };
+
+    void poll();
+    const timer = setInterval(poll, 15_000);
+
+    return () => {
+      cancelled = true;
+      clearInterval(timer);
+    };
+  }, [link?.id, link?.live]);
 
   const copy = async (text: string) => {
     try {
@@ -246,7 +290,7 @@ export default function PrivateLinkPanel({
         {link.label ? ` · ${link.label}` : ""}
       </p>
 
-      <LiveNow live={link.live} />
+      <LiveNow live={livePresence} />
       <ListenSummary listens={link.listens} />
 
       {/* No delete here on purpose: a link may already be with a playlist editor, and it
