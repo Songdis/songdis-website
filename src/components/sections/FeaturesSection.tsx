@@ -146,8 +146,8 @@ const PlatformIconsDisplay: React.FC = () => (
         src="/images/platforms.png"
         alt="Music platforms — Spotify, Apple Music, Meta, YouTube Music and more"
         fill
+        sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 40vw"
         className="object-contain"
-        priority
       />
     </div>
   </div>
@@ -163,6 +163,7 @@ const SmartLinkCard: React.FC = () => (
           src="/images/into-the-night.svg"
           alt="Into The Night"
           fill
+          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 40vw"
           className="object-cover"
         />
       </div>
@@ -185,7 +186,7 @@ const SmartLinkCard: React.FC = () => (
       {[
         { src: "/images/spotify-frame.svg", alt: "Spotify" },
         { src: "/images/music.svg", alt: "Musixmatch" },
-        { src: "/images/meta-frame.svg", alt: "Meta" },
+        { src: "/images/meta-frame.webp", alt: "Meta" },
         { src: "/images/apple-frame.svg", alt: "Apple Music" },
         { src: "/images/youtube-frame.svg", alt: "YouTube" },
       ].map((p) => (
@@ -322,9 +323,10 @@ const FeaturesSection: React.FC = () => {
               {/* Image */}
               <div className="relative w-full h-[240px] sm:h-full flex items-center justify-center">
                 <Image
-                  src="/images/new-analytics.svg"
+                  src="/images/new-analytics.webp"
                   alt="Analytics dashboard"
                   fill
+                  sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 40vw"
                   className="object-contain p-2"
                   loading="lazy"
                 />
@@ -350,6 +352,7 @@ const FeaturesSection: React.FC = () => {
                 src="/images/linemap.svg"
                 alt="Pro tools diagram"
                 fill
+                sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 40vw"
                 className="object-contain p-2"
                 loading="lazy"
               />
@@ -384,9 +387,10 @@ const FeaturesSection: React.FC = () => {
               {/* Image — fills remaining height/width */}
               <div className="relative flex-1 min-h-[240px] sm:min-h-0 overflow-hidden">
                 <Image
-                  src="/images/publishing.svg"
+                  src="/images/publishing.webp"
                   alt="Artist playing guitar"
                   fill
+                  sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 40vw"
                   className="object-cover object-center"
                   loading="lazy"
                 />
@@ -411,9 +415,10 @@ const FeaturesSection: React.FC = () => {
               {/* Image — bottom, fills remaining space */}
               <div className="relative flex-1 min-h-[260px] overflow-hidden">
                 <Image
-                  src="/images/revenue.svg"
+                  src="/images/revenue.webp"
                   alt="Headphones and phone"
                   fill
+                  sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 40vw"
                   className="object-contain p-6"
                   loading="lazy"
                 />
@@ -429,9 +434,10 @@ const FeaturesSection: React.FC = () => {
             <div className="flex flex-col h-full">
               <div className="relative w-full h-[280px] sm:h-[320px] overflow-hidden shrink-0">
                 <Image
-                  src="/images/new-split.svg"
+                  src="/images/new-split.webp"
                   alt="Money fan"
                   fill
+                  sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 40vw"
                   className="object-contain"
                   loading="lazy"
                 />
@@ -459,9 +465,10 @@ const FeaturesSection: React.FC = () => {
               {/* Image — full width on mobile, half width on desktop */}
               <div className="relative w-full lg:w-1/2 h-[280px] lg:h-auto overflow-hidden shrink-0">
                 <Image
-                  src="/images/communitysupport.svg"
+                  src="/images/communitysupport.webp"
                   alt="Community hands together"
                   fill
+                  sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 40vw"
                   className="object-cover object-center"
                   loading="lazy"
                 />

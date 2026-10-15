@@ -165,6 +165,7 @@ const TestimonialCard: React.FC<{ testimonial: Testimonial }> = ({
             src={testimonial.avatar ?? "/images/avatar-artiste.svg"}
             alt={testimonial.name}
             fill
+            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 40vw"
             className="object-cover object-top"
             loading="lazy"
           />

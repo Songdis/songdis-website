@@ -107,7 +107,19 @@ const CoverCard: React.FC<CoverArt & { index: number }> = ({
         fill
         sizes="(max-width: 640px) 140px, (max-width: 1280px) 180px, 230px"
         style={{ objectFit: "cover" }}
-        loading="lazy"
+        /*
+         * The first few covers are the hero visual and almost certainly the LCP element,
+         * so they are fetched eagerly. They were marked loading="lazy", which tells the
+         * browser to defer the one image the page is judged on, while `priority` sat on
+         * three BELOW-the-fold images instead — platforms.png, line-bg.svg and the footer's
+         * cta-icons — so the preload budget was being spent on things nobody had scrolled
+         * to yet.
+         *
+         * Only the first four: they are ~230px wide at most and cheap, but preloading all
+         * six would put the off-screen ones in competition with the visible ones. The rest
+         * keep Next's default lazy behaviour.
+         */
+        priority={index < 4}
       />
     </div>
   );

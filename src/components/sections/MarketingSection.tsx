@@ -43,8 +43,8 @@ const MarketingSection: React.FC = () => {
           src="/images/line-bg.svg"
           alt=""
           fill
+          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 40vw"
           className="object-cover object-center opacity-40"
-          priority
         />
       </div>
 
