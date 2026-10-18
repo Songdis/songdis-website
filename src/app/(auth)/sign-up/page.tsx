@@ -101,10 +101,14 @@ export default function SignUpPage() {
         confirmPassword: fields.confirmPassword,
         referralCode: fields.referralCode || undefined,
       },
-      () => {
+      (data) => {
         // Fired here, inside the success callback, so a failed sign-up never counts as a
         // conversion. trackSignUp cannot throw — see lib/analytics/meta.
-        trackSignUp();
+        //
+        // The user id is passed because the API sends this same event server-side, and the
+        // two are deduplicated on an id built from it. Without the id the browser event is
+        // skipped rather than double-counted; see trackSignUp.
+        trackSignUp(data?.user?.id);
 
         router.push(
           `/verify-email?email=${encodeURIComponent(fields.email)}&flow=signup`
