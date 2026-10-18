@@ -298,6 +298,48 @@ button[class*="zd-launcher"] {
   }
 }
 /*
+ * Why focusing a field zooms the whole page on a phone.
+ *
+ * iOS Safari zooms in on any form control whose text is smaller than 16px, so the field is
+ * legible once the keyboard is up. It does NOT zoom back out on blur, and the scale survives
+ * navigation — which is why signing in leaves the dashboard zoomed and needing a pinch: the
+ * sign-in email and password fields are text-sm (14px), so the zoom happens on the login
+ * screen and is still in effect on the next page.
+ *
+ * Fixed here rather than by editing each field because most controls carry no size class at
+ * all: Tailwind's preflight gives them `font-size: 100%`, so they inherit whatever the
+ * surrounding text is, and a field inside any text-sm container is 14px without saying so
+ * anywhere. One rule covers every control in the app, including ones added later.
+ *
+ * The alternative fix is `maximum-scale=1` on the viewport, which stops the zoom by banning
+ * pinch-zoom outright. That is not a trade worth making — it takes zoom away from anyone who
+ * needs it to read the page at all.
+ *
+ * Touch devices only, so nothing on desktop changes. `max(16px, 1em)` on the bare selector
+ * keeps a control that inherits something LARGER than 16px at that larger size; 1em there is
+ * the inherited size, which is exactly what `font-size: 100%` would have resolved to. The
+ * class-qualified selectors exist to outrank Tailwind's own `.text-sm` / `.text-xs`, which
+ * would otherwise win on specificity. Buttons and the non-text controls are left alone:
+ * they never raise a keyboard, so they never trigger the zoom.
+ */
+@media (hover: none) and (pointer: coarse) {
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="color"]):not([type="submit"]):not([type="button"]):not([type="reset"]),
+  select,
+  textarea {
+    font-size: max(16px, 1em);
+  }
+
+  input.text-xs,
+  input.text-sm,
+  select.text-xs,
+  select.text-sm,
+  textarea.text-xs,
+  textarea.text-sm {
+    font-size: 16px;
+  }
+}
+
+/*
  * Date inputs on iOS.
  *
  * Safari gives <input type="date"> its own intrinsic height and centres the
