@@ -1,38 +1,34 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import DashboardLayout from "@/components/dashboard/DashboardLayout";
 import { useToast } from "@/components/ui/Toast";
 import { useBilling } from "@/lib/hooks/useBilling";
+import { useCurrentUser } from "@/lib/hooks/useAuth";
 import { fetchVideos, getAllMusic, submitVideo, type VideoRecord, type VideoStats } from "@/lib/api/music";
 import type { Release } from "@/lib/api/music";
-
-
-const VIDEO_TYPES = [
-  { id: "official-video", name: "Official Video", description: "The main music video for your song." },
-  { id: "lyric-video", name: "Lyric Video", description: "Animated video with the song's lyrics on screen." },
-  { id: "concert-video", name: "Concert Video", description: "Live performance recorded at a concert." },
-  { id: "music-documentary", name: "Music Documentary", description: "Long-form storytelling about the song or artist." },
-  { id: "behind-the-scenes", name: "Behind the Scenes", description: "Footage from the shoot or creative process." },
-  { id: "visualizer", name: "Visualizer", description: "Looping visuals synced to the song." },
-  { id: "track-video", name: "Track Video", description: "Static image or simple animation." },
-];
-
-const PLANS = [
-  { id: "vevo-essentials", name: "VEVO Essentials", price: "₦29,999", platforms: ["VEVO", "Vimeo"] },
-  { id: "everywhere", name: "Everywhere", price: "₦49,999", platforms: ["VEVO", "TIDAL", "Apple Music", "Spotify *", "Vimeo", "XITE", "Promo Only"], popular: true },
-];
-
-const LIMITED_TYPES = ["behind-the-scenes", "visualizer", "track-video"];
+import VideoFormSteps from "@/components/dashboard/videos/VideoFormSteps";
+import {
+  EMPTY_VIDEO_FORM,
+  SECTIONS,
+  TOTAL_STEPS,
+  buildSubmission,
+  describeProblems,
+  platformName,
+  stepComplete,
+  videoTypeName,
+  type FieldProblem,
+  type VideoFormData,
+} from "@/components/dashboard/videos/videoForm";
 
 const PRE_SUBMIT_NOTES = [
-  { title: "One video at a time", text: "Each video goes through our review process before distribution.", color: "default" as const },
-  { title: "Not every video type goes everywhere", text: "Visualizers, BTS, and Track Videos go to fewer platforms.", color: "default" as const },
-  { title: "Royalties take time", text: "Video royalties arrive 2-3 months after release, reported monthly.", color: "default" as const },
-  { title: "Royalty split: 70% to you", text: "SongDis keeps 30%.", color: "default" as const },
-  { title: "Growth plan required", text: "Video distribution is available exclusively for Growth plan subscribers.", color: "warning" as const },
+  { title: "Included with Growth", text: "Video distribution is part of your Growth plan. There is nothing to pay for a submission.", color: "default" as const },
+  { title: "Twelve sections", text: "The form covers your account, the video, its identifiers, credits, promotion and delivery. Have your UPC, ISRC and follower counts to hand.", color: "default" as const },
+  { title: "Submit 3 weeks ahead", text: "Your go-live date has to be at least 3 weeks away, to leave time for review, corrections, delivery, platform processing and pitching.", color: "warning" as const },
+  { title: "Review is not a guarantee", text: "Submitting does not guarantee approval, platform placement, playlist pitching, or a specific release date.", color: "default" as const },
+  { title: "Royalties take time", text: "Video royalties arrive 2-3 months after release, reported monthly. The split is 70% to you.", color: "default" as const },
   { title: "Need help?", text: "Contact via email reply or WhatsApp, 24h response M-F.", color: "muted" as const },
 ];
 
@@ -43,69 +39,11 @@ const STATUS_COLORS: Record<string, string> = {
   rejected: "bg-red-500/20 text-red-400",
 };
 
-
-function getPlatforms(plan: string, videoType: string): string[] {
-  if (plan === "vevo-essentials") return ["VEVO", "Vimeo"];
-  if (LIMITED_TYPES.includes(videoType)) return ["VEVO", "Vimeo", "XITE", "Promo Only"];
-  return ["VEVO", "TIDAL", "Apple Music", "Spotify *", "Vimeo", "XITE", "Promo Only"];
-}
-
-function detectProvider(url: string): string | null {
-  if (url.includes("drive.google.com")) return "Google Drive";
-  if (url.includes("wetransfer.com")) return "WeTransfer";
-  if (url.includes("dropbox.com")) return "Dropbox";
-  return null;
-}
-
-function formatDate(d?: string): string {
-  if (!d) return "";
-  try { return new Date(d).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }); }
-  catch { return d; }
-}
-
-function typeName(id: string): string {
-  return VIDEO_TYPES.find((t) => t.id === id)?.name ?? id;
-}
-
-interface FormData {
-  linkedSong: Release | null;
-  videoType: string;
-  plan: string;
-  videoTitle: string;
-  versionSubtitle: string;
-  releaseDate: string;
-  director: string;
-  producer: string;
-  productionCompany: string;
-  dop: string;
-  owns100Percent: boolean | null;
-  audioMatchesSongDis: boolean;
-  noUnlicensedContent: boolean;
-  shortDescription: string;
-  hasYouTubeOAC: string;
-  videoFileLink: string;
-  thumbnailFile: File | null;
-  thumbnailUploaded: boolean;
-  confirmAccurate: boolean;
-  agreeTerms: boolean;
-}
-
-const EMPTY_FORM: FormData = {
-  linkedSong: null, videoType: "", plan: "",
-  videoTitle: "", versionSubtitle: "", releaseDate: "",
-  director: "", producer: "", productionCompany: "", dop: "",
-  owns100Percent: null, audioMatchesSongDis: false, noUnlicensedContent: false,
-  shortDescription: "", hasYouTubeOAC: "",
-  videoFileLink: "", thumbnailFile: null, thumbnailUploaded: false,
-  confirmAccurate: false, agreeTerms: false,
-};
-
-
 export default function VideosPage() {
   const [view, setView] = useState<"list" | "pre-submit" | "form">("list");
   const [step, setStep] = useState(1);
   const [acknowledged, setAcknowledged] = useState(false);
-  const [form, setForm] = useState<FormData>(EMPTY_FORM);
+  const [form, setForm] = useState<VideoFormData>(EMPTY_VIDEO_FORM);
   const [releases, setReleases] = useState<Release[]>([]);
   /** True when the catalogue is larger than the page walk would fetch — say so rather than
    *  letting the artist believe a missing release does not exist. */
@@ -115,15 +53,21 @@ export default function VideosPage() {
   const [stats, setStats] = useState<VideoStats>({ total_videos: 0, in_review: 0, live: 0, total_plays: 0 });
   const [listLoading, setListLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [problems, setProblems] = useState<FieldProblem[]>([]);
   const thumbRef = useRef<HTMLInputElement>(null);
+  const problemsRef = useRef<HTMLDivElement>(null);
   const { success: toastSuccess, error: toastError } = useToast();
 
   const { can } = useBilling();
   const isGrowthPlan = can("videos");
 
-  const update = useCallback((patch: Partial<FormData>) => setForm((f) => ({ ...f, ...patch })), []);
+  const { user, fetchUser } = useCurrentUser();
 
- 
+  const update = useCallback(
+    (patch: Partial<VideoFormData>) => setForm((f) => ({ ...f, ...patch })),
+    [],
+  );
+
   const loadVideos = useCallback(async () => {
     setListLoading(true);
     try {
@@ -138,8 +82,17 @@ export default function VideosPage() {
 
   useEffect(() => { if (view === "list") loadVideos(); }, [view, loadVideos]);
 
+  useEffect(() => { void fetchUser(); }, [fetchUser]);
+
+  /*
+   * Releases are fetched when the form opens, not when section 3 is reached.
+   *
+   * The picker is on section 3 but it prefills nine fields across sections 1, 3, 4 and 6, so
+   * the artist has to be able to use it before typing those by hand — waiting until they are
+   * already on the step means they have often filled them in first.
+   */
   useEffect(() => {
-    if (view === "form" && step === 1 && releases.length === 0) {
+    if (view === "form" && releases.length === 0) {
       setLoadingReleases(true);
       /*
        * Every page, not just the first.
@@ -154,9 +107,29 @@ export default function VideosPage() {
         setLoadingReleases(false);
       });
     }
-  }, [view, step, releases.length]);
+  }, [view, releases.length]);
 
-  const updateForm = update;
+  /**
+   * Prefill what the account already knows.
+   *
+   * Section 1 asks for a legal name and an email that Songdis holds already, and "Submitted
+   * by" is almost always the same person. Pre-filling it is not a convenience — the form says
+   * the details have to match, and the surest way to get a mismatch is to make someone retype
+   * what we could have filled in. Only blank fields are touched.
+   */
+  const startSubmission = useCallback(() => {
+    setForm({
+      ...EMPTY_VIDEO_FORM,
+      legal_first_name: user?.first_name ?? "",
+      legal_last_name: user?.last_name ?? "",
+      primary_email: user?.email ?? "",
+      submitted_by_name: [user?.first_name, user?.last_name].filter(Boolean).join(" "),
+    });
+    setStep(1);
+    setProblems([]);
+    setAcknowledged(false);
+    setView("pre-submit");
+  }, [user]);
 
   const goBack = () => {
     if (view === "pre-submit") { setView("list"); return; }
@@ -164,84 +137,46 @@ export default function VideosPage() {
     setStep((s) => s - 1);
   };
 
-  const canContinue = (): boolean => {
-    switch (step) {
-      case 1: return form.linkedSong !== null;
-      case 2: return form.videoType !== "";
-      case 3: return form.plan !== "";
-      case 4: return form.videoTitle.trim() !== "" && form.releaseDate !== "";
-      case 5: return form.director.trim() !== "";
-      case 6: return form.owns100Percent === true && form.audioMatchesSongDis && form.noUnlicensedContent;
-      case 7: return form.shortDescription.trim().length > 0;
-      case 8: return true;
-      case 9: return form.videoFileLink.trim() !== "" && form.thumbnailUploaded;
-      case 10: return form.confirmAccurate && form.agreeTerms;
-      default: return false;
-    }
-  };
-
   const goNext = () => {
-    if (step === 1 && form.linkedSong && !form.videoTitle) {
-      update({ videoTitle: form.linkedSong.track_title });
-    }
-    if (step === 10) { handleSubmit(); return; }
+    if (step === TOTAL_STEPS) { void handleSubmit(); return; }
     setStep((s) => s + 1);
   };
 
   const handleSubmit = async () => {
     setSubmitting(true);
+    setProblems([]);
+
     try {
-      const fd = new FormData();
-      if (form.linkedSong) {
-        fd.append("release_id", String(form.linkedSong.id));
-        fd.append("release_title", form.linkedSong.release_title ?? form.linkedSong.track_title ?? "");
-        fd.append("release_artist", form.linkedSong.primary_artist);
-        fd.append("release_cover_url", form.linkedSong.album_art_url || "");
-      }
-      fd.append("video_type", form.videoType);
-      fd.append("plan", form.plan);
-      fd.append("video_title", form.videoTitle);
-      fd.append("version_subtitle", form.versionSubtitle);
-      fd.append("release_date", form.releaseDate);
-      fd.append("director", form.director);
-      fd.append("producer", form.producer);
-      fd.append("production_company", form.productionCompany);
-      fd.append("dop", form.dop);
-      fd.append("owns_100_percent", form.owns100Percent ? "1" : "0");
-      fd.append("audio_matches_songdis", form.audioMatchesSongDis ? "1" : "0");
-      fd.append("no_unlicensed_content", form.noUnlicensedContent ? "1" : "0");
-      fd.append("short_description", form.shortDescription);
-      fd.append("has_youtube_oac", form.hasYouTubeOAC);
-      fd.append("video_file_link", form.videoFileLink);
-      if (form.thumbnailFile) fd.append("thumbnail", form.thumbnailFile);
-      else if (form.linkedSong?.album_art_url) fd.append("thumbnail_url", form.linkedSong.album_art_url);
-      const platforms = getPlatforms(form.plan, form.videoType);
-      platforms.forEach((p) => fd.append("platforms[]", p));
+      const res = await submitVideo(buildSubmission(form));
 
-      const res = await submitVideo(fd);
-      if (res.error) {
-        toastError("Submission failed", res.error);
-      } else {
+      if (res.error || res.errors) {
         /*
-         * A payment link only comes back for someone whose plan does not include videos.
+         * `errors` is the field map and the only place per-field messages live.
          *
-         * For a Growth artist the API charges nothing and returns no link, and that is the
-         * normal path — this used to report "Payment could not be started" in that case,
-         * telling an artist their included submission had failed when it had not.
+         * Reading just `error` would show one problem and hide the rest, which on a
+         * twelve-section form means twelve submits to find out about twelve fields. Each
+         * problem is shown with the section it came from and a way to jump straight there.
          */
-        const paymentUrl = res.data?.payment_url;
+        const found = describeProblems(res.errors);
+        setProblems(found);
 
-        setForm(EMPTY_FORM); setStep(1); setAcknowledged(false);
-
-        if (paymentUrl) {
-          toastSuccess("Details saved", "Taking you to payment to finish your submission.");
-          window.location.href = paymentUrl;
-          return;
+        if (found.length === 0) {
+          toastError("Submission failed", res.error ?? "Please try again.");
+        } else {
+          // The button is at the bottom of a long page. Without this the artist sees nothing
+          // change and concludes the button is dead.
+          requestAnimationFrame(() =>
+            problemsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }),
+          );
         }
-
-        toastSuccess("Video submitted", "It is with our team for review. You will see its status here.");
-        setView("list");
+        return;
       }
+
+      setForm(EMPTY_VIDEO_FORM);
+      setStep(1);
+      setAcknowledged(false);
+      toastSuccess("Video submitted", "It is with our team for review. You will see its status here.");
+      setView("list");
     } catch {
       toastError("Something went wrong", "Please try again.");
     } finally {
@@ -262,25 +197,136 @@ export default function VideosPage() {
           <VideosList
             videos={videos} stats={stats} loading={listLoading}
             isGrowthPlan={isGrowthPlan}
-            onStartNew={() => { setView("pre-submit"); setForm(EMPTY_FORM); setStep(1); setAcknowledged(false); }}
+            onStartNew={startSubmission}
           />
         )}
         {view === "pre-submit" && (
-          <PreSubmit onBack={() => setView("list")} onStart={() => setView("form")} acknowledged={acknowledged} setAcknowledged={setAcknowledged} />
+          <PreSubmit
+            onBack={() => setView("list")}
+            onStart={() => setView("form")}
+            acknowledged={acknowledged}
+            setAcknowledged={setAcknowledged}
+          />
         )}
         {view === "form" && (
-          <VideoForm
-            step={step} form={form} update={update} releases={releases} loadingReleases={loadingReleases}
-            releasesTruncated={releasesTruncated}
-            onBack={goBack} onNext={goNext} canContinue={canContinue()} submitting={submitting}
-            thumbRef={thumbRef}
-          />
+          <div className="max-w-3xl mx-auto flex flex-col gap-6">
+            {/* Progress */}
+            <div className="h-1 bg-white/5 rounded-full overflow-hidden">
+              <div
+                className="h-full bg-[#C30100] rounded-full transition-all duration-300"
+                style={{ width: `${(step / TOTAL_STEPS) * 100}%` }}
+              />
+            </div>
+
+            <div className="flex items-center justify-between gap-3">
+              <button onClick={goBack} className="font-body text-white/40 hover:text-white text-sm flex items-center gap-1 transition-colors">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+                Back
+              </button>
+              <span className="font-body text-white/30 text-xs truncate">
+                Step {step} of {TOTAL_STEPS}
+              </span>
+            </div>
+
+            {problems.length > 0 && (
+              <ProblemPanel
+                ref={problemsRef}
+                problems={problems}
+                onGoToStep={(s) => { setStep(s); window.scrollTo({ top: 0, behavior: "smooth" }); }}
+              />
+            )}
+
+            <VideoFormSteps
+              step={step}
+              form={form}
+              update={update}
+              releases={releases}
+              loadingReleases={loadingReleases}
+              releasesTruncated={releasesTruncated}
+              thumbRef={thumbRef}
+            />
+
+            <button
+              onClick={goNext}
+              disabled={!stepComplete(step, form) || submitting}
+              className="font-heading text-white uppercase text-xs tracking-widest bg-[#C30100] hover:bg-[#C30100]/80 rounded-full py-3.5 transition-colors disabled:opacity-40 flex items-center justify-center gap-2"
+            >
+              {submitting && (
+                <svg className="animate-spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M21 12a9 9 0 11-6.219-8.56" />
+                </svg>
+              )}
+              {step === TOTAL_STEPS ? "Submit video" : "Continue"}
+            </button>
+
+            {/* Why the button is off, rather than leaving the artist to guess. */}
+            {!stepComplete(step, form) && !submitting && (
+              <p className="font-body text-white/30 text-[11px] text-center -mt-3">
+                Fill in the required fields on this section to continue.
+              </p>
+            )}
+          </div>
         )}
       </div>
     </DashboardLayout>
   );
 }
 
+/**
+ * Every rejected field at once, each labelled with the section it belongs to.
+ *
+ * "Go back and fix these" is useless when three problems span three different sections, so
+ * each one names its section and offers a jump. Sorted by section, so working down the list
+ * walks the form forwards.
+ */
+const ProblemPanel = ({
+  ref,
+  problems,
+  onGoToStep,
+}: {
+  ref: React.Ref<HTMLDivElement>;
+  problems: FieldProblem[];
+  onGoToStep: (step: number) => void;
+}) => {
+  // Grouped so a section with four problems is one heading, not four.
+  const bySection = problems.reduce<Record<string, FieldProblem[]>>((acc, p) => {
+    (acc[p.stepLabel] ??= []).push(p);
+    return acc;
+  }, {});
+
+  return (
+    <div ref={ref} className="bg-red-500/5 border border-red-500/25 rounded-xl p-4 flex flex-col gap-3">
+      <p className="font-body text-red-400 text-sm">
+        {problems.length === 1
+          ? "One thing needs fixing before this can be submitted."
+          : `${problems.length} things need fixing before this can be submitted.`}
+      </p>
+
+      {Object.entries(bySection).map(([label, items]) => (
+        <div key={label} className="flex flex-col gap-1">
+          <div className="flex items-center justify-between gap-3">
+            <p className="font-heading text-white/70 uppercase text-[10px] tracking-widest">
+              {label}
+            </p>
+            <button
+              onClick={() => onGoToStep(items[0].step)}
+              className="font-body text-[#C30100] text-[11px] hover:underline shrink-0"
+            >
+              Go to section {items[0].step}
+            </button>
+          </div>
+          <ul className="flex flex-col gap-0.5">
+            {items.map((p, i) => (
+              <li key={`${p.field}-${i}`} className="font-body text-white/60 text-xs leading-relaxed">
+                {p.message}
+              </li>
+            ))}
+          </ul>
+        </div>
+      ))}
+    </div>
+  );
+};
 
 function VideosList({ videos, stats, loading, isGrowthPlan, onStartNew }: {
   videos: VideoRecord[]; stats: VideoStats; loading: boolean; isGrowthPlan: boolean; onStartNew: () => void;
@@ -387,9 +433,11 @@ function VideosList({ videos, stats, loading, isGrowthPlan, onStartNew }: {
                     {v.status.replace("_", " ")}
                   </span>
                 </div>
-                <p className="font-body text-white/40 text-xs">{v.release_artist} · {typeName(v.video_type)}</p>
+                <p className="font-body text-white/40 text-xs">{v.release_artist} · {videoTypeName(v.video_type)}</p>
                 {v.platforms.length > 0 && (
-                  <p className="font-body text-white/25 text-[10px] truncate">{v.platforms.join(", ")}</p>
+                  <p className="font-body text-white/25 text-[10px] truncate">
+                    {v.platforms.map(platformName).join(", ")}
+                  </p>
                 )}
               </div>
             </div>
@@ -399,7 +447,6 @@ function VideosList({ videos, stats, loading, isGrowthPlan, onStartNew }: {
     </div>
   );
 }
-
 
 function PreSubmit({ onBack, onStart, acknowledged, setAcknowledged }: {
   onBack: () => void; onStart: () => void; acknowledged: boolean; setAcknowledged: (v: boolean) => void;
@@ -425,6 +472,19 @@ function PreSubmit({ onBack, onStart, acknowledged, setAcknowledged }: {
           </div>
         ))}
       </div>
+
+      {/* What is coming, so nobody starts a twelve-section form expecting three fields. */}
+      <div className="bg-white/[0.02] border border-white/[0.06] rounded-xl p-4">
+        <p className="font-body text-white/50 text-xs mb-2">The form covers:</p>
+        <div className="flex flex-wrap gap-1.5">
+          {SECTIONS.map((s, i) => (
+            <span key={s} className="font-body text-white/40 text-[11px] bg-white/5 rounded px-2 py-1">
+              {i + 1}. {s}
+            </span>
+          ))}
+        </div>
+      </div>
+
       <label className="flex items-start gap-3 cursor-pointer" onClick={() => setAcknowledged(!acknowledged)}>
         <div className={[
           "w-4 h-4 rounded border flex items-center justify-center shrink-0 mt-0.5 transition-colors",
@@ -432,399 +492,12 @@ function PreSubmit({ onBack, onStart, acknowledged, setAcknowledged }: {
         ].join(" ")}>
           {acknowledged && <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>}
         </div>
-        <p className="font-body text-white/60 text-xs leading-relaxed">I understand the fees, timelines, and platform requirements for video distribution.</p>
+        <p className="font-body text-white/60 text-xs leading-relaxed">I understand the timelines and platform requirements for video distribution.</p>
       </label>
       <button onClick={onStart} disabled={!acknowledged}
         className="font-heading text-white uppercase text-xs tracking-widest bg-[#C30100] hover:bg-[#C30100]/80 rounded-full py-3.5 transition-colors disabled:opacity-40">
         Start submission
       </button>
     </div>
-  );
-}
-
-
-function VideoForm({ step, form, update, releases, loadingReleases, releasesTruncated, onBack, onNext, canContinue, submitting, thumbRef }: {
-  step: number; form: FormData; update: (p: Partial<FormData>) => void;
-  releases: Release[]; loadingReleases: boolean; releasesTruncated?: boolean;
-  onBack: () => void; onNext: () => void; canContinue: boolean; submitting: boolean;
-  thumbRef: React.RefObject<HTMLInputElement | null>;
-}) {
-  const [releaseQuery, setReleaseQuery] = useState("");
-
-  /** Title, artist or release name — whichever the artist happens to remember. */
-  const visibleReleases = useMemo(() => {
-    const needle = releaseQuery.trim().toLowerCase();
-
-    if (!needle) return releases;
-
-    return releases.filter((r) =>
-      [r.track_title, r.release_title, r.primary_artist]
-        .some((field) => (field ?? "").toLowerCase().includes(needle))
-    );
-  }, [releases, releaseQuery]);
-
-  const platforms = form.plan ? getPlatforms(form.plan, form.videoType) : [];
-  const progress = (step / 10) * 100;
-  const minDate = new Date();
-  minDate.setDate(minDate.getDate() + 10);
-
-  return (
-    <div className="max-w-3xl mx-auto flex flex-col gap-6">
-      {/* Progress bar */}
-      <div className="h-1 bg-white/5 rounded-full overflow-hidden">
-        <div className="h-full bg-[#C30100] rounded-full transition-all duration-300" style={{ width: `${progress}%` }} />
-      </div>
-
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <button onClick={onBack} className="font-body text-white/40 hover:text-white text-sm flex items-center gap-1 transition-colors">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
-          Back
-        </button>
-        <span className="font-body text-white/30 text-xs">Step {step} of 10</span>
-      </div>
-
-      {/* Step 1: Link song */}
-      {step === 1 && (
-        <div className="flex flex-col gap-4">
-          <h2 className="font-heading text-white uppercase text-sm tracking-widest">Link your song</h2>
-
-          {/* A catalogue runs to hundreds of releases. Scrolling for one is not a way to
-              find it — typing three letters is. */}
-          {!loadingReleases && releases.length > 6 && (
-            <input
-              value={releaseQuery}
-              onChange={(e) => setReleaseQuery(e.target.value)}
-              placeholder={`Search ${releases.length} releases by title or artist`}
-              className="w-full bg-[#0E0808] border border-white/10 rounded-lg px-4 py-3 font-body text-white text-sm placeholder:text-white/25 outline-none focus:border-[#C30100] transition-colors"
-            />
-          )}
-
-          {loadingReleases ? (
-            <div className="flex justify-center py-16"><svg className="animate-spin" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#C30100" strokeWidth="2"><path d="M21 12a9 9 0 11-6.219-8.56"/></svg></div>
-          ) : releases.length === 0 ? (
-            <p className="font-body text-white/30 text-sm text-center py-12">No releases found. Upload a song first.</p>
-          ) : visibleReleases.length === 0 ? (
-            <p className="font-body text-white/30 text-sm text-center py-12">
-              Nothing matches “{releaseQuery}”.
-              {releasesTruncated && " Your catalogue is large enough that not all of it is loaded here — contact support if a release is missing."}
-            </p>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-[400px] overflow-y-auto pr-1">
-              {visibleReleases.map((r) => {
-                const sel = form.linkedSong?.id === r.id;
-                return (
-                  <button key={r.id} onClick={() => update({ linkedSong: r })}
-                    className={[
-                      "flex items-center gap-3 p-3 rounded-xl border text-left transition-all",
-                      sel ? "border-[#C30100] bg-[#C30100]/5" : "border-white/[0.06] hover:border-white/20",
-                    ].join(" ")}>
-                    <div className="relative w-12 h-12 rounded-lg overflow-hidden bg-white/5 shrink-0">
-                      {r.album_art_url ? (
-                        <Image src={r.album_art_url} alt="" fill className="object-cover" unoptimized />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-white/20"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg></div>
-                      )}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-body text-white text-sm font-medium truncate">{r.track_title}</p>
-                      <p className="font-body text-white/30 text-xs truncate">{r.primary_artist} · {r.primary_genre || r.upload_type} · {formatDate(r.release_date)}</p>
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Step 2: Video type */}
-      {step === 2 && (
-        <div className="flex flex-col gap-4">
-          <h2 className="font-heading text-white uppercase text-sm tracking-widest">What kind of video is this?</h2>
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-            {VIDEO_TYPES.map((t) => (
-              <button key={t.id} onClick={() => update({ videoType: t.id, plan: "" })}
-                className={[
-                  "p-4 rounded-xl border text-left transition-all",
-                  form.videoType === t.id ? "border-[#C30100] bg-[#C30100]/5" : "border-white/[0.06] hover:border-white/20",
-                ].join(" ")}>
-                <p className="font-body text-white text-sm font-medium mb-1">{t.name}</p>
-                <p className="font-body text-white/30 text-xs leading-relaxed">{t.description}</p>
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Step 3: Plan */}
-      {step === 3 && (
-        <div className="flex flex-col gap-4">
-          <h2 className="font-heading text-white uppercase text-sm tracking-widest">Pick your plan</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {PLANS.map((p) => (
-              <button key={p.id} onClick={() => update({ plan: p.id })}
-                className={[
-                  "relative p-5 rounded-xl border text-left transition-all",
-                  form.plan === p.id ? "border-[#C30100] bg-[#C30100]/5" : "border-white/[0.06] hover:border-white/20",
-                ].join(" ")}>
-                {p.popular && (
-                  <span className="absolute top-3 right-3 text-[8px] font-heading tracking-widest px-2 py-0.5 rounded bg-[#C30100]/20 text-[#C30100]">MOST POPULAR</span>
-                )}
-                <p className="font-heading text-white text-lg mb-0.5">{p.name}</p>
-                <p className="font-body text-white/30 text-xs mb-3">Included with Growth plan</p>
-                <div className="flex flex-col gap-1">
-                  {p.platforms.map((pl) => (
-                    <div key={pl} className="flex items-center gap-1.5">
-                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#22C55E" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-                      <span className="font-body text-white/50 text-xs">{pl}</span>
-                    </div>
-                  ))}
-                </div>
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Step 4: Video details */}
-      {step === 4 && (
-        <div className="flex flex-col gap-4">
-          <h2 className="font-heading text-white uppercase text-sm tracking-widest">Video details</h2>
-          <Field label="Video title *">
-            <input value={form.videoTitle} onChange={(e) => update({ videoTitle: e.target.value })}
-              className="w-full bg-[#0E0808] border border-white/10 rounded-lg px-4 py-3 font-body text-white text-sm placeholder:text-white/25 outline-none focus:border-[#C30100] transition-colors" />
-          </Field>
-          <Field label="Version / subtitle">
-            <input value={form.versionSubtitle} onChange={(e) => update({ versionSubtitle: e.target.value })} placeholder="Official Video"
-              className="w-full bg-[#0E0808] border border-white/10 rounded-lg px-4 py-3 font-body text-white text-sm placeholder:text-white/25 outline-none focus:border-[#C30100] transition-colors" />
-            <p className="font-body text-white/25 text-[11px] mt-1">e.g. Official Video, Lyric Video</p>
-          </Field>
-          <Field label="Release date *">
-            <input type="date" value={form.releaseDate} onChange={(e) => update({ releaseDate: e.target.value })}
-              min={minDate.toISOString().split("T")[0]}
-              className="w-full bg-[#0E0808] border border-white/10 rounded-lg px-4 py-3 font-body text-white text-sm outline-none focus:border-[#C30100] transition-colors [color-scheme:dark]" />
-            <p className="font-body text-white/25 text-[11px] mt-1">Minimum 10 days from today</p>
-          </Field>
-        </div>
-      )}
-
-      {/* Step 5: Credits */}
-      {step === 5 && (
-        <div className="flex flex-col gap-4">
-          <h2 className="font-heading text-white uppercase text-sm tracking-widest">Credits</h2>
-          <Field label="Director *">
-            <input value={form.director} onChange={(e) => update({ director: e.target.value })} placeholder="Full name"
-              className="w-full bg-[#0E0808] border border-white/10 rounded-lg px-4 py-3 font-body text-white text-sm placeholder:text-white/25 outline-none focus:border-[#C30100] transition-colors" />
-          </Field>
-          <Field label="Producer">
-            <input value={form.producer} onChange={(e) => update({ producer: e.target.value })}
-              className="w-full bg-[#0E0808] border border-white/10 rounded-lg px-4 py-3 font-body text-white text-sm placeholder:text-white/25 outline-none focus:border-[#C30100] transition-colors" />
-          </Field>
-          <Field label="Production company">
-            <input value={form.productionCompany} onChange={(e) => update({ productionCompany: e.target.value })}
-              className="w-full bg-[#0E0808] border border-white/10 rounded-lg px-4 py-3 font-body text-white text-sm placeholder:text-white/25 outline-none focus:border-[#C30100] transition-colors" />
-          </Field>
-          <Field label="DOP / Cinematographer">
-            <input value={form.dop} onChange={(e) => update({ dop: e.target.value })}
-              className="w-full bg-[#0E0808] border border-white/10 rounded-lg px-4 py-3 font-body text-white text-sm placeholder:text-white/25 outline-none focus:border-[#C30100] transition-colors" />
-          </Field>
-        </div>
-      )}
-
-      {/* Step 6: Rights */}
-      {step === 6 && (
-        <div className="flex flex-col gap-5">
-          <h2 className="font-heading text-white uppercase text-sm tracking-widest">Rights check</h2>
-          <div className="bg-[#1A0808] border border-white/[0.07] rounded-xl p-5 flex flex-col gap-4">
-            <p className="font-body text-white text-sm">Do you own 100% of the rights to this video?</p>
-            <div className="flex flex-col sm:flex-row gap-3">
-              <button onClick={() => update({ owns100Percent: true })}
-                className={["flex-1 py-3 rounded-xl border text-sm font-heading transition-all", form.owns100Percent === true ? "border-green-500 bg-green-500/10 text-green-400" : "border-white/10 text-white/40 hover:border-white/25"].join(" ")}>Yes</button>
-              <button onClick={() => update({ owns100Percent: false })}
-                className={["flex-1 py-3 rounded-xl border text-sm font-heading transition-all", form.owns100Percent === false ? "border-red-500 bg-red-500/10 text-red-400" : "border-white/10 text-white/40 hover:border-white/25"].join(" ")}>No</button>
-            </div>
-            {form.owns100Percent === false && (
-              <p className="font-body text-red-400/70 text-xs">You must own 100% of the rights to submit a video for distribution.</p>
-            )}
-          </div>
-          <CheckRow checked={form.audioMatchesSongDis} onChange={() => update({ audioMatchesSongDis: !form.audioMatchesSongDis })}
-            label="The audio in this video matches the version distributed through SongDis" />
-          <CheckRow checked={form.noUnlicensedContent} onChange={() => update({ noUnlicensedContent: !form.noUnlicensedContent })}
-            label="No unlicensed samples, logos, brands, or copyrighted footage appear in this video" />
-        </div>
-      )}
-
-      {/* Step 7: Description */}
-      {step === 7 && (
-        <div className="flex flex-col gap-4">
-          <h2 className="font-heading text-white uppercase text-sm tracking-widest">How it shows on platforms</h2>
-          <Field label="Short description *">
-            <textarea value={form.shortDescription} onChange={(e) => update({ shortDescription: e.target.value.slice(0, 500) })} rows={4}
-              className="w-full bg-[#0E0808] border border-white/10 rounded-lg px-4 py-3 font-body text-white text-sm placeholder:text-white/25 outline-none focus:border-[#C30100] transition-colors resize-none" />
-            <p className="font-body text-white/25 text-[11px] mt-1">{form.shortDescription.length}/500 · Appears on YouTube, Apple Music, etc.</p>
-          </Field>
-        </div>
-      )}
-
-      {/* Step 8: Platform preview */}
-      {step === 8 && (
-        <div className="flex flex-col gap-4">
-          <h2 className="font-heading text-white uppercase text-sm tracking-widest">Here&apos;s where your video will go</h2>
-          <div className="bg-[#1A0808] border border-white/[0.07] rounded-xl p-5 flex flex-col gap-3">
-            <div className="flex items-center justify-between">
-              <span className="font-body text-white/50 text-sm">{PLANS.find((p) => p.id === form.plan)?.name}</span>
-              <span className="font-heading text-green-400 text-xs">Included with Growth</span>
-            </div>
-            <p className="font-body text-white/30 text-xs">{typeName(form.videoType)}</p>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {platforms.map((p) => (
-              <span key={p} className="flex items-center gap-1.5 bg-green-500/10 text-green-400 text-xs font-body px-3 py-1.5 rounded-full">
-                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-                {p}
-              </span>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Step 9: File & thumbnail */}
-      {step === 9 && (
-        <div className="flex flex-col gap-5">
-          <h2 className="font-heading text-white uppercase text-sm tracking-widest">Your video file &amp; channel</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="flex flex-col gap-3">
-              <Field label="YouTube Official Artist Channel?">
-                <div className="flex flex-col sm:flex-row gap-2">
-                  {["yes", "no", "not-sure"].map((v) => (
-                    <button key={v} onClick={() => update({ hasYouTubeOAC: v })}
-                      className={["flex-1 py-2.5 rounded-lg border text-xs font-heading transition-all capitalize",
-                        form.hasYouTubeOAC === v ? "border-[#C30100] bg-[#C30100]/10 text-[#C30100]" : "border-white/10 text-white/40 hover:border-white/25"
-                      ].join(" ")}>{v === "not-sure" ? "Not sure" : v}</button>
-                  ))}
-                </div>
-              </Field>
-              <Field label="Video file link *">
-                <input value={form.videoFileLink} onChange={(e) => update({ videoFileLink: e.target.value })}
-                  placeholder="https://drive.google.com/..."
-                  className="w-full bg-[#0E0808] border border-white/10 rounded-lg px-4 py-3 font-body text-white text-sm placeholder:text-white/25 outline-none focus:border-[#C30100] transition-colors" />
-                {detectProvider(form.videoFileLink) && (
-                  <p className="font-body text-green-400/70 text-[11px] mt-1">{detectProvider(form.videoFileLink)} link detected</p>
-                )}
-                <p className="font-body text-white/25 text-[11px] mt-1">Paste a shareable link from Google Drive, WeTransfer, or Dropbox</p>
-                <div className="flex flex-wrap gap-2 mt-2">
-                  {["Google Drive", "WeTransfer", "Dropbox"].map((p) => (
-                    <span key={p} className="text-[10px] font-body text-white/25 bg-white/5 rounded px-2 py-0.5">{p}</span>
-                  ))}
-                </div>
-              </Field>
-            </div>
-            <div className="flex flex-col gap-3">
-              <Field label="Thumbnail / cover art *">
-                <input ref={thumbRef} type="file" accept="image/*" className="hidden"
-                  onChange={(e) => { const f = e.target.files?.[0]; if (f) { update({ thumbnailFile: f, thumbnailUploaded: true }); } }} />
-                <button onClick={() => thumbRef.current?.click()}
-                  className={[
-                    "w-full border-2 border-dashed rounded-xl py-8 flex flex-col items-center gap-2 transition-colors",
-                    form.thumbnailUploaded ? "border-green-500/40 bg-green-500/5" : "border-white/10 hover:border-white/25",
-                  ].join(" ")}>
-                  {form.thumbnailUploaded ? (
-                    <><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#22C55E" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-                    <p className="font-body text-green-400 text-xs">File uploaded</p></>
-                  ) : (
-                    <><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-white/30"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-                    <p className="font-body text-white/40 text-xs">Click to upload</p>
-                    <p className="font-body text-white/20 text-[10px]">1920×1080 or 1:1, under 5MB</p></>
-                  )}
-                </button>
-                {form.linkedSong?.album_art_url && !form.thumbnailFile && (
-                  <button onClick={() => update({ thumbnailUploaded: true, thumbnailFile: null })}
-                    className="font-body text-[#C30100] text-xs hover:underline mt-1">Use song cover art instead</button>
-                )}
-              </Field>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Step 10: Review */}
-      {step === 10 && (
-        <div className="flex flex-col gap-5">
-          <h2 className="font-heading text-white uppercase text-sm tracking-widest">Review &amp; submit</h2>
-          <div className="bg-[#1A0808] border border-white/[0.07] rounded-xl p-5 grid grid-cols-2 gap-3 text-xs">
-            <div className="bg-white/[0.03] rounded-lg p-2.5">
-              <p className="font-body text-white/30 text-[10px] uppercase tracking-wider mb-0.5">Plan</p>
-              <p className="font-body text-white">{PLANS.find((p) => p.id === form.plan)?.name}</p>
-            </div>
-            <div className="bg-white/[0.03] rounded-lg p-2.5">
-              <p className="font-body text-white/30 text-[10px] uppercase tracking-wider mb-0.5">Video type</p>
-              <p className="font-body text-white">{typeName(form.videoType)}</p>
-            </div>
-            <div className="bg-white/[0.03] rounded-lg p-2.5">
-              <p className="font-body text-white/30 text-[10px] uppercase tracking-wider mb-0.5">Song</p>
-              <p className="font-body text-white truncate">{form.linkedSong?.track_title}</p>
-            </div>
-            <div className="bg-white/[0.03] rounded-lg p-2.5">
-              <p className="font-body text-white/30 text-[10px] uppercase tracking-wider mb-0.5">Video title</p>
-              <p className="font-body text-white truncate">{form.videoTitle}</p>
-            </div>
-            <div className="bg-white/[0.03] rounded-lg p-2.5">
-              <p className="font-body text-white/30 text-[10px] uppercase tracking-wider mb-0.5">Release date</p>
-              <p className="font-body text-white">{formatDate(form.releaseDate)}</p>
-            </div>
-            <div className="bg-white/[0.03] rounded-lg p-2.5">
-              <p className="font-body text-white/30 text-[10px] uppercase tracking-wider mb-0.5">Director</p>
-              <p className="font-body text-white">{form.director}</p>
-            </div>
-            <div className="bg-white/[0.03] rounded-lg p-2.5">
-              <p className="font-body text-white/30 text-[10px] uppercase tracking-wider mb-0.5">Video file</p>
-              <p className="font-body text-white">{detectProvider(form.videoFileLink) || "External link"}</p>
-            </div>
-            <div className="bg-white/[0.03] rounded-lg p-2.5">
-              <p className="font-body text-white/30 text-[10px] uppercase tracking-wider mb-0.5">Platforms</p>
-              <p className="font-body text-white">{platforms.length} confirmed</p>
-            </div>
-          </div>
-          <CheckRow checked={form.confirmAccurate} onChange={() => update({ confirmAccurate: !form.confirmAccurate })}
-            label="I confirm all information above is accurate" />
-          <CheckRow checked={form.agreeTerms} onChange={() => update({ agreeTerms: !form.agreeTerms })}
-            label="I agree to the SongDis Video Distribution Terms" />
-        </div>
-      )}
-
-      {/* Continue / Pay */}
-      <button onClick={onNext} disabled={!canContinue || submitting}
-        className="font-heading text-white uppercase text-xs tracking-widest bg-[#C30100] hover:bg-[#C30100]/80 rounded-full py-3.5 transition-colors disabled:opacity-40 flex items-center justify-center gap-2">
-        {submitting && <svg className="animate-spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 12a9 9 0 11-6.219-8.56"/></svg>}
-        {step === 10
-          ? "Submit Video"
-          : "Continue"}
-      </button>
-    </div>
-  );
-}
-
-
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div>
-      <label className="font-body text-white/50 text-xs block mb-1.5">{label}</label>
-      {children}
-    </div>
-  );
-}
-
-function CheckRow({ checked, onChange, label }: { checked: boolean; onChange: () => void; label: string }) {
-  return (
-    <label className="flex items-start gap-3 cursor-pointer" onClick={onChange}>
-      <div className={[
-        "w-4 h-4 rounded border flex items-center justify-center shrink-0 mt-0.5 transition-colors",
-        checked ? "border-[#C30100] bg-[#C30100]" : "border-white/20",
-      ].join(" ")}>
-        {checked && <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>}
-      </div>
-      <p className="font-body text-white/60 text-xs leading-relaxed">{label}</p>
-    </label>
   );
 }
