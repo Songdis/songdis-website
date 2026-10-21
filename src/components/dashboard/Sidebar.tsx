@@ -67,7 +67,35 @@ function HeadphoneIcon() {
   );
 }
 
-const RELEASE_CHILDREN: { label: string; href: string; icon?: string; svgIcon?: React.ReactNode; badge?: string }[] = [
+/**
+ * One navigable row.
+ *
+ * `matchPrefix` opts into prefix matching for routes that have sub-routes of their own —
+ * without it such an item un-highlights the moment the artist opens one of its tabs.
+ */
+type NavLeaf = {
+  label: string;
+  href: string;
+  icon?: string;
+  svgIcon?: React.ReactNode;
+  badge?: string;
+  highlight?: boolean;
+  matchPrefix?: boolean;
+};
+
+/** A collapsible parent with no route of its own — Release, Links. */
+type NavGroup = {
+  label: string;
+  icon?: string;
+  svgIcon?: React.ReactNode;
+  children: NavLeaf[];
+};
+
+type NavEntry = NavLeaf | NavGroup;
+
+const isGroup = (entry: NavEntry): entry is NavGroup => "children" in entry;
+
+const RELEASE_CHILDREN: NavLeaf[] = [
   { label: "Your Music", href: "/dashboard/music", icon: "/images/dashboard-music.svg" },
   { label: "Videos", href: "/dashboard/videos", svgIcon: <VideoIcon /> },
   { label: "Migrations", href: "/dashboard/migrations", badge: "NEW", svgIcon: <MigrationsIcon /> },
@@ -77,14 +105,33 @@ const AI_TOOLS = [
   { label: "Ayo", href: "/dashboard/ayo", icon: "/images/ayo.svg", highlight: true },
 ];
 
-const ARTIST_TOOLS = [
+/**
+ * The two kinds of shareable link, grouped.
+ *
+ * They were adjacent top-level items and were constantly confused for each other, which is
+ * what grouping fixes: the distinction is the only thing the two rows are ever read for.
+ * Release Links points at the DSPs once a release is out; Private Links lets someone hear it
+ * before it is.
+ */
+const LINK_CHILDREN: NavLeaf[] = [
+  { label: "Release Links", href: "/dashboard/release-links", icon: "/images/link.svg" },
+  { label: "Private Links", href: "/dashboard/private-links", badge: "NEW", svgIcon: <HeadphoneIcon /> },
+];
+
+/*
+ * Amplify is hidden from the nav.
+ *
+ * Only the menu entry is gone — /dashboard/amplify still exists and still answers, so any
+ * link already shared or bookmarked keeps working and nothing was deleted. Putting the line
+ * back is all that is needed to restore it:
+ *
+ *   { label: "Amplify", href: "/dashboard/amplify", icon: "/images/megaphone.svg" },
+ */
+const ARTIST_TOOLS: NavEntry[] = [
   { label: "Press Kit", href: "/dashboard/press-kit", badge: "NEW", svgIcon: <PressKitIcon /> },
   { label: "Splitr", href: "/dashboard/splitr", icon: "/images/splitr.svg" },
-  { label: "Amplify", href: "/dashboard/amplify", icon: "/images/megaphone.svg" },
-  { label: "Release Links", href: "/dashboard/release-links", icon: "/images/link.svg" },
-  // Next to Release Links because the two get confused: that one points at the DSPs once a
-  // release is out, this one lets someone hear it before it is.
-  { label: "Private Links", href: "/dashboard/private-links", badge: "NEW", svgIcon: <HeadphoneIcon /> },
+  // Sits where the two link rows used to, so the habit of reaching here still works.
+  { label: "Links", icon: "/images/link.svg", children: LINK_CHILDREN },
   { label: "Playlist Portal", href: "/dashboard/playlist-portal", icon: "/images/playlist-broken.svg" },
 ];
 
@@ -99,7 +146,7 @@ function NavItem({
   collapsed,
   isLocked,
 }: {
-  item: { label: string; href: string; icon?: string; highlight?: boolean; badge?: string; svgIcon?: React.ReactNode; matchPrefix?: boolean };
+  item: NavLeaf;
   pathname: string;
   collapsed: boolean;
   isLocked?: boolean;
@@ -191,7 +238,7 @@ function NavSection({
   isLocked,
 }: {
   label: string;
-  items: { label: string; href: string; icon?: string; highlight?: boolean; badge?: string; svgIcon?: React.ReactNode; matchPrefix?: boolean }[];
+  items: NavEntry[];
   pathname: string;
   collapsed: boolean;
   isLocked?: boolean;
@@ -206,26 +253,61 @@ function NavSection({
         </p>
       )}
       <ul className="flex flex-col gap-px">
-        {items.map((item) => (
-          <NavItem key={item.href} item={item} pathname={pathname} collapsed={collapsed} isLocked={isLocked} />
-        ))}
+        {/* A section can hold collapsible groups as well as plain rows. */}
+        {items.map((item) =>
+          isGroup(item) ? (
+            <NavDropdown
+              key={item.label}
+              label={item.label}
+              icon={item.icon}
+              svgIcon={item.svgIcon}
+              items={item.children}
+              pathname={pathname}
+              collapsed={collapsed}
+              isLocked={isLocked}
+            />
+          ) : (
+            <NavItem key={item.href} item={item} pathname={pathname} collapsed={collapsed} isLocked={isLocked} />
+          ),
+        )}
       </ul>
     </div>
   );
 }
 
 
-function ReleaseDropdown({
+/**
+ * A collapsible parent row.
+ *
+ * Was ReleaseDropdown, hardcoded to Release's label, icon and children. Generalised when
+ * Links needed the same behaviour — the alternative was a second copy of this whole
+ * component, including its collapsed-sidebar tooltip, which is where the two would have
+ * silently drifted apart.
+ */
+function NavDropdown({
+  label,
+  icon,
+  svgIcon,
+  items,
   pathname,
   collapsed,
   isLocked,
 }: {
+  label: string;
+  icon?: string;
+  svgIcon?: React.ReactNode;
+  items: NavLeaf[];
   pathname: string;
   collapsed: boolean;
   isLocked?: boolean;
 }) {
-  const isActive = RELEASE_CHILDREN.some((c) => pathname === c.href || pathname.startsWith(c.href + "/"));
+  const isActive = items.some((c) => pathname === c.href || pathname.startsWith(c.href + "/"));
   const [open, setOpen] = useState(isActive);
+
+  // The parent's own glyph, which is an <Image> for the icon files and inline SVG otherwise.
+  const parentIcon = svgIcon ?? (icon ? (
+    <Image src={icon} alt="" width={16} height={16} className="object-contain" unoptimized />
+  ) : null);
 
   useEffect(() => {
     if (isActive) setOpen(true);
@@ -236,10 +318,10 @@ function ReleaseDropdown({
       <li className="relative group/item">
         <span className="flex items-center gap-2 px-2.5 py-2 rounded-lg transition-all duration-200 cursor-not-allowed opacity-30">
           <span className="shrink-0 w-4 h-4 relative flex items-center justify-center opacity-40">
-            <ReleaseIcon />
+            {parentIcon}
           </span>
           {!collapsed && (
-            <span className="font-body text-[13px] flex-1">Release</span>
+            <span className="font-body text-[13px] flex-1">{label}</span>
           )}
         </span>
       </li>
@@ -260,11 +342,11 @@ function ReleaseDropdown({
         ].join(" ")}
       >
         <span className="shrink-0 w-4 h-4 relative transition-opacity flex items-center justify-center opacity-40 group-hover/item:opacity-70">
-          <ReleaseIcon />
+          {parentIcon}
         </span>
         {!collapsed && (
           <>
-            <span className="font-body text-[13px] flex-1">Release</span>
+            <span className="font-body text-[13px] flex-1">{label}</span>
             <span className="text-white/25 transition-transform">
               {open ? <ChevronUpIcon /> : <ChevronDownIcon />}
             </span>
@@ -279,8 +361,8 @@ function ReleaseDropdown({
             <div className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-1.5 w-0 h-0"
               style={{ borderTop: "5px solid transparent", borderBottom: "5px solid transparent", borderRight: "6px solid #1A0808" }} />
             <div className="bg-[#1A0808] border border-white/[0.08] rounded-lg px-3 py-2 shadow-xl whitespace-nowrap">
-              <p className="font-heading text-white text-[10px] uppercase tracking-widest mb-1.5">Release</p>
-              {RELEASE_CHILDREN.map((child) => (
+              <p className="font-heading text-white text-[10px] uppercase tracking-widest mb-1.5">{label}</p>
+              {items.map((child) => (
                 <Link key={child.href} href={child.href}
                   className={[
                     "flex items-center gap-2 py-1 rounded transition-colors",
@@ -302,7 +384,7 @@ function ReleaseDropdown({
       {/* Children (expanded only) */}
       {open && !collapsed && (
         <ul className="flex flex-col gap-px ml-4 mt-px">
-          {RELEASE_CHILDREN.map((child) => (
+          {items.map((child) => (
             <li key={child.href} className="relative group/child">
               <Link
                 href={child.href}
@@ -507,7 +589,14 @@ export default function Sidebar({ onClose, isMobile, user, isLocked = false }: S
             {showRoster && (
               <NavItem item={ROSTER_NAV} pathname={pathname} collapsed={collapsed} isLocked={isLocked} />
             )}
-            <ReleaseDropdown pathname={pathname} collapsed={collapsed} isLocked={isLocked} />
+            <NavDropdown
+              label="Release"
+              svgIcon={<ReleaseIcon />}
+              items={RELEASE_CHILDREN}
+              pathname={pathname}
+              collapsed={collapsed}
+              isLocked={isLocked}
+            />
             {MAIN_NAV.slice(1).map((item) => (
               <NavItem key={item.href} item={item} pathname={pathname} collapsed={collapsed} isLocked={isLocked} />
             ))}
