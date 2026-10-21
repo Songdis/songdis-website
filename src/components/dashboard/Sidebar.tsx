@@ -37,6 +37,9 @@ const MAIN_NAV = [
   // income stream, not a utility beside Splitr and Release Links.
   { label: "Publishing", href: "/dashboard/publishing", badge: "NEW", svgIcon: <PublishingIcon /> },
   { label: "Earnings", href: "/dashboard/earnings", icon: "/images/money.svg" },
+  // Directly under Earnings, and in Main rather than Artist Tools: a split is how the money
+  // is divided, so it belongs beside the money and not beside the utilities.
+  { label: "Splitr", href: "/dashboard/splitr", icon: "/images/splitr.svg" },
   /*
    * Analytics points at v2 once the flag is on, and falls back to v1 otherwise.
    *
@@ -129,7 +132,6 @@ const LINK_CHILDREN: NavLeaf[] = [
  */
 const ARTIST_TOOLS: NavEntry[] = [
   { label: "Press Kit", href: "/dashboard/press-kit", badge: "NEW", svgIcon: <PressKitIcon /> },
-  { label: "Splitr", href: "/dashboard/splitr", icon: "/images/splitr.svg" },
   // Sits where the two link rows used to, so the habit of reaching here still works.
   { label: "Links", icon: "/images/link.svg", children: LINK_CHILDREN },
   { label: "Playlist Portal", href: "/dashboard/playlist-portal", icon: "/images/playlist-broken.svg" },
