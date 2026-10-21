@@ -30,7 +30,12 @@ const FALLBACK_FEATURES = [
   { id: "pitch",   title: "Priority Pitch",  description: "Submit your releases to access enhanced promotion and editorial playlists.", icon: "pitch" },
   { id: "ayo",     title: "Ayo AI",          description: "Smart and seamless insights powered by Ayo AI", icon: "ayo" },
   { id: "splitr",  title: "Splitr",          description: "Automatically split your music revenues among collaborators", icon: "splitr" },
-  { id: "amplify", title: "Amplify",         description: "Expand your sound to a wider audience worldwide.", icon: "amplify" },
+  /*
+   * Amplify is withdrawn from the product surface and is no longer offered here or in the
+   * sidebar. /dashboard/amplify still answers, so nothing already shared is broken.
+   *
+   *   { id: "amplify", title: "Amplify", description: "Expand your sound to a wider audience worldwide.", icon: "amplify" },
+   */
 ];
 
 const VALID_STATUSES = [
