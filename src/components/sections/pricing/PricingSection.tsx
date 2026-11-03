@@ -89,8 +89,8 @@ const PLANS: Plan[] = [
   {
     name: "Label Plan",
     bestFor: "Small labels, managers & collectives",
-    priceYearly: "215,880.00",
-    priceMonthly: "17,990.00",
+    priceYearly: "215,880",
+    priceMonthly: "17,990",
     features: [
       "All Growth Plan Features",
       "Up to 5 Artist Accounts",
