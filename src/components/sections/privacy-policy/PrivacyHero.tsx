@@ -3,9 +3,7 @@
 import React from "react";
 import Image from "next/image";
 
-/* ─────────────────────────────────────────────────────────
-   PRIVACY POLICY HERO SECTION
-───────────────────────────────────────────────────────── */
+
 const PrivacyHero: React.FC = () => {
   return (
     <section className="relative w-full bg-[#140C0C] pt-32 sm:pt-36 lg:pt-40 pb-0 px-4 sm:px-6 lg:px-10 overflow-hidden">
@@ -37,7 +35,6 @@ const PrivacyHero: React.FC = () => {
 
         </div>
 
-        {/* ── HERO IMAGE — object-contain to preserve the notched shape ── */}
         <div className="relative w-full">
           <Image
             src="/images/privacy-hero.webp"

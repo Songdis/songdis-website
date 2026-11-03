@@ -20,9 +20,7 @@ function useInView(threshold = 0.05) {
   return { ref, inView };
 }
 
-/* ─────────────────────────────────────────────────────────
-   BULLET LIST
-───────────────────────────────────────────────────────── */
+
 const BulletList: React.FC<{ items: string[] }> = ({ items }) => (
   <ul className="flex flex-col gap-1 mt-1">
     {items.map((item) => (
@@ -34,9 +32,6 @@ const BulletList: React.FC<{ items: string[] }> = ({ items }) => (
   </ul>
 );
 
-/* ─────────────────────────────────────────────────────────
-   SECTION BLOCK
-───────────────────────────────────────────────────────── */
 const PolicySection: React.FC<{
   number: string;
   title: string;
@@ -61,9 +56,6 @@ const BodyText: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   </p>
 );
 
-/* ─────────────────────────────────────────────────────────
-   PRIVACY POLICY CONTENT
-───────────────────────────────────────────────────────── */
 const PrivacyPolicyContent: React.FC = () => {
   const { ref, inView } = useInView();
 

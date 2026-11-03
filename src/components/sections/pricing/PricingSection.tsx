@@ -110,9 +110,7 @@ const PLANS: Plan[] = [
   },
 ];
 
-/* ─────────────────────────────────────────────────────────
-   PRICING CARD
-───────────────────────────────────────────────────────── */
+
 const PricingCard: React.FC<{
   plan: Plan;
   billing: "monthly" | "yearly";
