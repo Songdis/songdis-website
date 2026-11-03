@@ -1,6 +1,6 @@
 "use client";
 
-import { normaliseStatus, statusConfigFor } from "@/app/mock/music";
+import { normaliseStatus, statusConfigFor } from "@/lib/music/status";
 import PrivateLinkPanel from "./PrivateLinkPanel";
 import type { LinkVisibility, PrivateLink } from "@/lib/api/privateLinks";
 

@@ -1,15 +1,15 @@
 "use client";
 
-import { Release, normaliseStatus, statusConfigFor } from "@/app/mock/music";
+import { normaliseStatus, statusConfigFor } from "@/lib/music/status";
 import Image from "next/image";
-import { isTakedownEligible } from "@/lib/hooks/useMusic";
+import { isTakedownEligible, type NormalisedRelease } from "@/lib/hooks/useMusic";
 import { useToast, Toaster } from "@/components/dashboard/press-kit/primitives";
 
 interface ReleaseCardProps {
-  release: Release;
-  onView: (r: Release) => void;
-  onEdit: (r: Release) => void;
-  onTakedown: (r: Release) => void;
+  release: NormalisedRelease;
+  onView: (r: NormalisedRelease) => void;
+  onEdit: (r: NormalisedRelease) => void;
+  onTakedown: (r: NormalisedRelease) => void;
   /** Set when this release has a private listening link - see usePrivateLinks. */
   privateLinkUrl?: string;
 }
@@ -18,8 +18,7 @@ export default function ReleaseCard({ release, onView, onEdit, onTakedown, priva
   // Both go through the normaliser: the raw value may be "Live", "Needdoc" or "Taken Down".
   const rawStatus = normaliseStatus(release.status);
   const status = statusConfigFor(release.status);
-  const releaseDateIso = (release as unknown as { releaseDateIso?: string }).releaseDateIso;
-  const takedownEligible = isTakedownEligible(releaseDateIso);
+  const takedownEligible = isTakedownEligible(release.releaseDateIso);
   const { toast, show } = useToast();
 
   return (
@@ -99,7 +98,7 @@ export default function ReleaseCard({ release, onView, onEdit, onTakedown, priva
           </span>
           <span className="font-body text-white/40 text-[10px] flex items-center gap-1">
             <MusicNoteSmallIcon />
-            {((release as unknown as { trackCount?: number }).trackCount ?? release.tracks?.length ?? 1)} Track{((release as unknown as { trackCount?: number }).trackCount ?? release.tracks?.length ?? 1) > 1 ? "s" : ""}
+            {release.trackCount} Track{release.trackCount > 1 ? "s" : ""}
           </span>
         </div>
 
@@ -142,13 +141,26 @@ export default function ReleaseCard({ release, onView, onEdit, onTakedown, priva
   );
 }
 
+export interface DraftCardRelease {
+  id: string | number;
+  title: string;
+  artist: string;
+  cover: string;
+  type: string;
+  releaseDate?: string;
+  upc?: string;
+  tracks?: unknown[];
+  trackCount?: number;
+  [key: string]: unknown;
+}
+
 export function DraftCard({
   release,
   onContinue,
   onDelete,
 }: {
-  release: Release;
-  onContinue: (r: Release) => void;
+  release: DraftCardRelease;
+  onContinue: (r: DraftCardRelease) => void;
   onDelete?: () => void;
 }) {
   return (

@@ -186,10 +186,10 @@ export default function YourMusicPage() {
                 {filteredReleases.map((release) => (
                   <ReleaseCard
                     key={release.id}
-                    release={release as never}
-                    onView={(r) => setModal({ type: "detail", release: r as unknown as NormalisedRelease })}
-                    onEdit={(r) => setModal({ type: "edit", release: r as unknown as NormalisedRelease })}
-                    onTakedown={(r) => setModal({ type: "takedown", release: r as unknown as NormalisedRelease })}
+                    release={release}
+                    onView={(r) => setModal({ type: "detail", release: r })}
+                    onEdit={(r) => setModal({ type: "edit", release: r })}
+                    onTakedown={(r) => setModal({ type: "takedown", release: r })}
                     privateLinkUrl={privateLinks.byRelease.get(Number(release.id))?.url}
                   />
                 ))}
@@ -297,7 +297,7 @@ export default function YourMusicPage() {
         />
       )}
       {modal?.type === "takedown" && (
-        <TakedownModal release={modal.release as never} onClose={closeModal}
+        <TakedownModal release={modal.release} onClose={closeModal}
           onSubmit={(reason) => submitTakedown(Number(modal.release.id), { reason }, () => setModal({ type: "takedown-success" }))}
           isLoading={takedownLoading} />
       )}

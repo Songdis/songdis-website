@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Image from "next/image";
-import type { Release } from "../../../app/mock/music";
+import type { NormalisedRelease } from "@/lib/hooks/useMusic";
 import { SuccessModal } from "@/components/auth/SuccessModal";
 
 function ModalShell({
@@ -46,7 +46,7 @@ export function TakedownModal({
   onSubmit,
   isLoading,
 }: {
-  release: Release;
+  release: Pick<NormalisedRelease, "title" | "artist" | "cover">;
   onClose: () => void;
   onSubmit: (reason: string) => void;
   isLoading?: boolean;

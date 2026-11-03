@@ -9,7 +9,9 @@ export type ReleaseStatus =
   | "need_documentation"
   | "draft"
   | "takedown"
-  | "rejected";
+  | "rejected"
+  | "under_review"
+  | "approved";
 
 export type ReleaseType = "single" | "album_ep";
 

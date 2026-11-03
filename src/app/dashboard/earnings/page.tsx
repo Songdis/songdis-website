@@ -10,7 +10,6 @@ import { useEarningsBalance, useWithdrawalHistory } from "@/lib/hooks/useEarning
 import { useSplitEarnings } from "@/lib/hooks/useSplit";
 import { WITHDRAWALS_PAUSED_FALLBACK } from "@/lib/api/earnings";
 import type { PayoutStatus } from "@/lib/api/payout";
-import { MOCK_EARNINGS } from "@/app/mock/earnings";
 
 
 function StatCard({ label, value, icon, highlight }: {
@@ -35,6 +34,15 @@ function StatCard({ label, value, icon, highlight }: {
 }
 
 const fmt = (n: number) => `$${n.toLocaleString("en-US", { minimumFractionDigits: 2 })}`;
+
+const WITHDRAWAL_INFO = [
+  "NGN (Naira) withdrawals are processed instantly (subject to network conditions)",
+  "Other currency withdrawals are processed within 24-48 hours",
+  "A 1% conversion fee applies when withdrawing to local currency",
+  "NGN withdrawals include a flat ₦14,000 bank transfer processing fee",
+  "Minimum withdrawal amount: $50 USD",
+  "OTP verification required for security",
+];
 
 export default function EarningsPage() {
   const [withdrawOpen, setWithdrawOpen] = useState(false);
@@ -83,7 +91,6 @@ export default function EarningsPage() {
   const withdrawBlocked = withdrawalsPaused || payoutBlockReason !== undefined;
   const { history, isLoading: historyLoading, page: txPage, totalPages: txTotalPages, goToPage: txGoToPage } = useWithdrawalHistory(10);
 
-  const { withdrawalInfo } = MOCK_EARNINGS;
   const { earnings: splitEarningsData, isLoading: splitsLoading } = useSplitEarnings();
 
   return (
@@ -179,7 +186,7 @@ export default function EarningsPage() {
         <div className="rounded-2xl border border-dashed border-[#C30100]/30 bg-[#180F0F] p-5">
           <p className="font-body text-white/70 text-xs font-semibold mb-3">Withdrawal Information:</p>
           <ul className="space-y-2">
-            {withdrawalInfo.map((item, i) => (
+            {WITHDRAWAL_INFO.map((item, i) => (
               <li key={i} className="flex items-start gap-2 font-body text-white/50 text-xs">
                 <span className="text-[#C30100] shrink-0 mt-0.5">·</span>
                 {item}

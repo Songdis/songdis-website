@@ -9,7 +9,7 @@ import { useDashboard } from "@/lib/hooks/useDashboard";
 import { useBilling } from "@/lib/hooks/useBilling";
 import { getSpotlights, type Spotlight } from "@/lib/api/spotlight";
 import { ReleaseDetailModal } from "@/components/dashboard/music/ReleaseDetailModal";
-import { normaliseStatus } from "@/app/mock/music";
+import { normaliseStatus } from "@/lib/music/status";
 
 export default function DashboardPage() {
   const { data, isLoading } = useDashboard();
