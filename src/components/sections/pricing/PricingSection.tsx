@@ -52,7 +52,7 @@ const PLANS: Plan[] = [
   {
     name: "Basic",
     bestFor: "Perfect for independent artists getting started.",
-    priceYearly: "49,999",
+    priceYearly: "59,988",
     priceMonthly: "4,999",
     features: [
       "1 Artist Account",
@@ -71,8 +71,8 @@ const PLANS: Plan[] = [
   {
     name: "Growth",
     bestFor: "For artists and teams ready to scale.",
-    priceYearly: "149,999",
-    priceMonthly: "12,999",
+    priceYearly: "143,988",
+    priceMonthly: "11,999",
     features: [
       "All Basic Plan Features",
       "Up to 3 Artist & More",
@@ -89,8 +89,8 @@ const PLANS: Plan[] = [
   {
     name: "Label Plan",
     bestFor: "Small labels, managers & collectives",
-    priceYearly: "150,000.00",
-    priceMonthly: "12,500.00",
+    priceYearly: "215,880.00",
+    priceMonthly: "17,990.00",
     features: [
       "All Growth Plan Features",
       "Up to 5 Artist Accounts",
@@ -236,9 +236,7 @@ const PricingCard: React.FC<{
   );
 };
 
-/* ─────────────────────────────────────────────────────────
-   PRICING SECTION
-───────────────────────────────────────────────────────── */
+
 const PricingSection: React.FC = () => {
   const [billing, setBilling] = useState<"monthly" | "yearly">("yearly");
   const { ref: headRef, inView: headInView } = useInView(0.2);
