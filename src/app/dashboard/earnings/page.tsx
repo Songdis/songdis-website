@@ -6,7 +6,7 @@ import Link from "next/link";
 import DashboardLayout from "@/components/dashboard/DashboardLayout";
 import WithdrawModal from "@/components/dashboard/earnings/WithdrawModal";
 import PayoutAccountCard from "@/components/dashboard/earnings/PayoutAccountCard";
-import { useEarningsBalance, useWithdrawalHistory } from "@/lib/hooks/useEarnings";
+import { useEarningsBalance, useWithdrawalHistory, useWithdrawalConfig } from "@/lib/hooks/useEarnings";
 import { useSplitEarnings } from "@/lib/hooks/useSplit";
 import { WITHDRAWALS_PAUSED_FALLBACK } from "@/lib/api/earnings";
 import type { PayoutStatus } from "@/lib/api/payout";
@@ -35,14 +35,7 @@ function StatCard({ label, value, icon, highlight }: {
 
 const fmt = (n: number) => `$${n.toLocaleString("en-US", { minimumFractionDigits: 2 })}`;
 
-const WITHDRAWAL_INFO = [
-  "NGN (Naira) withdrawals are processed instantly (subject to network conditions)",
-  "Other currency withdrawals are processed within 24-48 hours",
-  "A 1% conversion fee applies when withdrawing to local currency",
-  "NGN withdrawals include a flat ₦14,000 bank transfer processing fee",
-  "Minimum withdrawal amount: $50 USD",
-  "OTP verification required for security",
-];
+const naira = (n: number) => `₦${n.toLocaleString("en-US", { maximumFractionDigits: 2 })}`;
 
 export default function EarningsPage() {
   const [withdrawOpen, setWithdrawOpen] = useState(false);
@@ -55,6 +48,28 @@ export default function EarningsPage() {
     isLoading: balanceLoading,
     refresh: refreshBalance,
   } = useEarningsBalance();
+
+  const { config: withdrawalConfig } = useWithdrawalConfig();
+
+  /*
+   * Built from the server's settings rather than typed here. A fee shown on this page
+   * that differs from the one charged at withdrawal is worse than showing no figure at
+   * all, and the fee is an admin setting now.
+   */
+  const withdrawalInfo = [
+    "Naira (NGN) withdrawals are processed instantly, subject to network conditions",
+    withdrawalConfig
+      ? `A ${withdrawalConfig.conversion_fee_percentage.toLocaleString("en-US", { maximumFractionDigits: 4 })}% conversion fee applies to the amount you withdraw`
+      : "A conversion fee applies to the amount you withdraw. It is shown in full before you confirm",
+    withdrawalConfig
+      ? `NGN withdrawals include a ${naira(withdrawalConfig.transfer_fee.total)} bank transfer processing fee (${naira(withdrawalConfig.transfer_fee.base)} + ${withdrawalConfig.transfer_fee.vat_percent}% VAT)`
+      : "NGN withdrawals include a bank transfer processing fee, shown in full before you confirm",
+    withdrawalConfig
+      ? `Minimum withdrawal amount: ${fmt(withdrawalConfig.min_withdrawal_usd)} USD`
+      : "The minimum withdrawal amount is shown before you confirm",
+    "The exchange rate is locked for 10 minutes once you preview a withdrawal",
+    "OTP verification required for security",
+  ];
 
 
   const [pausedMidFlow, setPausedMidFlow] = useState<string | null>(null);
@@ -186,7 +201,7 @@ export default function EarningsPage() {
         <div className="rounded-2xl border border-dashed border-[#C30100]/30 bg-[#180F0F] p-5">
           <p className="font-body text-white/70 text-xs font-semibold mb-3">Withdrawal Information:</p>
           <ul className="space-y-2">
-            {WITHDRAWAL_INFO.map((item, i) => (
+            {withdrawalInfo.map((item, i) => (
               <li key={i} className="flex items-start gap-2 font-body text-white/50 text-xs">
                 <span className="text-[#C30100] shrink-0 mt-0.5">·</span>
                 {item}

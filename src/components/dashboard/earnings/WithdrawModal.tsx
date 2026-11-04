@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { useWithdrawal, useBanks } from "@/lib/hooks/useEarnings";
+import { useWithdrawal, useBanks, useWithdrawalConfig } from "@/lib/hooks/useEarnings";
 import { getPayoutStatus, type PayoutStatus } from "@/lib/api/payout";
 import { getBalance, pauseFromBalance, type BalanceData } from "@/lib/api/earnings";
 import BankSelect from "./BankSelect";
@@ -25,10 +25,12 @@ export default function WithdrawModal({
 }: Props) {
   const [step, setStep] = useState<Step>("amount");
   const [amount, setAmount] = useState("");
-  const [currency, setCurrency] = useState("NGN");
+  const currency = "NGN";
   const [bankCode, setBankCode] = useState("");
   const [accountNumber, setAccountNumber] = useState("");
   const [otp, setOtp] = useState("");
+
+  const { config } = useWithdrawalConfig();
 
   const {
     preview, fetchPreview, clearPreview, isLoadingPreview, previewError,
@@ -93,7 +95,28 @@ export default function WithdrawModal({
   }, [bankCode, accountNumber, verifyBankAccount]);
 
   const amountNum = parseFloat(amount) || 0;
-  const belowMinimum = amountNum > 0 && amountNum < 50;
+  const minimumUsd = config?.min_withdrawal_usd ?? 50;
+  const belowMinimum = amountNum > 0 && amountNum < minimumUsd;
+
+  const [nowMs, setNowMs] = useState(() => Date.now());
+
+  /*
+   * The server locks the rate for ten minutes. Showing that countdown is the honest
+   * version of the promise: when it reaches zero the quote is dead and the artist
+   * previews again rather than confirming a number that will be refused.
+   */
+  useEffect(() => {
+    if (!preview?.expires_at) return;
+
+    const id = window.setInterval(() => setNowMs(Date.now()), 1000);
+    return () => window.clearInterval(id);
+  }, [preview]);
+
+  const secondsLeft = preview?.expires_at
+    ? Math.max(0, Math.floor((new Date(preview.expires_at).getTime() - nowMs) / 1000))
+    : null;
+
+  const quoteExpired = preview !== null && secondsLeft === 0;
 
   const destinationReady = savedAccount
     ? true
@@ -104,10 +127,12 @@ export default function WithdrawModal({
   const handlePreview = async () => {
     if (!amountNum || !destinationReady) return;
     await fetchPreview(amountNum, currency);
+    setNowMs(Date.now());
   };
 
   const handleSendOtp = async () => {
-    await fetchOtp(amountNum, currency, () => setStep("otp"));
+    if (!preview?.quote_reference || quoteExpired) return;
+    await fetchOtp(amountNum, currency, preview.quote_reference, () => setStep("otp"));
   };
 
   const handleWithdraw = async () => {
@@ -116,6 +141,7 @@ export default function WithdrawModal({
         otp_code: otp,
         amount_usd: amountNum,
         target_currency: currency,
+        quote_reference: preview?.quote_reference,
         payout_method: "bank_transfer",
         bank_code: savedAccount?.bank_code ?? bankCode,
         account_number: savedAccount?.account_number ?? accountNumber,
@@ -208,16 +234,12 @@ export default function WithdrawModal({
               </Field>
 
               <Field label="Target Currency">
-                <select
-                  value={currency}
-                  onChange={(e) => { setCurrency(e.target.value); clearPreview(); }}
-                  className={selectCls}
-                >
-                  <option value="NGN">Nigerian Naira (NGN)</option>
-                  <option value="USD">US Dollar (USD)</option>
-                  <option value="GBP">British Pounds (GBP)</option>
-                  <option value="KES">Kenyan Shilling (KES)</option>
-                </select>
+                <div className="rounded-xl border border-white/[0.08] bg-[#0E0808] px-4 py-3">
+                  <p className="font-body text-white text-sm font-medium">Nigerian Naira (NGN)</p>
+                  <p className="font-body text-white/40 text-[11px] mt-0.5">
+                    Royalties are currently paid out in Naira only.
+                  </p>
+                </div>
               </Field>
 
               {savedAccount ? (
@@ -271,7 +293,11 @@ export default function WithdrawModal({
                 {isLoadingPreview ? "Loading preview..." : "Preview Withdrawal"}
               </button>
 
-              {belowMinimum && <p className="font-body text-[#C30100] text-xs text-center">Minimum withdrawal amount is $50 USD</p>}
+              {belowMinimum && (
+                <p className="font-body text-[#C30100] text-xs text-center">
+                  Minimum withdrawal amount is ${minimumUsd.toLocaleString("en-US", { minimumFractionDigits: 2 })} USD
+                </p>
+              )}
 
               {previewError && <p className="font-body text-[#C30100] text-xs text-center">{previewError}</p>}
 
@@ -286,7 +312,7 @@ export default function WithdrawModal({
                     const rows: { label: string; value: string; muted?: boolean }[] = [
                       { label: "Amount", value: `$${money(preview.amount_usd)}` },
                       {
-                        label: `Conversion fee (${preview.conversion_fee_percentage ?? 1}%)`,
+                        label: `Conversion fee (${money(preview.conversion_fee_percentage)}%)`,
                         value: `-$${money(preview.conversion_fee_usd)}`,
                       },
                       {
@@ -337,11 +363,18 @@ export default function WithdrawModal({
                   <div className="border-t border-white/[0.06] pt-2 flex items-center justify-between">
                     <p className="font-body text-white/70 text-xs font-semibold">You Receive</p>
                     <p className="font-heading text-green-400 text-sm font-bold">
-                      {typeof preview.estimated_amount_after_transfer_fee === "number"
+                      ₦{typeof preview.estimated_amount_after_transfer_fee === "number"
                         ? preview.estimated_amount_after_transfer_fee.toLocaleString(undefined, { maximumFractionDigits: 2 })
-                        : "—"} {preview.target_currency ?? currency}
+                        : "—"}
                     </p>
                   </div>
+                  {secondsLeft !== null && (
+                    <p className={`font-body text-[11px] text-center pt-1 ${quoteExpired ? "text-[#C30100]" : "text-white/35"}`}>
+                      {quoteExpired
+                        ? "This quote has expired. Preview again to lock the current rate."
+                        : `Rate locked for ${Math.floor(secondsLeft / 60)}:${String(secondsLeft % 60).padStart(2, "0")}`}
+                    </p>
+                  )}
                 </div>
               )}
 
@@ -352,7 +385,7 @@ export default function WithdrawModal({
                 </button>
                 <button
                   onClick={handleSendOtp}
-                  disabled={!preview || isLoadingOtp || !destinationName}
+                  disabled={!preview || quoteExpired || isLoadingOtp || !destinationName}
                   className="flex-1 font-heading text-white uppercase text-xs tracking-widest rounded-full border border-[#C30100] bg-[#C30100]/10 hover:bg-[#C30100] py-3.5 transition-all disabled:opacity-40"
                 >
                   {isLoadingOtp ? "Sending OTP..." : "Continue"}
@@ -410,7 +443,6 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 }
 
 const inputCls = "w-full bg-[#0E0808] border border-white/10 rounded-lg px-4 py-3 font-body text-white text-sm placeholder:text-white/25 outline-none focus:border-[#C30100] transition-colors";
-const selectCls = "w-full appearance-none bg-[#0E0808] border border-white/10 rounded-lg px-4 py-3 font-body text-white text-sm outline-none focus:border-[#C30100] transition-colors";
 
 function PauseNoticeIcon() {
   return (

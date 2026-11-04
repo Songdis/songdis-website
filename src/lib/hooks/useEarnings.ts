@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import {
   getBalance,
+  getWithdrawalConfig,
   getWithdrawalHistory,
   getBanks,
   previewWithdrawal,
@@ -11,6 +12,7 @@ import {
   withdrawalPauseMessage,
   type BalanceData,
   type PreviewData,
+  type WithdrawalConfig,
   type WithdrawalRecord,
   type Bank,
   type WithdrawPayload,
@@ -63,8 +65,35 @@ export function useEarningsBalance() {
   };
 }
 
-export function useWithdrawalHistory(pageSize = 10) {
-  const [history, setHistory] = useState<WithdrawalRecord[]>([]);
+/**
+ * The fee, minimum and quote lifetime as the server currently has them.
+ *
+ * Fetched rather than hardcoded: the conversion fee is an admin setting, and copy that
+ * says "1%" while the server charges something else is a promise the product breaks.
+ */
+export function useWithdrawalConfig() {
+  const [config, setConfig] = useState<WithdrawalConfig | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    getWithdrawalConfig().then((res) => {
+      if (cancelled) return;
+      if (!res.error) {
+        const raw = res.data as Record<string, unknown> | null;
+        setConfig((raw?.data as WithdrawalConfig) ?? (raw as unknown as WithdrawalConfig));
+      }
+      setIsLoading(false);
+    });
+
+    return () => { cancelled = true; };
+  }, []);
+
+  return { config, isLoading };
+}
+
+export function useWithdrawalHistory(pageSize = 10) {  const [history, setHistory] = useState<WithdrawalRecord[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(1);
@@ -167,11 +196,16 @@ export function useWithdrawal() {
   const fetchOtp = useCallback(async (
     amountUsd: number,
     targetCurrency: string,
+    quoteReference?: string,
     onSuccess?: () => void
   ) => {
     setIsLoadingOtp(true);
     setOtpError(null);
-    const res = await sendWithdrawalOtp({ amount_usd: amountUsd, target_currency: targetCurrency });
+    const res = await sendWithdrawalOtp({
+      amount_usd: amountUsd,
+      target_currency: targetCurrency,
+      quote_reference: quoteReference,
+    });
     const paused = withdrawalPauseMessage(res);
     if (paused) {
       setPausedMessage(paused);

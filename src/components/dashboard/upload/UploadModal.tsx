@@ -603,13 +603,26 @@ export default function UploadModal({
     if (Object.keys(errors).length > 0) { setFieldErrors(errors); announceMissing(errors); return; }
     setFieldErrors({});
     if (state.releaseType === "single") {
+      // A single's track title is its release title.
       update({ trackTitle: state.releaseTitle, artistDetails: state.primaryArtist });
-      const writer: Contributor = { id: `writer_auto_${Date.now()}`, name: "", role: "Songwriter", type: "writer" };
-      const performer: Contributor = { id: `performer_auto_${Date.now()}`, name: state.primaryArtist, role: "Lead Vocals", type: "performer" };
-      update({ contributors: { writers: [writer], producers: [], performers: [performer] } });
+
+      /*
+       * Seed one blank writer and the primary artist as performer — but only when there are
+       * no credits yet. This used to run on every Continue, including while editing a live
+       * release, so opening the edit form wiped the saved writers, producers and performers
+       * and the artist had to retype them (or sent a request that deleted them).
+       */
+      const c = state.contributors;
+      const hasCredits = c.writers.length + c.producers.length + c.performers.length > 0;
+
+      if (!isEditing && !hasCredits) {
+        const writer: Contributor = { id: `writer_auto_${Date.now()}`, name: "", role: "Songwriter", type: "writer" };
+        const performer: Contributor = { id: `performer_auto_${Date.now()}`, name: state.primaryArtist, role: "Lead Vocals", type: "performer" };
+        update({ contributors: { writers: [writer], producers: [], performers: [performer] } });
+      }
     }
     goNext();
-  }, [state.releaseTitle, state.artworkUrl, state.releaseType, state.primaryArtist, update, goNext, announceMissing]);
+  }, [state.releaseTitle, state.artworkUrl, state.releaseType, state.primaryArtist, state.contributors, isEditing, update, goNext, announceMissing]);
 
   const handleStep2Continue = useCallback(() => {
     const errors: StepFieldErrors = {};
@@ -731,14 +744,26 @@ export default function UploadModal({
       return null;
     };
 
+    /*
+     * Compare credits by what they say, not how they were stored. A saved artist is
+     * {id, name, role, artistId: null} and the form's copy is {id, name, artistId: "", role}:
+     * same person, different key order and an empty id — which showed "Fimi → Fimi" as a
+     * change and sent it for review.
+     */
+    const creditKey = (x: unknown): string => {
+      if (typeof x === "string") return x.trim().toLowerCase();
+      const o = (x ?? {}) as Record<string, unknown>;
+      return [o.name, o.role, o.type]
+        .map((part) => String(part ?? "").trim().toLowerCase())
+        .join("|");
+    };
+
     const same = (a: unknown, b: unknown) => {
       const aList = asArray(a);
       const bList = asArray(b);
 
       if (aList || bList) {
-        const norm = (v: unknown[] | null) => JSON.stringify(
-          (v ?? []).map((x) => (typeof x === "string" ? x : JSON.stringify(x))).sort()
-        );
+        const norm = (v: unknown[] | null) => JSON.stringify((v ?? []).map(creditKey).sort());
         return norm(aList) === norm(bList);
       }
       if (typeof a === "boolean" || typeof b === "boolean") return Boolean(a) === Boolean(b);
@@ -1197,7 +1222,12 @@ export default function UploadModal({
               placeholder="This helps our team review it faster."
               className="w-full bg-[#0E0808] border border-white/10 rounded-xl px-4 py-3 font-body text-white text-sm placeholder:text-white/25 outline-none focus:border-[#C30100] transition-colors resize-none"
             />
-            <p className="font-body text-white/30 text-xs mt-1 mb-5">{editReason.length}/1000</p>
+            <p className="font-body text-white/30 text-xs mt-1 mb-5">
+              {editReason.length}/1000
+              {!editReason.trim() && (pendingChanges.length + trackChanges.length) > 0 && (
+                <span className="text-white/50"> · Add a short reason to send this for review.</span>
+              )}
+            </p>
 
             <div className="flex flex-col sm:flex-row gap-3">
               <button

@@ -1057,10 +1057,20 @@ export default function UploadTrack({ state, update, updateTrack, removeTrack, r
             <p className="font-body text-white text-sm font-medium mt-2">Track Details</p>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <Field label="Track Title">
-                <input value={state.trackTitle} readOnly
-                  className="w-full bg-[#0E0808]/50 border border-white/5 rounded-lg px-4 py-3 font-body text-white/50 text-sm cursor-not-allowed" />
-              </Field>
+              {/* A single's track title follows its release title (change it on the first
+                  step). An album track being edited on its own has a title of its own. */}
+              {singleTrackOnly && state.releaseType !== "single" ? (
+                <Field label="Track Title">
+                  <input value={state.trackTitle} onChange={(e) => update({ trackTitle: e.target.value })}
+                    className="w-full bg-[#0E0808] border border-white/10 rounded-lg px-4 py-3 font-body text-white text-sm placeholder:text-white/25 outline-none focus:border-[#C30100] transition-colors" />
+                </Field>
+              ) : (
+                <Field label="Track Title">
+                  <input value={state.trackTitle} readOnly
+                    className="w-full bg-[#0E0808]/50 border border-white/5 rounded-lg px-4 py-3 font-body text-white/50 text-sm cursor-not-allowed" />
+                  <p className="font-body text-white/35 text-[11px] mt-1">Same as the release title. Change it on the first step.</p>
+                </Field>
+              )}
               <Field label="Mixed Version">
                 <input value={state.mixedVersion} onChange={(e) => update({ mixedVersion: e.target.value })} placeholder="eg radio edit"
                   className="w-full bg-[#0E0808] border border-white/10 rounded-lg px-4 py-3 font-body text-white text-sm placeholder:text-white/25 outline-none focus:border-[#C30100] transition-colors" />

@@ -45,6 +45,10 @@ export interface PreviewPayload {
 
 
 export interface PreviewData {
+  quote_reference: string;
+  expires_at: string;
+  expires_in_seconds: number;
+
   amount_usd: number;
   target_currency: string;
   exchange_rate: number;
@@ -60,18 +64,38 @@ export interface PreviewData {
   estimated_amount_after_transfer_fee: number;
 
   available_balance: number;
+  minimum_withdrawal_usd?: number;
   [key: string]: unknown;
+}
+
+export interface WithdrawalConfig {
+  currency: string;
+  conversion_fee_percentage: number;
+  min_withdrawal_usd: number;
+  transfer_fee: {
+    currency: string;
+    base: number;
+    vat_percent: number;
+    vat: number;
+    total: number;
+  };
+  exchange_rate: number | null;
+  exchange_rate_updated_at: string | null;
+  quote_ttl_minutes: number;
+  payout_methods: string[];
 }
 
 export interface SendOtpPayload {
   amount_usd: number;
   target_currency: string;
+  quote_reference?: string;
 }
 
 export interface WithdrawPayload {
   otp_code: string;
   amount_usd: number;
   target_currency: string;
+  quote_reference?: string;
   payout_method: "bank_transfer" | "mobile_money";
   bank_code?: string;
   account_number?: string;
@@ -108,6 +132,14 @@ export interface VerifiedAccount {
 export async function getBalance() {
   return request<BalanceData>(
     "/withdrawal/royalties/balance",
+    { method: "GET" },
+    true
+  );
+}
+
+export async function getWithdrawalConfig() {
+  return request<WithdrawalConfig>(
+    "/withdrawal/config",
     { method: "GET" },
     true
   );
