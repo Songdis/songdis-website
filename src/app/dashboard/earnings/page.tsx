@@ -12,8 +12,8 @@ import { WITHDRAWALS_PAUSED_FALLBACK } from "@/lib/api/earnings";
 import type { PayoutStatus } from "@/lib/api/payout";
 
 
-function StatCard({ label, value, icon, highlight }: {
-  label: string; value: string; icon: string; highlight?: boolean;
+function StatCard({ label, value, icon, highlight, note }: {
+  label: string; value: string; icon: string; highlight?: boolean; note?: string;
 }) {
   return (
     <div className={["rounded-xl border p-4 flex flex-col gap-3 relative overflow-hidden",
@@ -25,6 +25,7 @@ function StatCard({ label, value, icon, highlight }: {
         </div>
       </div>
       <p className="font-heading text-white text-2xl font-bold">{value}</p>
+      {note && <p className="font-body text-white/40 text-[11px] leading-relaxed -mt-1">{note}</p>}
       {highlight && (
         <div aria-hidden className="absolute bottom-0 right-0 w-24 h-24 pointer-events-none"
           style={{ background: "radial-gradient(circle at bottom right, rgba(195,1,0,0.4) 0%, transparent 70%)", filter: "blur(12px)" }} />
@@ -42,7 +43,7 @@ export default function EarningsPage() {
   const [withdrawSuccess, setWithdrawSuccess] = useState(false);
 
   const {
-    availableBalance, totalEarnings, thisMonth, fromSplits,
+    availableBalance, totalEarnings, thisMonth, fromSplits, outstanding,
     withdrawalsPaused: balanceSaysPaused,
     withdrawalsPausedMessage,
     isLoading: balanceLoading,
@@ -166,6 +167,16 @@ export default function EarningsPage() {
            <StatCard label="Available Balance"  value={balanceLoading ? "..." : fmt(availableBalance)}  icon="/images/balance.svg"  highlight />
            <StatCard label="Total Earnings"  value={balanceLoading ? "..." : fmt(totalEarnings)}  icon="/images/releases.svg" />
           <StatCard label="From Splits"    value={balanceLoading ? "..." : fmt(fromSplits)}    icon="/images/splits.svg" />
+          {/* Owed from outside SongDis. Not in the available balance until it is paid in. */}
+          {outstanding.map((item) => (
+            <StatCard
+              key={item.id}
+              label={item.label}
+              value={fmt(item.amount_usd)}
+              icon="/images/balance.svg"
+              note={item.description ?? "Outstanding — not yet available to withdraw."}
+            />
+          ))}
         </div>
 
         <PayoutAccountCard onStatusChange={setPayoutStatus} />

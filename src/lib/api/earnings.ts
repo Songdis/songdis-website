@@ -11,7 +11,16 @@ export interface WithdrawalPauseState {
   withdrawals_paused_message?: string | null;
 }
 
+/** Money owed from outside SongDis, e.g. a previous distributor. Shown, not withdrawable. */
+export interface OutstandingEarning {
+  id: number;
+  label: string;
+  description: string | null;
+  amount_usd: number;
+}
+
 export interface BalanceData extends WithdrawalPauseState {
+  outstanding?: OutstandingEarning[];
   balance_usd: number;
   balance_ngn?: number;
   total_earnings?: number;

@@ -45,6 +45,7 @@ export function useEarningsBalance() {
   const totalEarnings    = (d?.total_earnings_usd ?? d?.total_earnings ?? 0) as number;
   const thisMonth        = (d?.this_month ?? breakdown?.this_month ?? 0) as number;
   const fromSplits       = (d?.split_earnings_usd ?? breakdown?.from_splits ?? d?.from_splits ?? 0) as number;
+  const outstanding      = Array.isArray(balance?.outstanding) ? balance!.outstanding : [];
 
   /* Withdrawals paused rides along with the balance. Read here so the page can
      say so before the artist commits to an amount. Balance and history stay
@@ -57,6 +58,7 @@ export function useEarningsBalance() {
     totalEarnings,
     thisMonth,
     fromSplits,
+    outstanding,
     withdrawalsPaused: withdrawalsPausedMessage !== null,
     withdrawalsPausedMessage,
     isLoading,
