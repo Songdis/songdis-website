@@ -236,9 +236,6 @@ export default function WithdrawModal({
               <Field label="Target Currency">
                 <div className="rounded-xl border border-white/[0.08] bg-[#0E0808] px-4 py-3">
                   <p className="font-body text-white text-sm font-medium">Nigerian Naira (NGN)</p>
-                  <p className="font-body text-white/40 text-[11px] mt-0.5">
-                    Royalties are currently paid out in Naira only.
-                  </p>
                 </div>
               </Field>
 
