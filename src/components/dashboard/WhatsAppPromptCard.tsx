@@ -49,14 +49,9 @@ export default function WhatsAppPromptCard() {
 
   if (justSaved && (missing?.length ?? 0) === 0) {
     return (
-      <div className="rounded-2xl border border-[#25D366]/30 bg-[#25D366]/[0.06] p-5 sm:p-6 flex items-center gap-4">
-        <WhatsAppIcon size={36} />
-        <div className="min-w-0">
-          <p className="font-heading text-white uppercase text-sm tracking-wide">You&apos;re on the list</p>
-          <p className="font-body text-white/50 text-xs sm:text-sm mt-1">
-            We&apos;ll be in touch on WhatsApp. You&apos;ll be among the first to try it.
-          </p>
-        </div>
+      <div className="rounded-2xl border border-[#25D366]/25 bg-[#25D366]/[0.05] px-4 py-3 flex items-center gap-3">
+        <WhatsAppIcon size={20} />
+        <p className="font-body text-white/80 text-sm">Done. We&apos;ll be in touch on WhatsApp.</p>
       </div>
     );
   }
@@ -64,57 +59,47 @@ export default function WhatsAppPromptCard() {
   const several = (missing?.length ?? 0) > 1;
 
   return (
-    <div className="relative rounded-2xl border border-[#25D366]/25 bg-gradient-to-br from-[#0B1A10] via-[#141110] to-[#180F0F] p-5 sm:p-6 overflow-hidden">
-      <div className="pointer-events-none absolute -top-16 -right-16 w-48 h-48 rounded-full bg-[#25D366]/10 blur-3xl" />
-
+    <div className="relative rounded-2xl border border-[#25D366]/20 bg-[#0F1511] p-4 sm:p-5">
       <button
         onClick={() => {
           snooze();
           setHidden(true);
           setJustSaved(false);
         }}
-        className="absolute top-3 right-3 text-white/30 hover:text-white/70 text-[10px] font-heading uppercase tracking-widest px-2 py-1"
+        className="absolute top-2 right-2 w-8 h-8 flex items-center justify-center text-white/30 hover:text-white/70"
         aria-label="Remind me later"
+        title="Later"
       >
-        Later
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12" /></svg>
       </button>
 
-      <div className="relative flex flex-col sm:flex-row sm:items-start gap-4">
-        <div className="w-12 h-12 rounded-full bg-[#25D366]/15 border border-[#25D366]/30 flex items-center justify-center shrink-0">
-          <WhatsAppIcon size={24} />
+      <div className="flex flex-col lg:flex-row lg:items-center gap-3 lg:gap-5 pr-6">
+        <div className="flex items-center gap-3 min-w-0 lg:flex-1">
+          <WhatsAppIcon size={28} />
+          <div className="min-w-0">
+            <p className="font-heading text-white uppercase text-sm tracking-wide">
+              Get SongDis on WhatsApp
+              <span className="ml-2 align-middle font-heading text-[8px] tracking-widest text-black bg-[#25D366] rounded-full px-1.5 py-0.5">NEW</span>
+            </p>
+            <p className="font-body text-white/50 text-xs mt-0.5">Release updates in your chats. Uploads coming soon.</p>
+          </div>
         </div>
 
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="font-heading text-[9px] uppercase tracking-widest text-black bg-[#25D366] rounded-full px-2 py-0.5">
-              New
-            </span>
-            <p className="font-heading text-white uppercase text-sm tracking-wide">SongDis is coming to WhatsApp</p>
-          </div>
-          <p className="font-body text-white/60 text-xs sm:text-sm mt-1.5 leading-relaxed">
-            Get your release updates right in your chats, and soon, drop a new release just by sending it
-            to us on WhatsApp. Add your number to be one of the first in.
-          </p>
-
-          <div className="mt-4 flex flex-col gap-3">
-            {missing?.map((p) => (
-              <ProfileRow
-                key={p.id}
-                profile={p}
-                showName={several}
-                onSaved={() => {
-                  const rest = (missing ?? []).filter((m) => m.id !== p.id);
-                  setMissing(rest);
-                  setJustSaved(true);
-                  if (rest.length === 0) setHidden(true);
-                }}
-              />
-            ))}
-          </div>
-
-          <p className="font-body text-white/30 text-[11px] mt-3">
-            By saving, you agree to get updates from SongDis on WhatsApp. You can opt out any time.
-          </p>
+        <div className="flex flex-col gap-2 lg:w-[420px] shrink-0">
+          {missing?.map((p) => (
+            <ProfileRow
+              key={p.id}
+              profile={p}
+              label={several ? p.stage_name : null}
+              onSaved={() => {
+                const rest = (missing ?? []).filter((m) => m.id !== p.id);
+                setMissing(rest);
+                setJustSaved(true);
+                if (rest.length === 0) setHidden(true);
+              }}
+            />
+          ))}
+          <p className="font-body text-white/25 text-[10px]">By saving you agree to WhatsApp updates from SongDis.</p>
         </div>
       </div>
     </div>
@@ -123,11 +108,11 @@ export default function WhatsAppPromptCard() {
 
 function ProfileRow({
   profile,
-  showName,
+  label,
   onSaved,
 }: {
   profile: WhatsAppProfile;
-  showName: boolean;
+  label: string | null;
   onSaved: () => void;
 }) {
   const [value, setValue] = useState(profile.suggested_number ?? "+");
@@ -146,36 +131,38 @@ function ProfileRow({
     onSaved();
   };
 
+  const isSuggestion = !!profile.suggested_number && value === profile.suggested_number;
+
   return (
     <div>
-      {showName && (
-        <p className="font-body text-white/70 text-xs mb-1.5">{profile.stage_name}</p>
-      )}
-      <div className="flex flex-col sm:flex-row gap-2">
-        <input
-          type="tel"
-          inputMode="tel"
-          autoComplete="tel"
-          value={value}
-          onChange={(e) => {
-            setValue(e.target.value);
-            setError(null);
-          }}
-          placeholder="+234 801 234 5678"
-          className="flex-1 min-w-0 rounded-xl border border-white/[0.1] bg-black/30 px-4 py-3 font-body text-white text-sm placeholder:text-white/25 focus:outline-none focus:border-[#25D366]/60"
-        />
+      <div className="flex gap-2">
+        <div className="flex-1 min-w-0 flex items-center rounded-full border border-white/[0.1] bg-black/30 focus-within:border-[#25D366]/60">
+          {label && (
+            <span className="pl-4 pr-1 font-body text-white/40 text-xs truncate max-w-[40%]">{label}</span>
+          )}
+          <input
+            type="tel"
+            inputMode="tel"
+            autoComplete="tel"
+            value={value}
+            onChange={(e) => {
+              setValue(e.target.value);
+              setError(null);
+            }}
+            placeholder="+234 801 234 5678"
+            aria-label={label ? `WhatsApp number for ${label}` : "WhatsApp number"}
+            className={`flex-1 min-w-0 bg-transparent ${label ? "pl-2" : "pl-4"} pr-4 py-2.5 font-body text-white text-sm placeholder:text-white/25 focus:outline-none`}
+          />
+        </div>
         <button
           onClick={save}
           disabled={saving || value.replace(/\D/g, "").length < 8}
-          className="shrink-0 font-heading text-black uppercase text-[10px] tracking-widest rounded-full bg-[#25D366] hover:bg-[#1fb857] disabled:opacity-40 disabled:cursor-not-allowed px-6 py-3 min-h-[44px] transition-colors"
+          className="shrink-0 font-heading text-black uppercase text-[10px] tracking-widest rounded-full bg-[#25D366] hover:bg-[#1fb857] disabled:opacity-40 disabled:cursor-not-allowed px-5 min-h-[44px] transition-colors"
         >
-          {saving ? "Saving…" : profile.suggested_number && value === profile.suggested_number ? "Yes, use this" : "Save"}
+          {saving ? "Saving…" : isSuggestion ? "Use this" : "Save"}
         </button>
       </div>
-      {profile.suggested_number && value === profile.suggested_number && !error && (
-        <p className="font-body text-white/35 text-[11px] mt-1.5">Is this your WhatsApp number? It&apos;s the phone on your profile.</p>
-      )}
-      {error && <p className="font-body text-[#ff6b6b] text-[11px] mt-1.5">{error}</p>}
+      {error && <p className="font-body text-[#ff6b6b] text-[11px] mt-1.5 pl-4">{error}</p>}
     </div>
   );
 }
