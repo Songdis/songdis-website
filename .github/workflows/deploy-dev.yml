@@ -20,13 +20,21 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Deploy to dev server
-        uses: appleboy/ssh-action@master
-        with:
-          host: ${{ secrets.SSH_HOST }}
-          username: ${{ secrets.SSH_USER }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          command_timeout: 20m
-          script: |
+        # Plain ssh rather than appleboy/ssh-action: that action downloads a binary from
+        # GitHub releases on every run, and when that download 504s (Nov 2026) no deploy
+        # can happen at all. The runner already has ssh.
+        # The build happens on the server and takes a couple of minutes on six cores.
+        timeout-minutes: 20
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+        run: |
+            install -m 700 -d ~/.ssh
+            printf '%s\n' "$SSH_PRIVATE_KEY" > ~/.ssh/deploy_key
+            chmod 600 ~/.ssh/deploy_key
+            ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=accept-new -o ServerAliveInterval=30 \
+              "$SSH_USER@$SSH_HOST" 'bash -s' <<'DEPLOY'
             set -e
             cd /opt/songdis-web-dev
 
@@ -89,3 +97,4 @@ jobs:
             docker image prune -f --filter "until=168h" || true
 
             echo "Deployed."
+            DEPLOY
