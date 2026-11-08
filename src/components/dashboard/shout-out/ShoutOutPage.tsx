@@ -57,8 +57,8 @@ export function ShoutOutPage() {
   if (!data) return <div className="h-64 rounded-3xl bg-white/[0.03] animate-pulse" />;
 
   return (
-    <div className="flex flex-col gap-4 max-w-3xl">
-      <div className="mb-1">
+    <div className="flex flex-col gap-4 sm:gap-5 max-w-6xl">
+      <div className="mb-1 max-w-3xl">
         <h2 className="font-body font-bold text-white text-[26px] sm:text-3xl leading-tight tracking-tight">
           New release, show or merch? Reach your fans directly. No algorithm.
         </h2>
@@ -68,30 +68,37 @@ export function ShoutOutPage() {
         </p>
       </div>
 
-      <div className="grid grid-cols-2 gap-3 sm:gap-4">
-        <div className={`${panel} p-4 sm:p-5 flex flex-col`}>
-          <p className="font-body text-white/55 text-sm">Balance</p>
-          <p className="font-heading text-white text-3xl sm:text-4xl mt-1">{naira(data.balance_kobo)}</p>
-          <p className="font-body text-white/45 text-xs mt-1 flex-1">Only pay for what you send</p>
-          <button onClick={() => setTopupOpen(true)} className={`${outlinePill} mt-4`}>
-            Top up
-          </button>
+      {/* Mobile: cards, form, history stacked. Desktop: form on the left, cards and history in a right-hand column. */}
+      <div className="grid gap-4 sm:gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(320px,380px)] items-start">
+        <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:col-start-2 lg:row-start-1">
+          <div className={`${panel} p-4 sm:p-5 flex flex-col`}>
+            <p className="font-body text-white/55 text-sm">Balance</p>
+            <p className="font-heading text-white text-3xl mt-1">{naira(data.balance_kobo)}</p>
+            <p className="font-body text-white/45 text-xs mt-1 flex-1">Only pay for what you send</p>
+            <button onClick={() => setTopupOpen(true)} className={`${outlinePill} mt-4`}>
+              Top up
+            </button>
+          </div>
+          <div className={`${panel} p-4 sm:p-5 flex flex-col`}>
+            <p className="font-body text-white/55 text-sm">Fans</p>
+            <p className="font-heading text-white text-3xl mt-1">{data.fans.total.toLocaleString()}</p>
+            <p className="font-body text-white/45 text-xs mt-1 flex-1">
+              {data.fans.unsubscribed ? `${data.fans.unsubscribed} unsubscribed` : "From your pre-saves"}
+            </p>
+            <button onClick={() => setFansOpen(true)} className={`${redPill} mt-4 min-h-[48px]`}>
+              Add fans
+            </button>
+          </div>
         </div>
-        <div className={`${panel} p-4 sm:p-5 flex flex-col`}>
-          <p className="font-body text-white/55 text-sm">Fans</p>
-          <p className="font-heading text-white text-3xl sm:text-4xl mt-1">{data.fans.total.toLocaleString()}</p>
-          <p className="font-body text-white/45 text-xs mt-1 flex-1">
-            {data.fans.unsubscribed ? `${data.fans.unsubscribed} unsubscribed` : "From your pre-saves"}
-          </p>
-          <button onClick={() => setFansOpen(true)} className={`${redPill} mt-4 min-h-[48px]`}>
-            Add fans
-          </button>
+
+        <div className="lg:col-start-1 lg:row-start-1 lg:row-span-2">
+          <Compose data={data} onSent={load} onTopUp={() => setTopupOpen(true)} onAddFans={() => setFansOpen(true)} />
+        </div>
+
+        <div className="lg:col-start-2 lg:row-start-2">
+          <History data={data} />
         </div>
       </div>
-
-      <Compose data={data} onSent={load} onTopUp={() => setTopupOpen(true)} onAddFans={() => setFansOpen(true)} />
-
-      <History data={data} />
 
       {topupOpen && <TopupModal minKobo={data.min_topup_kobo} priceKobo={data.price_kobo} onClose={() => setTopupOpen(false)} onPaid={load} />}
       {fansOpen && <AddFansModal releases={data.fans.by_release} onClose={() => setFansOpen(false)} onDone={load} />}
