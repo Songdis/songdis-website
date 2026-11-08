@@ -33,6 +33,10 @@ export interface ShoutOutLedgerEntry {
 export interface ShoutOutOverview {
   balance_kobo: number;
   price_kobo: number;
+  free_monthly: number;
+  free_remaining: number;
+  whatsapp_price_kobo: number;
+  button_labels: string[];
   min_topup_kobo: number;
   fans: {
     total: number;
@@ -47,6 +51,8 @@ export interface ShoutOutOverview {
 export interface ShoutOutQuote {
   recipients: number;
   price_kobo: number;
+  free_applied: number;
+  free_remaining: number;
   cost_kobo: number;
   balance_kobo: number;
   shortfall_kobo: number;
@@ -77,6 +83,7 @@ export const sendShoutOut = (payload: {
   subject: string;
   body: string;
   link_url?: string;
+  button_label?: string;
   music_upload_id?: number | null;
 }) => request<ShoutOutBroadcast>(`${ROOT}/broadcasts`, { method: "POST", body: JSON.stringify(payload) }, true);
 
@@ -85,6 +92,7 @@ export const previewShoutOut = (payload: {
   subject: string;
   body: string;
   link_url?: string;
+  button_label?: string;
 }) =>
   request<{ from: string; reply_to: string; subject: string; html: string }>(
     `${ROOT}/preview`,
