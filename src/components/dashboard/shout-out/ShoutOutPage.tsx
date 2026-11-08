@@ -7,6 +7,7 @@ import {
   getTopup,
   importFans,
   naira,
+  previewShoutOut,
   quoteShoutOut,
   sendShoutOut,
   type ShoutOutOverview,
@@ -121,6 +122,25 @@ function Compose({
   const [confirming, setConfirming] = useState(false);
   const [sending, setSending] = useState(false);
   const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null);
+  const [preview, setPreview] = useState<{ from: string; reply_to: string; subject: string; html: string } | null>(null);
+  const [previewing, setPreviewing] = useState(false);
+
+  const openPreview = async () => {
+    if (!artistId) return;
+    setPreviewing(true);
+    const res = await previewShoutOut({
+      artist_profile_id: artistId,
+      subject: subject.trim(),
+      body: body.trim(),
+      link_url: link.trim() || undefined,
+    });
+    setPreviewing(false);
+    if (res.error || !res.data) {
+      setMessage({ ok: false, text: res.errors?.link_url?.[0] ?? res.error ?? "Could not load the preview." });
+      return;
+    }
+    setPreview(res.data);
+  };
 
   useEffect(() => {
     let alive = true;
@@ -240,11 +260,51 @@ function Compose({
             </button>
           </div>
         ) : (
-          <button onClick={() => setConfirming(true)} className={primaryBtn} disabled={!ready}>
-            Send
-          </button>
+          <div className="flex gap-2">
+            <button onClick={openPreview} className={ghostBtn} disabled={!artistId || previewing}>
+              {previewing ? "Loading…" : "Preview"}
+            </button>
+            <button onClick={() => setConfirming(true)} className={primaryBtn} disabled={!ready}>
+              Send
+            </button>
+          </div>
         )}
       </div>
+
+      {preview && (
+        <div
+          className="fixed inset-0 z-[60] bg-black/70 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-6"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Email preview"
+          onClick={() => setPreview(null)}
+        >
+          <div
+            className="w-full sm:max-w-xl max-h-[92vh] flex flex-col rounded-t-3xl sm:rounded-3xl border border-white/[0.08] bg-[#140C0C] overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-start justify-between gap-3 px-5 pt-5 pb-3 border-b border-white/[0.06]">
+              <div className="min-w-0 font-body text-xs leading-relaxed">
+                <p className="text-white/40">From <span className="text-white/80">{preview.from}</span></p>
+                <p className="text-white/40">Replies go to <span className="text-white/80">{preview.reply_to}</span></p>
+                <p className="text-white text-sm font-semibold mt-1 truncate">{preview.subject}</p>
+              </div>
+              <button onClick={() => setPreview(null)} className="text-white/40 hover:text-white text-xl leading-none shrink-0" aria-label="Close preview">
+                ×
+              </button>
+            </div>
+            <iframe
+              title="Email preview"
+              srcDoc={preview.html}
+              sandbox=""
+              className="w-full flex-1 min-h-[60vh] bg-[#f4f4f5]"
+            />
+            <p className="font-body text-white/35 text-[11px] px-5 py-3">
+              This is exactly what a fan sees. &quot;Ada&quot; is a sample name; each fan sees their own.
+            </p>
+          </div>
+        </div>
+      )}
 
       {message && (
         <p className={`font-body text-sm mt-3 ${message.ok ? "text-[#25D366]" : "text-[#ff6b6b]"}`}>{message.text}</p>

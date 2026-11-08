@@ -80,6 +80,18 @@ export const sendShoutOut = (payload: {
   music_upload_id?: number | null;
 }) => request<ShoutOutBroadcast>(`${ROOT}/broadcasts`, { method: "POST", body: JSON.stringify(payload) }, true);
 
+export const previewShoutOut = (payload: {
+  artist_profile_id: number;
+  subject: string;
+  body: string;
+  link_url?: string;
+}) =>
+  request<{ from: string; reply_to: string; subject: string; html: string }>(
+    `${ROOT}/preview`,
+    { method: "POST", body: JSON.stringify(payload) },
+    true
+  );
+
 export const createTopup = (amountNaira: number) =>
   request<ShoutOutTopup>(`${ROOT}/topups`, { method: "POST", body: JSON.stringify({ amount: amountNaira }) }, true);
 
