@@ -8,6 +8,7 @@ import NotificationPanel from "@/components/dashboard/notifications/Notification
 import SubscriptionBanner from "@/components/dashboard/SubscriptionBanner";
 import AyoChatWidget from "@/components/dashboard/ayo/AyoChatWidget";
 import SupportWidget from "@/components/dashboard/SupportWidget";
+import WhatsAppGate from "@/components/dashboard/WhatsAppGate";
 import { useUser } from "@/lib/hooks/useUser";
 import { useBilling } from "@/lib/hooks/useBilling";
 import { getUnreadCount } from "@/lib/api/notifications";
@@ -247,6 +248,9 @@ export default function DashboardLayout({ children, customCta, showWelcome = fal
         and locking them out of support is how a billing question becomes a chargeback.
       */}
       <SupportWidget />
+
+      {/* Every artist profile needs a WhatsApp number; blocks every dashboard page until then. */}
+      <WhatsAppGate />
     </div>
   );
 }

@@ -9,7 +9,6 @@ import { useDashboard } from "@/lib/hooks/useDashboard";
 import { useBilling } from "@/lib/hooks/useBilling";
 import { getSpotlights, type Spotlight } from "@/lib/api/spotlight";
 import { ReleaseDetailModal } from "@/components/dashboard/music/ReleaseDetailModal";
-import WhatsAppPromptCard from "@/components/dashboard/WhatsAppPromptCard";
 import { normaliseStatus } from "@/lib/music/status";
 
 export default function DashboardPage() {
@@ -38,8 +37,6 @@ export default function DashboardPage() {
       <div className="flex flex-col gap-5">
 
         {needsFirstArtist && <FirstArtistCard locked={isLocked} />}
-
-        {!needsFirstArtist && <WhatsAppPromptCard />}
 
         <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
           <div className="col-span-1 md:col-span-3 grid grid-rows-2 gap-4">

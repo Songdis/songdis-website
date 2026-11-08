@@ -91,6 +91,9 @@ export default function ArtistProfileModal({
   const [fullName, setFullName] = useState(profile?.fullName ?? "");
   const [stageName, setStageName] = useState(profile?.stageName ?? "");
   const [phone, setPhone] = useState(profile?.phone ?? "");
+  // New profiles must have a WhatsApp number; usually it is the phone above.
+  const [whatsappSameAsPhone, setWhatsappSameAsPhone] = useState(true);
+  const [whatsapp, setWhatsapp] = useState("");
   const [dob, setDob] = useState(profile?.dob ?? "");
   const [location, setLocation] = useState(profile?.location ?? "");
   const [twitter, setTwitter] = useState(profile?.twitter ?? "");
@@ -246,6 +249,12 @@ export default function ArtistProfileModal({
       apple_music_url: appleMusic,
       tiktok_url: tiktok,
       youtube_url: youtube,
+      ...(isEdit
+        ? {}
+        : {
+            whatsapp_number: whatsappSameAsPhone ? toWhatsApp(phone) : whatsapp,
+            whatsapp_consent: true,
+          }),
     };
 
     /*
@@ -273,7 +282,7 @@ export default function ArtistProfileModal({
           flattened[key] = Array.isArray(msgs) ? msgs[0] : String(msgs);
         }
         setFieldErrors(flattened);
-        const step1Fields = ["full_name", "stage_name", "dob", "location", "phone"];
+        const step1Fields = ["full_name", "stage_name", "dob", "location", "phone", "whatsapp_number", "whatsapp_consent"];
         if (Object.keys(res.errors).some((k) => step1Fields.includes(k)) && step === "social") {
           setStep("info");
         }
@@ -606,6 +615,32 @@ export default function ArtistProfileModal({
                     />
                   </Field>
                   {fieldErrors.phone && <FieldError message={fieldErrors.phone} />}
+                  {!isEdit && (
+                    <div className="mt-2">
+                      <label className="flex items-center gap-2 cursor-pointer select-none">
+                        <input
+                          type="checkbox"
+                          checked={whatsappSameAsPhone}
+                          onChange={(e) => { setWhatsappSameAsPhone(e.target.checked); clearFieldError("whatsapp_number"); }}
+                          className="accent-[#25D366] w-4 h-4"
+                        />
+                        <span className="font-body text-white/60 text-xs">This is also my WhatsApp number</span>
+                      </label>
+                      {!whatsappSameAsPhone && (
+                        <div className="mt-2">
+                          <Input
+                            value={whatsapp}
+                            onChange={(v) => { setWhatsapp(v); clearFieldError("whatsapp_number"); }}
+                            placeholder="WhatsApp number, e.g. +2348012345678"
+                          />
+                        </div>
+                      )}
+                      {(fieldErrors.whatsapp_number || fieldErrors.whatsapp_consent) && (
+                        <FieldError message={fieldErrors.whatsapp_number ?? fieldErrors.whatsapp_consent} />
+                      )}
+                      <p className="font-body text-white/30 text-[10px] mt-1">We&apos;ll send you updates from SongDis on WhatsApp.</p>
+                    </div>
+                  )}
                 </div>
                 <div>
                   <Field label="Date of birth">
@@ -903,4 +938,13 @@ function AlertIcon() {
       <line x1="12" y1="16" x2="12.01" y2="16" />
     </svg>
   );
+}
+
+/** The profile phone in WhatsApp form. The form's country code is fixed at +234. */
+function toWhatsApp(phone: string): string {
+  const n = phone.replace(/[\s\-().]/g, "");
+  if (n.startsWith("+")) return n;
+  if (n.startsWith("00")) return "+" + n.slice(2);
+  if (n.startsWith("234") && n.length > 10) return "+" + n;
+  return "+234" + n.replace(/^0+/, "");
 }

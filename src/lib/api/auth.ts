@@ -209,6 +209,9 @@ export interface CreateProfilePayload {
   apple_music_url: string;
   tiktok_url: string;
   youtube_url: string;
+  /** Required when creating; not sent on edit. */
+  whatsapp_number?: string;
+  whatsapp_consent?: boolean;
 }
 
 
