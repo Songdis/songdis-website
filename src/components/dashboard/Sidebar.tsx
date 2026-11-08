@@ -131,6 +131,7 @@ const LINK_CHILDREN: NavLeaf[] = [
  *   { label: "Amplify", href: "/dashboard/amplify", icon: "/images/megaphone.svg" },
  */
 const ARTIST_TOOLS: NavEntry[] = [
+  { label: "Shout Out", href: "/dashboard/shout-out", badge: "NEW", svgIcon: <ShoutOutIcon /> },
   { label: "Press Kit", href: "/dashboard/press-kit", badge: "NEW", svgIcon: <PressKitIcon /> },
   // Sits where the two link rows used to, so the habit of reaching here still works.
   { label: "Links", icon: "/images/link.svg", children: LINK_CHILDREN },
@@ -471,6 +472,16 @@ function PublishingIcon() {
       {/* quill */}
       <path d="M21 3c-4.5 1-8 4.5-9 9l-1.5 4 4-1.5c4.5-1 8-4.5 9-9z" />
       <path d="M14.5 9.5 9 15" />
+    </svg>
+  );
+}
+
+function ShoutOutIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M3 11v2a1 1 0 0 0 1 1h2l5 4V6L6 10H4a1 1 0 0 0-1 1z"/>
+      <path d="M15.5 8.5a5 5 0 0 1 0 7"/>
+      <path d="M18.5 5.5a9 9 0 0 1 0 13"/>
     </svg>
   );
 }
