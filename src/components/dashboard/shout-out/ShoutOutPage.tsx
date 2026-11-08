@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   createTopup,
+  downloadFansTemplate,
   getShoutOut,
   getTopup,
   importFans,
@@ -367,7 +368,16 @@ function AddFansModal({
       setResult({ ok: false, text: res.error });
       return;
     }
-    setResult({ ok: true, text: `Added ${res.data?.added ?? 0} fan${res.data?.added === 1 ? "" : "s"}.` });
+    const d = res.data;
+    const notes = [
+      d?.already_added ? `${d.already_added} already on your list` : null,
+      d?.missing_whatsapp ? `${d.missing_whatsapp} skipped: no valid WhatsApp number` : null,
+      d?.missing_email ? `${d.missing_email} skipped: no valid email` : null,
+    ].filter(Boolean);
+    setResult({
+      ok: (d?.added ?? 0) > 0 || notes.length === 0,
+      text: `Added ${d?.added ?? 0} fan${d?.added === 1 ? "" : "s"}.${notes.length ? " " + notes.join(" · ") + "." : ""}`,
+    });
     onDone();
   };
 
@@ -379,12 +389,30 @@ function AddFansModal({
           Fans who pre-save your releases are added automatically. You can also upload a list.
         </p>
 
+        <div className="mt-4 rounded-2xl bg-[#0D0808] border border-white/[0.07] p-4">
+          <p className="font-body text-white/80 text-sm font-semibold">Your file needs these columns</p>
+          <ul className="font-body text-white/60 text-sm mt-2 space-y-1">
+            <li><span className="text-white">email</span>: required</li>
+            <li><span className="text-white">whatsapp</span>: required, with the country code, e.g. +2348012345678</li>
+            <li><span className="text-white">name</span>: optional</li>
+          </ul>
+          <button
+            onClick={downloadFansTemplate}
+            className="mt-3 inline-flex items-center gap-1.5 font-body text-[#ff5a4f] hover:text-[#ff7a70] text-sm font-medium"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M12 3v12m0 0-4.5-4.5M12 15l4.5-4.5M4 19h16" />
+            </svg>
+            Download template
+          </button>
+        </div>
+
         <button
           onClick={() => fileRef.current?.click()}
           className="mt-5 w-full rounded-2xl border border-dashed border-white/20 hover:border-white/40 bg-[#0D0808] px-4 py-6 font-body text-white/70 text-sm text-center"
         >
           {fileName ?? "Choose a CSV file"}
-          <span className="block text-white/35 text-xs mt-1">Needs an &quot;email&quot; column · &quot;name&quot; and &quot;phone&quot; optional</span>
+          <span className="block text-white/35 text-xs mt-1">CSV with email and WhatsApp for every fan</span>
         </button>
         <input ref={fileRef} type="file" accept=".csv,text/csv" className="hidden" onChange={(e) => setFileName(e.target.files?.[0]?.name ?? null)} />
 
@@ -404,7 +432,7 @@ function AddFansModal({
 
         <label className="flex items-start gap-2.5 mt-4 cursor-pointer">
           <input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)} className="mt-0.5 w-4 h-4 accent-[#C30100]" />
-          <span className="font-body text-white/65 text-sm">These fans agreed to hear from me.</span>
+          <span className="font-body text-white/65 text-sm">These fans agreed to hear from me by email and WhatsApp.</span>
         </label>
 
         <button onClick={upload} disabled={!consent || !fileName || busy} className={`${redPill} mt-5`}>

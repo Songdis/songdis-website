@@ -111,8 +111,28 @@ export function importFans(file: File, releaseId: number | null) {
   form.append("file", file);
   form.append("consent", "1");
   if (releaseId) form.append("music_upload_id", String(releaseId));
-  return request<{ added: number; skipped: number; total: number }>(`${ROOT}/fans/import`, { method: "POST", body: form }, true);
+  return request<{
+    added: number;
+    already_added: number;
+    missing_email: number;
+    missing_whatsapp: number;
+    skipped: number;
+    total: number;
+  }>(`${ROOT}/fans/import`, { method: "POST", body: form }, true);
 }
 
 export const naira = (kobo: number) =>
   "₦" + (kobo / 100).toLocaleString("en-NG", { minimumFractionDigits: kobo % 100 ? 2 : 0, maximumFractionDigits: 2 });
+
+/** The fan list template: the columns the importer expects, with one example row. */
+export function downloadFansTemplate() {
+  const csv = "email,name,whatsapp\nada@example.com,Ada Obi,+2348012345678\n";
+  const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "shout-out-fans-template.csv";
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
