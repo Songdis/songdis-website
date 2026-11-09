@@ -8,6 +8,7 @@ import { request } from "./core";
 export interface ShoutOutBroadcast {
   id: number;
   type: "broadcast" | "release_live";
+  channel?: "email" | "whatsapp";
   from_name: string;
   subject: string;
   music_upload_id: number | null;

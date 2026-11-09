@@ -242,7 +242,7 @@ function Compose({
           <WhatsAppLogo size={28} />
           <p className="font-body font-semibold text-white/60 text-base mt-2.5">WhatsApp</p>
           <span className="mt-2 rounded-full bg-white/[0.06] px-3 py-1 font-body text-white/55 text-xs font-semibold">{naira(data.whatsapp_price_kobo)}</span>
-          <span className="mt-1.5 font-body text-amber-400 text-xs font-medium">Coming soon</span>
+          <span className="mt-1.5 font-body text-[#25D366] text-xs font-medium leading-snug">Sent automatically on release day</span>
         </div>
       </div>
 
@@ -473,6 +473,7 @@ function History({ data }: { data: ShoutOutOverview }) {
                 <div className="min-w-0">
                   <p className="font-body text-white text-sm truncate">{b.subject}</p>
                   <p className="font-body text-white/40 text-xs mt-0.5">
+                    {b.channel === "whatsapp" ? "WhatsApp · " : ""}
                     {b.type === "release_live" ? "Release is live · " : ""}
                     {statusText(b)}
                   </p>
