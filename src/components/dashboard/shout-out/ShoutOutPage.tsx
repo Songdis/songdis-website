@@ -33,8 +33,21 @@ const outlinePill =
 export function ShoutOutPage() {
   const [data, setData] = useState<ShoutOutOverview | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [topupOpen, setTopupOpen] = useState(false);
+  // Back from the Bachs payment page: ?topup=<reference>.
+  const [returningTopup] = useState<string | null>(() =>
+    typeof window === "undefined" ? null : new URLSearchParams(window.location.search).get("topup")
+  );
+  const [topupOpen, setTopupOpen] = useState(returningTopup !== null);
   const [fansOpen, setFansOpen] = useState(false);
+
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    if (url.searchParams.has("topup") || url.searchParams.has("topup_cancelled")) {
+      url.searchParams.delete("topup");
+      url.searchParams.delete("topup_cancelled");
+      window.history.replaceState(null, "", url.pathname + (url.search ? url.search : ""));
+    }
+  }, []);
 
   const apply = useCallback((res: Awaited<ReturnType<typeof getShoutOut>>) => {
     if (res.error || !res.data) {
@@ -104,7 +117,15 @@ export function ShoutOutPage() {
         </div>
       </div>
 
-      {topupOpen && <TopupModal minKobo={data.min_topup_kobo} priceKobo={data.price_kobo} onClose={() => setTopupOpen(false)} onPaid={load} />}
+      {topupOpen && (
+        <TopupModal
+          minKobo={data.min_topup_kobo}
+          priceKobo={data.price_kobo}
+          returningReference={returningTopup}
+          onClose={() => setTopupOpen(false)}
+          onPaid={load}
+        />
+      )}
       {fansOpen && <AddFansModal releases={data.releases} onClose={() => setFansOpen(false)} onDone={load} />}
     </div>
   );
@@ -750,11 +771,14 @@ function statusText(b: ShoutOutOverview["broadcasts"][number]): string {
 function TopupModal({
   minKobo,
   priceKobo,
+  returningReference,
   onClose,
   onPaid,
 }: {
   minKobo: number;
   priceKobo: number;
+  /** Set when the artist is back from the payment page. */
+  returningReference: string | null;
   onClose: () => void;
   onPaid: () => void;
 }) {
@@ -763,28 +787,40 @@ function TopupModal({
   const [error, setError] = useState<string | null>(null);
   const [topup, setTopup] = useState<ShoutOutTopup | null>(null);
   const [copied, setCopied] = useState(false);
+  const reference = topup?.reference ?? returningReference;
 
+  // Watch for the payment: the balance is credited by Bachs's webhook, not the redirect.
   useEffect(() => {
-    if (!topup || topup.status === "paid") return;
-    const id = setInterval(async () => {
-      const res = await getTopup(topup.reference);
+    if (!reference || topup?.status === "paid") return;
+    const check = async () => {
+      const res = await getTopup(reference);
       if (res.data) {
         setTopup(res.data);
         if (res.data.status === "paid") onPaid();
       }
-    }, 5000);
-    return () => clearInterval(id);
-  }, [topup, onPaid]);
+    };
+    const first = setTimeout(check, 500);
+    const id = setInterval(check, 4000);
+    return () => {
+      clearTimeout(first);
+      clearInterval(id);
+    };
+  }, [reference, topup?.status, onPaid]);
 
   const start = async () => {
     setBusy(true);
     setError(null);
     const res = await createTopup(Number(amount));
-    setBusy(false);
     if (res.error || !res.data) {
+      setBusy(false);
       setError(res.errors?.amount?.[0] ?? res.error ?? "Something went wrong.");
       return;
     }
+    if (res.data.checkout_url) {
+      window.location.href = res.data.checkout_url; // Bachs: card or bank transfer
+      return;
+    }
+    setBusy(false);
     setTopup(res.data);
   };
 
@@ -795,7 +831,12 @@ function TopupModal({
       <div className="p-6">
         <p className="font-heading text-white uppercase text-base tracking-[0.12em]">Top up</p>
 
-        {!topup ? (
+        {reference && !topup ? (
+          <p className="font-body text-white/60 text-sm mt-5 flex items-center gap-2">
+            <span className="inline-block w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
+            Confirming your payment…
+          </p>
+        ) : !topup ? (
           <>
             <span className={`${fieldLabel} mt-5`}>Amount (₦)</span>
             <input type="number" inputMode="numeric" min={minKobo / 100} value={amount} onChange={(e) => setAmount(e.target.value)} className={field} />
@@ -817,8 +858,9 @@ function TopupModal({
             </p>
             {error && <p className="font-body text-[#ff6b6b] text-sm mt-3">{error}</p>}
             <button onClick={start} disabled={busy || Number(amount) * 100 < minKobo} className={`${redPill} mt-6`}>
-              {busy ? "Getting bank details…" : "Get bank details"}
+              {busy ? "Opening payment…" : `Pay ₦${Number(amount || 0).toLocaleString()}`}
             </button>
+            <p className="font-body text-white/40 text-xs text-center mt-3">Card or bank transfer, on a secure payment page.</p>
           </>
         ) : topup.status === "paid" ? (
           <div className="mt-6 text-center">
@@ -827,6 +869,21 @@ function TopupModal({
             <button onClick={onClose} className={`${redPill} mt-6`}>
               Done
             </button>
+          </div>
+        ) : !topup.account_number ? (
+          <div className="mt-5">
+            <p className="font-body text-white/60 text-sm flex items-center gap-2">
+              <span className="inline-block w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
+              {topup.status === "expired" ? "This payment page expired. Start a new top-up." : "Confirming your payment…"}
+            </p>
+            <p className="font-body text-white/40 text-xs mt-2">
+              Bank transfers can take a minute. Your balance updates by itself, so you can close this.
+            </p>
+            {topup.checkout_url && topup.status === "pending" && (
+              <a href={topup.checkout_url} className="block mt-4 font-body text-white/80 hover:text-white text-sm underline underline-offset-4 decoration-white/40">
+                Haven&apos;t paid yet? Back to the payment page
+              </a>
+            )}
           </div>
         ) : (
           <div className="mt-5">

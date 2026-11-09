@@ -87,6 +87,8 @@ export interface ShoutOutTopup {
   account_name: string | null;
   expires_at: string | null;
   paid_at: string | null;
+  /** Bachs payment page, while unpaid. */
+  checkout_url?: string | null;
   balance_kobo?: number;
 }
 
