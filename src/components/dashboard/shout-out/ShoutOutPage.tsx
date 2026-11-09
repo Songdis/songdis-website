@@ -105,7 +105,7 @@ export function ShoutOutPage() {
       </div>
 
       {topupOpen && <TopupModal minKobo={data.min_topup_kobo} priceKobo={data.price_kobo} onClose={() => setTopupOpen(false)} onPaid={load} />}
-      {fansOpen && <AddFansModal releases={data.fans.by_release} onClose={() => setFansOpen(false)} onDone={load} />}
+      {fansOpen && <AddFansModal releases={data.releases} onClose={() => setFansOpen(false)} onDone={load} />}
     </div>
   );
 }
@@ -562,11 +562,11 @@ function AddFansModal({
   onClose,
   onDone,
 }: {
-  releases: ShoutOutOverview["fans"]["by_release"];
+  releases: ShoutOutOverview["releases"];
   onClose: () => void;
   onDone: () => void;
 }) {
-  const [releaseId, setReleaseId] = useState<number | null>(null);
+  const [releaseId, setReleaseId] = useState<number | null>(releases[0]?.id ?? null);
   const [consent, setConsent] = useState(false);
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<{ ok: boolean; text: string } | null>(null);
@@ -575,7 +575,7 @@ function AddFansModal({
 
   const upload = async () => {
     const file = fileRef.current?.files?.[0];
-    if (!file) return;
+    if (!file || !releaseId) return;
     setBusy(true);
     setResult(null);
     const res = await importFans(file, releaseId);
@@ -632,11 +632,12 @@ function AddFansModal({
         </button>
         <input ref={fileRef} type="file" accept=".csv,text/csv" className="hidden" onChange={(e) => setFileName(e.target.files?.[0]?.name ?? null)} />
 
-        {releases.length > 0 && (
+        {releases.length === 0 ? (
+          <p className="font-body text-[#ff6b6b] text-sm mt-4">Upload a release first. Fans are added to the release they&apos;re fans of.</p>
+        ) : (
           <label className="block mt-4">
-            <span className={fieldLabel}>For a release (optional)</span>
-            <select value={releaseId ?? ""} onChange={(e) => setReleaseId(e.target.value ? Number(e.target.value) : null)} className={selectField}>
-              <option value="">Not for a specific release</option>
+            <span className={fieldLabel}>Which release are these fans for?</span>
+            <select value={releaseId ?? ""} onChange={(e) => setReleaseId(Number(e.target.value))} className={selectField}>
               {releases.map((r) => (
                 <option key={r.id} value={r.id}>
                   {r.title}
@@ -651,7 +652,7 @@ function AddFansModal({
           <span className="font-body text-white/65 text-sm">These fans agreed to hear from me by email and WhatsApp.</span>
         </label>
 
-        <button onClick={upload} disabled={!consent || !fileName || busy} className={`${redPill} mt-5`}>
+        <button onClick={upload} disabled={!consent || !fileName || !releaseId || busy} className={`${redPill} mt-5`}>
           {busy ? "Adding…" : "Add fans"}
         </button>
         {result && <p className={`font-body text-sm text-center mt-3 ${result.ok ? "text-[#25D366]" : "text-[#ff6b6b]"}`}>{result.text}</p>}
@@ -728,6 +729,13 @@ function statusText(b: ShoutOutOverview["broadcasts"][number]): string {
     case "awaiting_funds":
       return `Waiting for a top-up · ${b.recipients_count} fans`;
     case "queued":
+      if (b.scheduled_for && new Date(b.scheduled_for).getTime() > Date.now()) {
+        const d = new Date(b.scheduled_for);
+        const today = d.toDateString() === new Date().toDateString();
+        const time = d.toLocaleTimeString("en-NG", { hour: "numeric", minute: "2-digit", timeZone: "Africa/Lagos" });
+        return `Goes out ${today ? "today" : "tomorrow"} at ${time} · ${b.recipients_count} fans`;
+      }
+      return `Sending to ${b.recipients_count} fans…`;
     case "sending":
       return `Sending to ${b.recipients_count} fans…`;
     case "sent":

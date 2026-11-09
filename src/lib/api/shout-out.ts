@@ -13,6 +13,8 @@ export interface ShoutOutBroadcast {
   subject: string;
   music_upload_id: number | null;
   status: "awaiting_funds" | "queued" | "sending" | "sent" | "failed";
+  /** A release-day message waiting for midday. */
+  scheduled_for?: string | null;
   recipients_count: number;
   sent_count: number;
   failed_count: number;
@@ -51,6 +53,8 @@ export interface ShoutOutOverview {
     by_release: { id: number; title: string; artist: string; fans: number; whatsapp_fans: number }[];
   };
   artists: { id: number; stage_name: string }[];
+  /** Every release on the account. */
+  releases: { id: number; title: string }[];
   broadcasts: ShoutOutBroadcast[];
   ledger: ShoutOutLedgerEntry[];
 }
@@ -146,11 +150,11 @@ export const createTopup = (amountNaira: number) =>
 export const getTopup = (reference: string) =>
   request<ShoutOutTopup>(`${ROOT}/topups/${encodeURIComponent(reference)}`, { method: "GET" }, true);
 
-export function importFans(file: File, releaseId: number | null) {
+export function importFans(file: File, releaseId: number) {
   const form = new FormData();
   form.append("file", file);
   form.append("consent", "1");
-  if (releaseId) form.append("music_upload_id", String(releaseId));
+  form.append("music_upload_id", String(releaseId));
   return request<{
     added: number;
     already_added: number;
