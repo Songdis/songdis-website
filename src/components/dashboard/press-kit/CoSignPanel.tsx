@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 
 import {
+  disableCoSign,
   describePayoutStatus,
   formatNaira,
   type CoSignLedgerEntry,
@@ -78,6 +79,21 @@ export function CoSignPanel({ profileId, artistName, bare = false }: Props) {
     else show("Couldn't turn Co-sign on. Please try again", "bad");
     return ok;
   }, [cs, show]);
+
+  const [turningOff, setTurningOff] = useState(false);
+  const [confirmOff, setConfirmOff] = useState(false);
+  const onDisable = useCallback(async () => {
+    setTurningOff(true);
+    const res = await disableCoSign(profileId);
+    setTurningOff(false);
+    setConfirmOff(false);
+    if (res.error) {
+      show("Couldn't turn Co-sign off. Please try again", "bad");
+      return;
+    }
+    show("Co-sign is off. It's no longer on your press kit");
+    cs.reload();
+  }, [profileId, cs, show]);
 
   const onRequestPayout = useCallback(
     async (amountKobo: number) => {
@@ -166,14 +182,45 @@ export function CoSignPanel({ profileId, artistName, bare = false }: Props) {
         </div>
 
         {isActive && account ? (
-          <ActiveCoSign
-            account={account}
-            cs={cs}
-            onCopy={() => void copyNumber()}
-            onPayout={() => setPayoutOpen(true)}
-          />
+          <>
+            <ActiveCoSign
+              account={account}
+              cs={cs}
+              onCopy={() => void copyNumber()}
+              onPayout={() => setPayoutOpen(true)}
+            />
+            <div className="mt-4 border-t border-white/[0.06] pt-3.5">
+              {confirmOff ? (
+                <div className="flex flex-wrap items-center gap-3 animate-[cs-in_200ms_ease-out]">
+                  <span className="font-body text-white/60 text-[12px]">Take Co-sign off your press kit? Your balance stays.</span>
+                  <button
+                    type="button"
+                    onClick={() => void onDisable()}
+                    disabled={turningOff}
+                    className="font-body text-[12px] font-semibold text-[#ff6b6b] hover:text-[#ff8b8b] disabled:opacity-50 inline-flex items-center gap-1.5"
+                  >
+                    {turningOff && <Loader2 size={12} className="animate-spin" aria-hidden />}
+                    {turningOff ? "Turning off…" : "Turn off"}
+                  </button>
+                  <button type="button" onClick={() => setConfirmOff(false)} disabled={turningOff} className="font-body text-[12px] text-white/45 hover:text-white">
+                    Keep it on
+                  </button>
+                  <style>{`@keyframes cs-in{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}`}</style>
+                </div>
+              ) : (
+                <button type="button" onClick={() => setConfirmOff(true)} className="font-body text-[12px] text-white/40 hover:text-white/70 underline underline-offset-4 decoration-white/20">
+                  Turn off co-sign
+                </button>
+              )}
+            </div>
+          </>
         ) : (
-          <NotYetOn artistName={artistName} busy={cs.isEnabling} onStart={() => void onEnable()} />
+          <NotYetOn
+            artistName={artistName}
+            busy={cs.isEnabling}
+            wasTurnedOff={cs.state?.status === "disabled"}
+            onStart={() => void onEnable()}
+          />
         )}
       </Shell>
 
@@ -227,14 +274,19 @@ function Shell({ bare, children }: { bare: boolean; children: React.ReactNode })
 function NotYetOn({
   artistName,
   busy,
+  wasTurnedOff,
   onStart,
 }: {
   artistName: string;
   busy: boolean;
+  wasTurnedOff: boolean;
   onStart: () => void;
 }) {
   return (
     <div className="flex flex-col gap-3.5">
+      {wasTurnedOff && (
+        <p className="font-body text-white/80 text-[13px] font-semibold">Co-sign is off. Fans can&apos;t co-sign you right now.</p>
+      )}
       <p className="font-body text-white/60 text-[12.5px] leading-relaxed">
         Your press kit gets a Co-sign button. Fans choose an amount and pay by card or bank
         transfer on a secure page, and it lands in your balance here, ready to pay out.
@@ -248,7 +300,7 @@ function NotYetOn({
               Turning on…
             </span>
           ) : (
-            "Turn on co-sign"
+            wasTurnedOff ? "Turn co-sign back on" : "Turn on co-sign"
           )}
         </PrimaryButton>
         <span className="font-body text-white/30 text-[11px]">

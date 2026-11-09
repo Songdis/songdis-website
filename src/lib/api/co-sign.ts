@@ -137,7 +137,8 @@ export type CoSignAccountStatus =
   | "active"
   | "failed"
   | "not_configured"
-  | "not_started";
+  | "not_started"
+  | "disabled";
 
 export type CoSignKycStage = "not_started" | "needs_identity" | "needs_account" | "ready";
 
@@ -239,6 +240,7 @@ function accountStatus(value: unknown): CoSignAccountStatus {
     "failed",
     "not_configured",
     "not_started",
+    "disabled",
   ];
   return known.find((k) => k === s) ?? "not_started";
 }
@@ -374,6 +376,11 @@ export async function enableCoSign(
     { method: "POST", body: JSON.stringify(payload ?? {}) },
     true
   );
+}
+
+/** Turn Co-sign off: the press kit stops showing it. Turning it on again is `enableCoSign`. */
+export async function disableCoSign(profileId: number): Promise<ApiResponse<unknown>> {
+  return request<unknown>(`${ROOT}/${profileId}/disable`, { method: "POST", body: "{}" }, true);
 }
 
 /** `GET /api/co-sign/{profileId}/ledger` → `{balance, items, meta}`. */
