@@ -10,7 +10,10 @@ import {
   naira,
   previewShoutOut,
   quoteShoutOut,
+  renderWhatsApp,
   sendShoutOut,
+  sendWhatsAppShoutOut,
+  wordDate,
   type ShoutOutOverview,
   type ShoutOutQuote,
   type ShoutOutTopup,
@@ -121,6 +124,8 @@ function Compose({
   onAddFans: () => void;
 }) {
   const [artistId, setArtistId] = useState<number | null>(data.artists[0]?.id ?? null);
+  const [channel, setChannel] = useState<"email" | "whatsapp">("email");
+  const canWhatsApp = data.whatsapp.templates.length > 0;
   const [releaseId, setReleaseId] = useState<number | null>(null);
   const [subject, setSubject] = useState("");
   const [body, setBody] = useState("");
@@ -207,45 +212,49 @@ function Compose({
             ))}
           </select>
         </label>
-        <label>
-          <span className={fieldLabel}>To</span>
-          <select
-            value={releaseId ?? ""}
-            onChange={(e) => setReleaseId(e.target.value ? Number(e.target.value) : null)}
-            className={selectField}
-          >
-            <option value="">All fans ({data.fans.total.toLocaleString()})</option>
-            {data.fans.by_release.map((r) => (
-              <option key={r.id} value={r.id}>
-                Pre-saved {r.title} ({r.fans.toLocaleString()})
-              </option>
-            ))}
-          </select>
-        </label>
+        {channel === "email" && (
+          <label>
+            <span className={fieldLabel}>To</span>
+            <select
+              value={releaseId ?? ""}
+              onChange={(e) => setReleaseId(e.target.value ? Number(e.target.value) : null)}
+              className={selectField}
+            >
+              <option value="">All fans ({data.fans.total.toLocaleString()})</option>
+              {data.fans.by_release.map((r) => (
+                <option key={r.id} value={r.id}>
+                  Pre-saved {r.title} ({r.fans.toLocaleString()})
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
       </div>
 
       <span className={`${fieldLabel} mt-5`}>Send via</span>
       <div className="grid grid-cols-2 gap-3">
-        <div className="relative rounded-2xl border-2 border-[#C30100] bg-[#2A0D0B] px-3 py-5 flex flex-col items-center text-center">
-          <span className="absolute top-2.5 right-2.5 w-6 h-6 rounded-full bg-[#C30100] flex items-center justify-center">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5" /></svg>
-          </span>
+        <ChannelTile selected={channel === "email"} onClick={() => setChannel("email")} price={naira(data.price_kobo)} label="Email">
           <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
             <rect x="3" y="5" width="18" height="14" rx="2.5" />
             <path d="m3.5 6.5 8.5 6.5 8.5-6.5" />
           </svg>
-          <p className="font-body font-semibold text-white text-base mt-2.5">Email</p>
-          <span className="mt-2 rounded-full bg-white/[0.08] px-3 py-1 font-body text-white text-xs font-semibold">{naira(data.price_kobo)}</span>
-        </div>
+        </ChannelTile>
 
-        <div className="relative rounded-2xl border border-white/[0.08] bg-[#100A0A] px-3 py-5 flex flex-col items-center text-center cursor-not-allowed" aria-disabled="true">
+        <ChannelTile
+          selected={channel === "whatsapp"}
+          onClick={canWhatsApp ? () => setChannel("whatsapp") : undefined}
+          price={naira(data.whatsapp_price_kobo)}
+          label="WhatsApp"
+          note={canWhatsApp ? undefined : data.whatsapp.release_day ? "Sent automatically on release day" : "Coming soon"}
+        >
           <WhatsAppLogo size={28} />
-          <p className="font-body font-semibold text-white/60 text-base mt-2.5">WhatsApp</p>
-          <span className="mt-2 rounded-full bg-white/[0.06] px-3 py-1 font-body text-white/55 text-xs font-semibold">{naira(data.whatsapp_price_kobo)}</span>
-          <span className="mt-1.5 font-body text-[#25D366] text-xs font-medium leading-snug">Sent automatically on release day</span>
-        </div>
+        </ChannelTile>
       </div>
 
+      {channel === "whatsapp" ? (
+        <WhatsAppForm data={data} artistId={artistId} onSent={onSent} onTopUp={onTopUp} />
+      ) : (
+      <>
       <label className="block mt-5">
         <span className={fieldLabel}>Subject</span>
         <input value={subject} onChange={(e) => setSubject(e.target.value)} maxLength={150} placeholder="New music this Friday" className={field} />
@@ -313,9 +322,210 @@ function Compose({
           <p className={`font-body text-sm text-center mt-3 ${message.ok ? "text-[#25D366]" : "text-[#ff6b6b]"}`}>{message.text}</p>
         )}
       </div>
+      </>
+      )}
 
       {preview && <PreviewModal preview={preview} onClose={() => setPreview(null)} />}
     </div>
+  );
+}
+
+function ChannelTile({
+  selected,
+  onClick,
+  price,
+  label,
+  note,
+  children,
+}: {
+  selected: boolean;
+  onClick?: () => void;
+  price: string;
+  label: string;
+  note?: string;
+  children: React.ReactNode;
+}) {
+  const disabled = !onClick;
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      aria-pressed={selected}
+      className={`relative rounded-2xl px-3 py-5 flex flex-col items-center text-center transition-colors ${
+        selected ? "border-2 border-[#C30100] bg-[#2A0D0B]" : "border border-white/[0.08] bg-[#100A0A]"
+      } ${disabled ? "cursor-not-allowed" : "hover:border-white/25"}`}
+    >
+      {selected && (
+        <span className="absolute top-2.5 right-2.5 w-6 h-6 rounded-full bg-[#C30100] flex items-center justify-center">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5" /></svg>
+        </span>
+      )}
+      {children}
+      <p className={`font-body font-semibold text-base mt-2.5 ${disabled ? "text-white/60" : "text-white"}`}>{label}</p>
+      <span className={`mt-2 rounded-full px-3 py-1 font-body text-xs font-semibold ${disabled ? "bg-white/[0.06] text-white/55" : "bg-white/[0.08] text-white"}`}>{price}</span>
+      {note && <span className="mt-1.5 font-body text-[#25D366] text-xs font-medium leading-snug">{note}</span>}
+    </button>
+  );
+}
+
+/* ── WhatsApp: approved messages to one release's pre-savers ── */
+
+function WhatsAppForm({
+  data,
+  artistId,
+  onSent,
+  onTopUp,
+}: {
+  data: ShoutOutOverview;
+  artistId: number | null;
+  onSent: () => void;
+  onTopUp: () => void;
+}) {
+  const templates = data.whatsapp.templates;
+  const releases = data.fans.by_release.filter((r) => r.whatsapp_fans > 0);
+  const [kind, setKind] = useState(templates[0]?.key);
+  const [releaseId, setReleaseId] = useState<number | null>(releases[0]?.id ?? null);
+  const [date, setDate] = useState("");
+  const [link, setLink] = useState("");
+  const [quote, setQuote] = useState<ShoutOutQuote | null>(null);
+  const [confirming, setConfirming] = useState(false);
+  const [sending, setSending] = useState(false);
+  const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null);
+
+  const template = templates.find((t) => t.key === kind) ?? templates[0];
+  const release = releases.find((r) => r.id === releaseId);
+  const artist = data.artists.find((a) => a.id === artistId)?.stage_name ?? "";
+  const today = new Date().toISOString().slice(0, 10);
+
+  useEffect(() => {
+    if (!releaseId) return;
+    let alive = true;
+    quoteShoutOut(releaseId, "whatsapp").then((res) => alive && res.data && setQuote(res.data));
+    return () => {
+      alive = false;
+    };
+  }, [releaseId, data.balance_kobo]);
+
+  if (releases.length === 0) {
+    return (
+      <p className="font-body text-white/55 text-sm mt-5">
+        None of your pre-save fans have a WhatsApp number yet. WhatsApp messages go to the fans who pre-saved a release.
+      </p>
+    );
+  }
+
+  const fourth = template?.needs === "date" ? wordDate(date) : link.trim();
+  const ready = !!artistId && !!template && !!releaseId && !!fourth && (template.needs === "date" ? date >= today : /^https?:\/\/\S+\.\S+/.test(link.trim()));
+  const recipients = releaseId ? quote?.recipients ?? 0 : 0;
+  const short = (quote?.shortfall_kobo ?? 0) > 0;
+  const priceTag = naira(quote?.cost_kobo ?? 0);
+  const text = template
+    ? renderWhatsApp(template.text, ["Ada", release?.title ?? "your release", artist, fourth || (template.needs === "date" ? "[date]" : "[link]")])
+    : "";
+
+  const send = async () => {
+    if (!artistId || !template || !releaseId) return;
+    setSending(true);
+    setMessage(null);
+    const res = await sendWhatsAppShoutOut({
+      artist_profile_id: artistId,
+      kind: template.key,
+      music_upload_id: releaseId,
+      ...(template.needs === "date" ? { date } : { link_url: link.trim() }),
+    });
+    setSending(false);
+    setConfirming(false);
+    if (res.error) {
+      setMessage({ ok: false, text: res.errors?.date?.[0] ?? res.errors?.link_url?.[0] ?? res.error });
+      return;
+    }
+    setMessage({ ok: true, text: `On its way to ${recipients} fan${recipients === 1 ? "" : "s"} on WhatsApp.` });
+    setLink("");
+    setDate("");
+    onSent();
+  };
+
+  return (
+    <>
+      <span className={`${fieldLabel} mt-5`}>Message</span>
+      <div className="grid grid-cols-2 gap-2.5">
+        {templates.map((t) => (
+          <button
+            key={t.key}
+            type="button"
+            onClick={() => setKind(t.key)}
+            aria-pressed={t.key === template?.key}
+            className={`rounded-2xl px-4 py-3 font-body text-sm text-left transition-colors ${
+              t.key === template?.key ? "border-2 border-[#25D366] bg-[#0E1F14] text-white" : "border border-white/[0.09] bg-[#0D0808] text-white/70 hover:border-white/25"
+            }`}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+
+      <label className="block mt-5">
+        <span className={fieldLabel}>To fans who pre-saved</span>
+        <select value={releaseId ?? ""} onChange={(e) => setReleaseId(Number(e.target.value))} className={selectField}>
+          {releases.map((r) => (
+            <option key={r.id} value={r.id}>
+              {r.title} ({r.whatsapp_fans.toLocaleString()} on WhatsApp)
+            </option>
+          ))}
+        </select>
+      </label>
+
+      {template?.needs === "date" ? (
+        <label className="block mt-5">
+          <span className={fieldLabel}>Release date</span>
+          <input type="date" min={today} value={date} onChange={(e) => setDate(e.target.value)} className={`${field} [color-scheme:dark]`} />
+        </label>
+      ) : (
+        <label className="block mt-5">
+          <span className={fieldLabel}>Link</span>
+          <input value={link} onChange={(e) => setLink(e.target.value)} placeholder="Video, visualiser or lyrics link" inputMode="url" className={field} />
+        </label>
+      )}
+
+      <span className={`${fieldLabel} mt-5`}>What fans get</span>
+      <div className="rounded-2xl bg-[#0B141A] p-3.5">
+        <div className="max-w-[92%] rounded-xl rounded-tl-sm bg-[#202C33] px-3.5 py-2.5 font-body text-[14px] leading-relaxed text-[#E9EDEF] whitespace-pre-line break-words">
+          {text}
+          <p className="text-[#8696A0] text-xs mt-1.5">Reply STOP to opt out</p>
+        </div>
+      </div>
+      <p className="font-body text-white/35 text-[11px] mt-2">&quot;Ada&quot; is a sample name; each fan sees their own. WhatsApp only allows approved messages, so the wording is fixed.</p>
+
+      <div className="mt-7">
+        {recipients === 0 ? (
+          <button className={redPill} disabled>
+            No fans to send to
+          </button>
+        ) : short ? (
+          <button onClick={onTopUp} className={redPill}>
+            Top up {naira(quote!.shortfall_kobo)} to send
+          </button>
+        ) : confirming ? (
+          <div className="flex flex-col gap-2">
+            <button onClick={send} className={redPill} disabled={sending}>
+              {sending ? "Sending…" : `Confirm · ${recipients.toLocaleString()} fan${recipients === 1 ? "" : "s"} · ${priceTag}`}
+            </button>
+            <button onClick={() => setConfirming(false)} disabled={sending} className="font-body text-white/50 hover:text-white text-sm py-1">
+              Cancel
+            </button>
+          </div>
+        ) : (
+          <button onClick={() => setConfirming(true)} className={redPill} disabled={!ready}>
+            Send on WhatsApp · {priceTag}
+          </button>
+        )}
+
+        {message && (
+          <p className={`font-body text-sm text-center mt-3 ${message.ok ? "text-[#25D366]" : "text-[#ff6b6b]"}`}>{message.text}</p>
+        )}
+      </div>
+    </>
   );
 }
 

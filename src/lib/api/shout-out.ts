@@ -37,16 +37,30 @@ export interface ShoutOutOverview {
   free_monthly: number;
   free_remaining: number;
   whatsapp_price_kobo: number;
+  whatsapp: {
+    /** The release-day message goes out automatically. */
+    release_day: boolean;
+    /** Templates the artist can send now. */
+    templates: ShoutOutWhatsAppTemplate[];
+  };
   button_labels: string[];
   min_topup_kobo: number;
   fans: {
     total: number;
     unsubscribed: number;
-    by_release: { id: number; title: string; artist: string; fans: number }[];
+    by_release: { id: number; title: string; artist: string; fans: number; whatsapp_fans: number }[];
   };
   artists: { id: number; stage_name: string }[];
   broadcasts: ShoutOutBroadcast[];
   ledger: ShoutOutLedgerEntry[];
+}
+
+export interface ShoutOutWhatsAppTemplate {
+  key: "countdown" | "update";
+  label: string;
+  needs: "date" | "link";
+  /** The approved wording, with {{1}} name, {{2}} title, {{3}} artist, {{4}} date or link. */
+  text: string;
 }
 
 export interface ShoutOutQuote {
@@ -76,8 +90,33 @@ const ROOT = "/shout-out";
 
 export const getShoutOut = () => request<ShoutOutOverview>(ROOT, { method: "GET" }, true);
 
-export const quoteShoutOut = (releaseId: number | null) =>
-  request<ShoutOutQuote>(`${ROOT}/quote${releaseId ? `?music_upload_id=${releaseId}` : ""}`, { method: "GET" }, true);
+export const quoteShoutOut = (releaseId: number | null, channel: "email" | "whatsapp" = "email") => {
+  const q = new URLSearchParams({ channel });
+  if (releaseId) q.set("music_upload_id", String(releaseId));
+  return request<ShoutOutQuote>(`${ROOT}/quote?${q}`, { method: "GET" }, true);
+};
+
+export const sendWhatsAppShoutOut = (payload: {
+  artist_profile_id: number;
+  kind: ShoutOutWhatsAppTemplate["key"];
+  music_upload_id: number;
+  date?: string;
+  link_url?: string;
+}) => request<ShoutOutBroadcast>(`${ROOT}/whatsapp`, { method: "POST", body: JSON.stringify(payload) }, true);
+
+/** A template's wording filled in, as the fan reads it. */
+export function renderWhatsApp(text: string, vars: [string, string, string, string]) {
+  return text.replace(/\{\{(\d)\}\}/g, (_, n) => vars[Number(n) - 1] ?? "");
+}
+
+/** "2026-11-14" → "Saturday, 14 November", the way the server words it. */
+export function wordDate(iso: string) {
+  if (!iso) return "";
+  const d = new Date(`${iso}T12:00:00`);
+  return Number.isNaN(d.getTime())
+    ? ""
+    : `${d.toLocaleDateString("en-GB", { weekday: "long" })}, ${d.getDate()} ${d.toLocaleDateString("en-GB", { month: "long" })}`;
+}
 
 export const sendShoutOut = (payload: {
   artist_profile_id: number;
