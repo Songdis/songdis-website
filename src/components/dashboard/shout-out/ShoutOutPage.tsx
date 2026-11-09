@@ -173,11 +173,15 @@ function Compose({
 
   useEffect(() => {
     let alive = true;
-    quoteShoutOut(releaseId).then((res) => alive && res.data && setQuote(res.data));
+    quoteShoutOut(releaseId, "email", artistId).then((res) => alive && res.data && setQuote(res.data));
     return () => {
       alive = false;
     };
-  }, [releaseId, data.balance_kobo, data.fans.total, data.free_remaining]);
+  }, [releaseId, artistId, data.balance_kobo, data.fans.total, data.free_remaining]);
+
+  // Only this artist's releases, and only this artist's fans for "All fans".
+  const artist = data.artists.find((a) => a.id === artistId);
+  const artistReleases = data.fans.by_release.filter((r) => r.artist_profile_id === artistId);
 
   const recipients = quote?.recipients ?? 0;
   const short = (quote?.shortfall_kobo ?? 0) > 0;
@@ -241,7 +245,14 @@ function Compose({
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-5 mt-5">
         <label>
           <span className={fieldLabel}>From</span>
-          <select value={artistId ?? ""} onChange={(e) => setArtistId(Number(e.target.value))} className={selectField}>
+          <select
+            value={artistId ?? ""}
+            onChange={(e) => {
+              setArtistId(Number(e.target.value));
+              setReleaseId(null); // a release belongs to one artist
+            }}
+            className={selectField}
+          >
             {data.artists.map((a) => (
               <option key={a.id} value={a.id}>
                 {a.stage_name}
@@ -257,8 +268,8 @@ function Compose({
               onChange={(e) => setReleaseId(e.target.value ? Number(e.target.value) : null)}
               className={selectField}
             >
-              <option value="">All fans ({data.fans.total.toLocaleString()})</option>
-              {data.fans.by_release.map((r) => (
+              <option value="">All {artist?.stage_name ? `${artist.stage_name}'s` : ""} fans ({(artist?.fans ?? 0).toLocaleString()})</option>
+              {artistReleases.map((r) => (
                 <option key={r.id} value={r.id}>
                   Pre-saved {r.title} ({r.fans.toLocaleString()})
                 </option>
@@ -423,9 +434,11 @@ function WhatsAppForm({
   onTopUp: () => void;
 }) {
   const templates = data.whatsapp.templates;
-  const releases = data.fans.by_release.filter((r) => r.whatsapp_fans > 0);
+  const releases = data.fans.by_release.filter((r) => r.whatsapp_fans > 0 && r.artist_profile_id === artistId);
   const [kind, setKind] = useState(templates[0]?.key);
-  const [releaseId, setReleaseId] = useState<number | null>(releases[0]?.id ?? null);
+  const [chosenRelease, setReleaseId] = useState<number | null>(null);
+  // The chosen release if it's this artist's, else their first.
+  const releaseId = releases.some((r) => r.id === chosenRelease) ? chosenRelease : releases[0]?.id ?? null;
   const [date, setDate] = useState("");
   const [link, setLink] = useState("");
   const [quote, setQuote] = useState<ShoutOutQuote | null>(null);
@@ -450,7 +463,7 @@ function WhatsAppForm({
   if (releases.length === 0) {
     return (
       <p className="font-body text-white/55 text-sm mt-5">
-        None of your pre-save fans have a WhatsApp number yet. WhatsApp messages go to the fans who pre-saved a release.
+        None of this artist&apos;s pre-save fans have a WhatsApp number yet. WhatsApp messages go to the fans who pre-saved one of their releases.
       </p>
     );
   }
@@ -690,7 +703,7 @@ function AddFansModal({
             <select value={releaseId ?? ""} onChange={(e) => setReleaseId(Number(e.target.value))} className={selectField}>
               {releases.map((r) => (
                 <option key={r.id} value={r.id}>
-                  {r.title}
+                  {r.artist ? `${r.title} · ${r.artist}` : r.title}
                 </option>
               ))}
             </select>

@@ -50,11 +50,12 @@ export interface ShoutOutOverview {
   fans: {
     total: number;
     unsubscribed: number;
-    by_release: { id: number; title: string; artist: string; fans: number; whatsapp_fans: number }[];
+    by_release: { id: number; title: string; artist: string; artist_profile_id: number | null; fans: number; whatsapp_fans: number }[];
   };
-  artists: { id: number; stage_name: string }[];
+  /** Each artist on the account, with how many fans are theirs. */
+  artists: { id: number; stage_name: string; fans: number }[];
   /** Every release on the account. */
-  releases: { id: number; title: string }[];
+  releases: { id: number; title: string; artist: string | null; artist_profile_id: number | null }[];
   broadcasts: ShoutOutBroadcast[];
   ledger: ShoutOutLedgerEntry[];
 }
@@ -96,8 +97,9 @@ const ROOT = "/shout-out";
 
 export const getShoutOut = () => request<ShoutOutOverview>(ROOT, { method: "GET" }, true);
 
-export const quoteShoutOut = (releaseId: number | null, channel: "email" | "whatsapp" = "email") => {
+export const quoteShoutOut = (releaseId: number | null, channel: "email" | "whatsapp" = "email", artistId?: number | null) => {
   const q = new URLSearchParams({ channel });
+  if (artistId) q.set("artist_profile_id", String(artistId));
   if (releaseId) q.set("music_upload_id", String(releaseId));
   return request<ShoutOutQuote>(`${ROOT}/quote?${q}`, { method: "GET" }, true);
 };
