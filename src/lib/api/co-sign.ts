@@ -57,8 +57,11 @@ export type PublicCoSign =
   | { enabled: false }
   | {
       enabled: true;
+      /** Fans pay on a secure page (card or bank transfer). */
+      pay_online: boolean;
+      min_kobo: number;
       bank_name: string | null;
-      account_number: string;
+      account_number: string | null;
       account_name: string | null;
       count: number;
       total_kobo: number;
@@ -99,7 +102,8 @@ export function normalisePublicCoSign(raw: unknown): PublicCoSign {
   if (box.enabled !== true) return CO_SIGN_DISABLED;
 
   const accountNumber = str(box.account_number);
-  if (!accountNumber) return CO_SIGN_DISABLED;
+  const payOnline = box.pay_online === true;
+  if (!accountNumber && !payOnline) return CO_SIGN_DISABLED;
 
   const recent: PublicCoSignEntry[] = (Array.isArray(box.recent) ? box.recent : []).flatMap(
     (entry) => {
@@ -115,6 +119,8 @@ export function normalisePublicCoSign(raw: unknown): PublicCoSign {
 
   return {
     enabled: true,
+    pay_online: payOnline,
+    min_kobo: count(box.min_kobo) || 10000,
     bank_name: str(box.bank_name),
     account_number: accountNumber,
     account_name: str(box.account_name),
@@ -137,6 +143,8 @@ export type CoSignKycStage = "not_started" | "needs_identity" | "needs_account" 
 
 export interface CoSignAccount {
   status: string;
+  /** bachs: fans pay on a secure page. maplerad: an older personal bank account. */
+  provider: "bachs" | "maplerad";
   kyc_stage: CoSignKycStage;
   bank_name: string | null;
   account_number: string | null;
@@ -238,9 +246,11 @@ function accountStatus(value: unknown): CoSignAccountStatus {
 function normaliseAccount(raw: unknown): CoSignAccount | null {
   const a = asRecord(raw);
   const number = str(a.account_number);
-  if (!number) return null;
+  const provider = str(a.provider) === "bachs" ? "bachs" : "maplerad";
+  if (!number && provider !== "bachs") return null;
   return {
     status: str(a.status) ?? "active",
+    provider,
     kyc_stage: kycStage(a.kyc_stage),
     bank_name: str(a.bank_name),
     account_number: number,
@@ -357,11 +367,11 @@ export async function getCoSign(profileId: number): Promise<ApiResponse<unknown>
 
 export async function enableCoSign(
   profileId: number,
-  payload: CoSignEnableRequest
+  payload?: CoSignEnableRequest
 ): Promise<ApiResponse<unknown>> {
   return request<unknown>(
     `${ROOT}/${profileId}/enable`,
-    { method: "POST", body: JSON.stringify(payload) },
+    { method: "POST", body: JSON.stringify(payload ?? {}) },
     true
   );
 }
@@ -396,5 +406,29 @@ export async function requestCoSignPayout(
       }),
     },
     true
+  );
+}
+
+/** A fan starts a co-sign: returns Bachs's payment page to send them to. No sign-in. */
+export async function startPublicCoSign(
+  slug: string,
+  payload: { amount_kobo: number; name?: string; email?: string }
+): Promise<ApiResponse<{ reference: string; checkout_url: string | null }>> {
+  return request<{ reference: string; checkout_url: string | null }>(
+    `/public/press-kits/${encodeURIComponent(slug)}/co-sign`,
+    { method: "POST", body: JSON.stringify(payload) },
+    false
+  );
+}
+
+/** Whether a co-sign went through, for the thank-you after paying. */
+export async function getPublicCoSignStatus(
+  slug: string,
+  reference: string
+): Promise<ApiResponse<{ status: "pending" | "paid" | "expired"; amount_kobo: number }>> {
+  return request<{ status: "pending" | "paid" | "expired"; amount_kobo: number }>(
+    `/public/press-kits/${encodeURIComponent(slug)}/co-sign/${encodeURIComponent(reference)}`,
+    { method: "GET" },
+    false
   );
 }

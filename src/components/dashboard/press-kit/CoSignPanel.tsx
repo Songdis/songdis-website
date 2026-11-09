@@ -15,7 +15,6 @@ import {
   type CoSignPayoutRecord,
 } from "@/lib/api/co-sign";
 import { useCoSign } from "@/lib/hooks/useCoSign";
-import { CoSignEnableSheet } from "./CoSignEnableSheet";
 import { CoSignPayoutSheet } from "./CoSignPayoutSheet";
 import {
   FailureNotice,
@@ -58,7 +57,6 @@ export function CoSignPanel({ profileId, artistName, bare = false }: Props) {
   const cs = useCoSign(profileId);
   const { toast, show } = useToast();
 
-  const [enableOpen, setEnableOpen] = useState(false);
   const [payoutOpen, setPayoutOpen] = useState(false);
 
   const account = cs.state?.account ?? null;
@@ -74,14 +72,12 @@ export function CoSignPanel({ profileId, artistName, bare = false }: Props) {
     }
   }, [accountNumber, show]);
 
-  const onEnable = useCallback(
-    async (details: Parameters<typeof cs.enable>[0]) => {
-      const ok = await cs.enable(details);
-      if (ok) show("Co-sign is on — your account is live on your press kit");
-      return ok;
-    },
-    [cs, show]
-  );
+  const onEnable = useCallback(async () => {
+    const ok = await cs.enable();
+    if (ok) show("Co-sign is on. Fans can back you from your press kit");
+    else show("Couldn't turn Co-sign on. Please try again", "bad");
+    return ok;
+  }, [cs, show]);
 
   const onRequestPayout = useCallback(
     async (amountKobo: number) => {
@@ -141,9 +137,6 @@ export function CoSignPanel({ profileId, artistName, bare = false }: Props) {
   }
 
   const isActive = Boolean(cs.state?.enabled && account);
-  const stage = cs.state?.kyc_stage ?? "not_started";
-  const partWayThrough = !isActive && stage !== "not_started";
-  const failedReason = cs.state?.status === "failed" ? cs.state.message : null;
 
   return (
     <>
@@ -153,8 +146,8 @@ export function CoSignPanel({ profileId, artistName, bare = false }: Props) {
             <SectionHeading bare>Co-sign</SectionHeading>
             <p className="font-body text-white/40 text-[11px] leading-relaxed">
               {isActive
-                ? "Fans transfer straight to your account from your press kit."
-                : "Let fans back you with a bank transfer, right from your press kit."}
+                ? "Fans back you from your press kit, by card or bank transfer."
+                : "Let fans back you with money, right from your press kit."}
             </p>
           </div>
           {isActive && (
@@ -180,25 +173,10 @@ export function CoSignPanel({ profileId, artistName, bare = false }: Props) {
             onPayout={() => setPayoutOpen(true)}
           />
         ) : (
-          <NotYetOn
-            artistName={artistName}
-            partWayThrough={partWayThrough}
-            failedReason={failedReason}
-            onStart={() => setEnableOpen(true)}
-          />
+          <NotYetOn artistName={artistName} busy={cs.isEnabling} onStart={() => void onEnable()} />
         )}
       </Shell>
 
-      {enableOpen && (
-        <CoSignEnableSheet
-          onClose={() => setEnableOpen(false)}
-          artistName={artistName}
-          busy={cs.isEnabling}
-          failure={cs.enableFailure}
-          onSubmit={onEnable}
-          retrying={partWayThrough}
-        />
-      )}
 
       {payoutOpen && (
         <CoSignPayoutSheet
@@ -248,52 +226,35 @@ function Shell({ bare, children }: { bare: boolean; children: React.ReactNode })
 
 function NotYetOn({
   artistName,
-  partWayThrough,
-  failedReason,
+  busy,
   onStart,
 }: {
   artistName: string;
-  partWayThrough: boolean;
-  failedReason: string | null;
+  busy: boolean;
   onStart: () => void;
 }) {
   return (
     <div className="flex flex-col gap-3.5">
       <p className="font-body text-white/60 text-[12.5px] leading-relaxed">
-        We open a naira bank account in your own name. Your press kit shows the account
-        number, fans transfer to it from their own bank app, and it lands in your balance
-        here. No card processing, no fees for the fan.
+        Your press kit gets a Co-sign button. Fans choose an amount and pay by card or bank
+        transfer on a secure page, and it lands in your balance here, ready to pay out.
       </p>
 
-      {failedReason && (
-        <FailureNotice
-          title="Last attempt did not complete"
-          error={failedReason}
-          errors={null}
-        />
-      )}
-
-      {partWayThrough && !failedReason && (
-        <Notice tone="warning">
-          Your setup got part-way through. Carrying on picks up where it stopped — it does
-          not open a second account.
-        </Notice>
-      )}
-
       <div className="flex flex-wrap items-center gap-2">
-        <PrimaryButton onClick={onStart}>
-          {partWayThrough || failedReason ? "Finish setting up" : "Turn on co-sign"}
+        <PrimaryButton onClick={onStart} disabled={busy}>
+          {busy ? (
+            <span className="inline-flex items-center gap-2">
+              <Loader2 size={12} className="animate-spin" aria-hidden />
+              Turning on…
+            </span>
+          ) : (
+            "Turn on co-sign"
+          )}
         </PrimaryButton>
         <span className="font-body text-white/30 text-[11px]">
-          Takes about a minute · {artistName} keeps everything sent
+          One tap · no BVN · {artistName} keeps everything sent
         </span>
       </div>
-
-      <Notice>
-        We ask for your BVN because a bank account in your name legally requires it. It is
-        stored encrypted and never shown again — and Songdis never asks for your bank
-        login, PIN or card.
-      </Notice>
     </div>
   );
 }
@@ -317,7 +278,15 @@ function ActiveCoSign({
 
   return (
     <div className="flex flex-col gap-4">
-      {/* The account itself — what a fan sees on the press kit. */}
+      {account.provider === "bachs" || !account.account_number ? (
+        <div className="rounded-xl border border-white/[0.07] bg-black/25 p-4">
+          <p className="font-body text-[10px] uppercase tracking-[0.12em] text-white/40 mb-1.5">How fans co-sign</p>
+          <p className="font-body text-white/75 text-[13px] leading-relaxed">
+            The Co-sign button on your press kit. Fans pick an amount and pay by card or bank transfer.
+          </p>
+        </div>
+      ) : (
+      /* An older personal account — still receives transfers. */
       <div className="rounded-xl border border-white/[0.07] bg-black/25 p-4">
         <p className="font-body text-[10px] uppercase tracking-[0.12em] text-white/40 mb-1.5">
           Your co-sign account
@@ -336,6 +305,7 @@ function ActiveCoSign({
             "Details pending from your bank"}
         </p>
       </div>
+      )}
 
       <div className="grid grid-cols-2 gap-px rounded-xl overflow-hidden bg-white/[0.06] sm:grid-cols-4">
         <Figure label="Available" value={formatNaira(available)} strong />

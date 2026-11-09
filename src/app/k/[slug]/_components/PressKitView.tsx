@@ -327,7 +327,7 @@ export default function PressKitView({ kit }: { kit: PublicPressKit }) {
     ),
     join: null,
 
-    cosign: <CoSignCard key="cosign" artistName={artist.name} cosign={kit.cosign} />,
+    cosign: <CoSignCard key="cosign" artistName={artist.name} artistSlug={artist.slug} cosign={kit.cosign} />,
   };
 
   return (

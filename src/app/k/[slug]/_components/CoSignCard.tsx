@@ -1,18 +1,21 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Check, Copy, Landmark, X } from "lucide-react";
+import { Check, Copy, Landmark, Loader2, X } from "lucide-react";
 
 import {
   CO_SIGN_DEFAULT_KOBO,
   CO_SIGN_PRESETS_KOBO,
   formatNaira,
+  getPublicCoSignStatus,
   parseNairaToKobo,
+  startPublicCoSign,
   type PublicCoSign,
 } from "@/lib/api/co-sign";
 
 interface Props {
   artistName: string;
+  artistSlug: string;
   cosign: PublicCoSign;
 }
 
@@ -21,25 +24,47 @@ function joinNames(names: string[]): string {
   return `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}`;
 }
 
-export default function CoSignCard({ artistName, cosign }: Props) {
+export default function CoSignCard({ artistName, artistSlug, cosign }: Props) {
   if (!cosign.enabled) return null;
-  return <CoSignCardBody artistName={artistName} cosign={cosign} />;
+  return <CoSignCardBody artistName={artistName} artistSlug={artistSlug} cosign={cosign} />;
 }
 
 function CoSignCardBody({
   artistName,
+  artistSlug,
   cosign,
 }: {
   artistName: string;
+  artistSlug: string;
   cosign: Extract<PublicCoSign, { enabled: true }>;
 }) {
   const [amountText, setAmountText] = useState(() =>
     formatNaira(CO_SIGN_DEFAULT_KOBO, { withSymbol: false })
   );
   const [open, setOpen] = useState(false);
+  const [name, setName] = useState("");
+  const [paying, setPaying] = useState(false);
+  const [payError, setPayError] = useState<string | null>(null);
+  // Back from the payment page: ?cosigned=<reference>.
+  const [returning] = useState<string | null>(() =>
+    typeof window === "undefined" ? null : new URLSearchParams(window.location.search).get("cosigned")
+  );
 
   const amountKobo = useMemo(() => parseNairaToKobo(amountText), [amountText]);
-  const canOpen = amountKobo !== null && amountKobo > 0;
+  const canOpen = amountKobo !== null && amountKobo >= (cosign.pay_online ? cosign.min_kobo : 1);
+
+  const payOnline = async () => {
+    if (!amountKobo) return;
+    setPaying(true);
+    setPayError(null);
+    const res = await startPublicCoSign(artistSlug, { amount_kobo: amountKobo, name: name.trim() || undefined });
+    if (res.error || !res.data?.checkout_url) {
+      setPaying(false);
+      setPayError(res.errors?.amount_kobo?.[0] ?? res.error ?? "Something went wrong. Please try again.");
+      return;
+    }
+    window.location.href = res.data.checkout_url;
+  };
   const amountRef = useRef<HTMLInputElement | null>(null);
   const namedSupporters = cosign.recent.map((r) => r.sender_name);
 
@@ -86,8 +111,14 @@ function CoSignCardBody({
           Co-sign {artistName}
         </h3>
         <p className="mb-5 text-[14px] leading-relaxed text-[var(--pk-muted)]">
-          Put your name behind the movement. You&rsquo;ll send a bank transfer straight to{" "}
-          {artistName}&rsquo;s Songdis account — no card, no sign-up.
+          {cosign.pay_online ? (
+            <>Put your name behind the movement. Pay by card or bank transfer — no sign-up.</>
+          ) : (
+            <>
+              Put your name behind the movement. You&rsquo;ll send a bank transfer straight to{" "}
+              {artistName}&rsquo;s Songdis account — no card, no sign-up.
+            </>
+          )}
         </p>
 
         {/* Amount. Naira, not dollars. */}
@@ -142,20 +173,59 @@ function CoSignCardBody({
           })}
         </div>
 
+        {cosign.pay_online && (
+          <>
+            <label
+              htmlFor="cosign-name"
+              className="mb-1.5 block text-[10.5px] uppercase tracking-[0.14em] text-[var(--pk-muted-2)]"
+            >
+              Your name <span className="normal-case tracking-normal">(optional, shown on this page)</span>
+            </label>
+            <input
+              id="cosign-name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              maxLength={60}
+              autoComplete="name"
+              placeholder="Leave blank to co-sign quietly"
+              className="mb-5 w-full rounded-2xl border border-[var(--pk-line)] bg-black/35 px-4 py-3.5 text-[15px] text-[var(--pk-text)] outline-none placeholder:text-[var(--pk-muted-2)] focus:border-[var(--pk-accent)] sm:px-5"
+            />
+          </>
+        )}
+
         <button
           type="button"
-          onClick={() => setOpen(true)}
-          disabled={!canOpen}
+          onClick={cosign.pay_online ? payOnline : () => setOpen(true)}
+          disabled={!canOpen || paying}
           className="w-full rounded-2xl bg-[linear-gradient(180deg,var(--pk-accent),var(--pk-accent-deep))] px-6 py-4 text-[14px] uppercase tracking-[0.12em] text-white shadow-[0_8px_24px_var(--pk-glow)] transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
           style={{ fontFamily: "var(--pk-headline)" }}
         >
-          Co-sign now
+          {paying ? (
+            <span className="inline-flex items-center justify-center gap-2">
+              <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+              Opening secure payment…
+            </span>
+          ) : cosign.pay_online && amountKobo ? (
+            `Co-sign ${formatNaira(amountKobo)}`
+          ) : (
+            "Co-sign now"
+          )}
         </button>
 
+        {payError && (
+          <p role="alert" className="mt-3 text-center text-[12.5px] text-[#ff6b6b]">
+            {payError}
+          </p>
+        )}
+
         <p className="mt-3 text-center text-[11.5px] leading-relaxed text-[var(--pk-muted-2)]">
-          Next you&rsquo;ll get {artistName}&rsquo;s account number to transfer to.
+          {cosign.pay_online
+            ? `Card or bank transfer, on a secure payment page. Every naira goes to ${artistName}.`
+            : `Next you’ll get ${artistName}’s account number to transfer to.`}
         </p>
       </div>
+
+      {returning && <CoSignThanks artistName={artistName} artistSlug={artistSlug} reference={returning} />}
 
       {open && (
         <TransferSheet
@@ -249,7 +319,7 @@ function TransferSheet({
             </span>
             <button
               type="button"
-              onClick={() => void copy(cosign.account_number, "number")}
+              onClick={() => void copy(cosign.account_number ?? "", "number")}
               className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-[var(--pk-line)] px-3.5 py-2 text-[12px] font-semibold text-[var(--pk-text-soft)] transition hover:border-[var(--pk-accent)] hover:text-[var(--pk-text)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--pk-accent)]"
             >
               {copied === "number" ? (
@@ -313,6 +383,105 @@ function TransferSheet({
           Done
         </button>
       </div>
+    </div>
+  );
+}
+
+/**
+ * After paying: "Confirming…" until Bachs confirms, then a thank-you that fades out by
+ * itself. The co-sign is only real once the webhook lands — this just watches for it.
+ */
+function CoSignThanks({ artistName, artistSlug, reference }: { artistName: string; artistSlug: string; reference: string }) {
+  const [state, setState] = useState<"checking" | "paid" | "slow">("checking");
+  const [amountKobo, setAmountKobo] = useState(0);
+  const [shown, setShown] = useState(false);
+  const [gone, setGone] = useState(false);
+
+  useEffect(() => {
+    // Tidy the address bar, keep the anchor.
+    const url = new URL(window.location.href);
+    url.searchParams.delete("cosigned");
+    window.history.replaceState(null, "", url.pathname + url.search + url.hash);
+
+    const enter = window.setTimeout(() => setShown(true), 30);
+    let tries = 0;
+    let done = false;
+    const check = async () => {
+      if (done) return;
+      tries += 1;
+      const res = await getPublicCoSignStatus(artistSlug, reference);
+      if (res.data?.status === "paid") {
+        done = true;
+        setAmountKobo(res.data.amount_kobo);
+        setState("paid");
+      } else if (tries >= 15) {
+        done = true;
+        setState("slow");
+      }
+    };
+    void check();
+    const poll = window.setInterval(check, 3000);
+    return () => {
+      window.clearTimeout(enter);
+      window.clearInterval(poll);
+    };
+  }, [artistSlug, reference]);
+
+  // Leave by itself a few seconds after the result is in.
+  useEffect(() => {
+    if (state === "checking") return;
+    const out = window.setTimeout(() => setShown(false), state === "paid" ? 5000 : 7000);
+    const remove = window.setTimeout(() => {
+      setGone(true);
+      if (state === "paid") window.location.reload(); // show the new count and name
+    }, state === "paid" ? 5400 : 7400);
+    return () => {
+      window.clearTimeout(out);
+      window.clearTimeout(remove);
+    };
+  }, [state]);
+
+  if (gone) return null;
+
+  return (
+    <div
+      role="status"
+      aria-live="polite"
+      onClick={() => state !== "checking" && setShown(false)}
+      className={`fixed inset-x-0 bottom-6 z-[95] mx-auto flex w-[calc(100%-32px)] max-w-sm items-center gap-3.5 rounded-2xl border border-[var(--pk-line)] bg-[var(--pk-bg)]/95 px-4 py-3.5 shadow-[0_18px_50px_rgba(0,0,0,0.55)] backdrop-blur transition-all duration-[400ms] ease-out ${
+        shown ? "translate-y-0 opacity-100" : "translate-y-6 opacity-0"
+      }`}
+    >
+      <span
+        className={`grid h-10 w-10 shrink-0 place-items-center rounded-full transition-colors duration-300 ${
+          state === "paid" ? "bg-[#1f9d55]" : "bg-white/[0.08]"
+        }`}
+      >
+        {state === "paid" ? (
+          <Check className="h-5 w-5 text-white animate-[pk-pop_420ms_cubic-bezier(.2,1.4,.4,1)]" strokeWidth={3} aria-hidden />
+        ) : state === "checking" ? (
+          <Loader2 className="h-5 w-5 animate-spin text-[var(--pk-muted)]" aria-hidden />
+        ) : (
+          <Landmark className="h-5 w-5 text-[var(--pk-muted)]" aria-hidden />
+        )}
+      </span>
+      <div className="min-w-0">
+        <p className="text-[14px] font-semibold text-[var(--pk-text)]">
+          {state === "paid"
+            ? `You co-signed ${artistName}`
+            : state === "checking"
+              ? "Confirming your co-sign…"
+              : "Payment still processing"}
+        </p>
+        <p className="text-[12px] text-[var(--pk-muted)]">
+          {state === "paid"
+            ? `${formatNaira(amountKobo)} · thank you for the support`
+            : state === "checking"
+              ? "This takes a few seconds."
+              : "Bank transfers can take a few minutes. It will show here once it lands."}
+        </p>
+      </div>
+      <style>{`@keyframes pk-pop{0%{transform:scale(.3);opacity:0}100%{transform:scale(1);opacity:1}}`}</style>
     </div>
   );
 }

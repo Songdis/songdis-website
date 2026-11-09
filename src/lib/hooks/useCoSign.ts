@@ -40,7 +40,7 @@ export interface UseCoSign {
 
   isEnabling: boolean;
   enableFailure: CoSignFailure | null;
-  enable: (details: CoSignEnableRequest) => Promise<boolean>;
+  enable: (details?: CoSignEnableRequest) => Promise<boolean>;
 
   isRequestingPayout: boolean;
   payoutFailure: CoSignFailure | null;
@@ -151,7 +151,7 @@ export function useCoSign(profileId: number): UseCoSign {
 
 
   const enable = useCallback(
-    async (details: CoSignEnableRequest): Promise<boolean> => {
+    async (details?: CoSignEnableRequest): Promise<boolean> => {
       setIsEnabling(true);
       setEnableFailure(null);
 
