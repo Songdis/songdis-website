@@ -162,6 +162,8 @@ export function importFans(file: File, releaseId: number) {
     already_added: number;
     missing_email: number;
     missing_whatsapp: number;
+    missing_name: number;
+    email_cannot_receive: number;
     skipped: number;
     total: number;
   }>(`${ROOT}/fans/import`, { method: "POST", body: form }, true);

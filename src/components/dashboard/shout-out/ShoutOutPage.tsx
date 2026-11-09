@@ -635,6 +635,10 @@ function AddFansModal({
       d?.already_added ? `${d.already_added} already on your list` : null,
       d?.missing_whatsapp ? `${d.missing_whatsapp} skipped: no valid WhatsApp number` : null,
       d?.missing_email ? `${d.missing_email} skipped: no valid email` : null,
+      d?.missing_name ? `${d.missing_name} skipped: no name` : null,
+      d?.email_cannot_receive
+        ? `${d.email_cannot_receive} skipped: email address can't receive mail (check for typos like gmial.com)`
+        : null,
     ].filter(Boolean);
     setResult({
       ok: (d?.added ?? 0) > 0 || notes.length === 0,
@@ -656,7 +660,7 @@ function AddFansModal({
           <ul className="font-body text-white/60 text-sm mt-2 space-y-1">
             <li><span className="text-white">email</span>: required</li>
             <li><span className="text-white">whatsapp</span>: required, with the country code, e.g. +2348012345678</li>
-            <li><span className="text-white">name</span>: optional</li>
+            <li><span className="text-white">name</span>: required (first name is fine)</li>
           </ul>
           <button
             onClick={downloadFansTemplate}
@@ -674,7 +678,7 @@ function AddFansModal({
           className="mt-5 w-full rounded-2xl border border-dashed border-white/20 hover:border-white/40 bg-[#0D0808] px-4 py-6 font-body text-white/70 text-sm text-center"
         >
           {fileName ?? "Choose a CSV file"}
-          <span className="block text-white/35 text-xs mt-1">CSV with email and WhatsApp for every fan</span>
+          <span className="block text-white/35 text-xs mt-1">CSV with a name, email and WhatsApp for every fan</span>
         </button>
         <input ref={fileRef} type="file" accept=".csv,text/csv" className="hidden" onChange={(e) => setFileName(e.target.files?.[0]?.name ?? null)} />
 
