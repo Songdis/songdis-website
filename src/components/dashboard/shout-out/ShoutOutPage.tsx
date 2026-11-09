@@ -245,7 +245,7 @@ function Compose({
           onClick={canWhatsApp ? () => setChannel("whatsapp") : undefined}
           price={naira(data.whatsapp_price_kobo)}
           label="WhatsApp"
-          note={canWhatsApp ? undefined : data.whatsapp.release_day ? "Sent automatically on release day" : "Coming soon"}
+          note={canWhatsApp ? "Countdown & updates" : data.whatsapp.release_day ? "Release day only, sent automatically" : "Coming soon"}
         >
           <WhatsAppLogo size={28} />
         </ChannelTile>
@@ -448,6 +448,12 @@ function WhatsAppForm({
 
   return (
     <>
+      {data.whatsapp.release_day && (
+        <p className="font-body text-white/45 text-xs mt-4 leading-relaxed">
+          On release day, fans who pre-saved already get a WhatsApp automatically. Use these for the build-up and for anything new after.
+        </p>
+      )}
+
       <span className={`${fieldLabel} mt-5`}>Message</span>
       <div className="grid grid-cols-2 gap-2.5">
         {templates.map((t) => (
