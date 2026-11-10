@@ -131,7 +131,6 @@ export function ShoutOutPage() {
       {topupOpen && (
         <TopupModal
           minKobo={data.min_topup_kobo}
-          priceKobo={data.price_kobo}
           returningReference={returningTopup}
           onClose={() => setTopupOpen(false)}
           onPaid={load}
@@ -812,13 +811,11 @@ function statusText(b: ShoutOutOverview["broadcasts"][number]): string {
 
 function TopupModal({
   minKobo,
-  priceKobo,
   returningReference,
   onClose,
   onPaid,
 }: {
   minKobo: number;
-  priceKobo: number;
   /** Set when the artist is back from the payment page. */
   returningReference: string | null;
   onClose: () => void;
@@ -866,8 +863,6 @@ function TopupModal({
     setTopup(res.data);
   };
 
-  const emails = Math.floor((Number(amount || 0) * 100) / priceKobo);
-
   return (
     <Sheet onClose={onClose} label="Top up">
       <div className="p-6">
@@ -895,9 +890,6 @@ function TopupModal({
                 </button>
               ))}
             </div>
-            <p className="font-body text-white/45 text-xs mt-3">
-              Sends {emails.toLocaleString()} email{emails === 1 ? "" : "s"} at {naira(priceKobo)} each.
-            </p>
             {error && <p className="font-body text-[#ff6b6b] text-sm mt-3">{error}</p>}
             <button onClick={start} disabled={busy || Number(amount) * 100 < minKobo} className={`${redPill} mt-6`}>
               {busy ? "Opening payment…" : `Pay ₦${Number(amount || 0).toLocaleString()}`}
