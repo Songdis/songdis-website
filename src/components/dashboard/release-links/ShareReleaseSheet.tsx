@@ -25,8 +25,12 @@ interface Target {
   /** Circle style: brand fill, or a ring for "Status" so it reads differently from the chat. */
   bg: string;
   ring?: string;
-  /** Where to go when the device can't share an image (most desktops). */
-  fallback?: (url: string, caption: string, title: string) => string;
+  /**
+   * Chats and feeds open the app straight away with the caption filled in; the link's preview
+   * shows the artwork. Stories have no such link: a website can only pass an image through the
+   * phone's share sheet, so they go there with the 9:16 image.
+   */
+  direct?: (url: string, caption: string, captionNoLink: string) => string;
 }
 
 const enc = encodeURIComponent;
@@ -34,7 +38,7 @@ const enc = encodeURIComponent;
 const TARGETS: Target[] = [
   {
     key: "whatsapp", label: "WhatsApp", format: "square", icon: siWhatsapp, bg: `#${siWhatsapp.hex}`,
-    fallback: (_u, caption) => `https://wa.me/?text=${enc(caption)}`,
+    direct: (_u, caption) => `https://wa.me/?text=${enc(caption)}`,
   },
   { key: "whatsapp_status", label: "WhatsApp Status", format: "story", icon: siWhatsapp, bg: "transparent", ring: `#${siWhatsapp.hex}` },
   {
@@ -44,15 +48,15 @@ const TARGETS: Target[] = [
   { key: "tiktok", label: "TikTok", format: "story", icon: siTiktok, bg: "#000000", ring: "rgba(255,255,255,0.18)" },
   {
     key: "x", label: "X", format: "square", icon: siX, bg: "#000000", ring: "rgba(255,255,255,0.18)",
-    fallback: (url, _c, title) => `https://twitter.com/intent/tweet?text=${enc(title)}&url=${enc(url)}`,
+    direct: (_u, caption) => `https://x.com/intent/post?text=${enc(caption)}`,
   },
   {
     key: "facebook", label: "Facebook", format: "square", icon: siFacebook, bg: `#${siFacebook.hex}`,
-    fallback: (url) => `https://www.facebook.com/sharer/sharer.php?u=${enc(url)}`,
+    direct: (url, _c, captionNoLink) => `https://www.facebook.com/sharer/sharer.php?u=${enc(url)}&quote=${enc(captionNoLink)}`,
   },
   {
     key: "telegram", label: "Telegram", format: "square", icon: siTelegram, bg: `#${siTelegram.hex}`,
-    fallback: (url, _c, title) => `https://t.me/share/url?url=${enc(url)}&text=${enc(title)}`,
+    direct: (url, _c, captionNoLink) => `https://t.me/share/url?url=${enc(url)}&text=${enc(captionNoLink)}`,
   },
 ];
 
@@ -70,6 +74,15 @@ function captionFor(r: ShareableRelease) {
   return r.isPresave
     ? `"${r.title}" by ${r.artist} is coming soon 🎧\n\nPre-save it now so it's in your library the moment it drops, and share it with someone who needs to hear it.\n\nPre-save here: ${url}\n\nDistributed by SongDis ❤️🦢`
     : `"${r.title}" by ${r.artist} is out now 🎧\n\nIt's finally here. Stream it, add it to your playlists, and share it with someone who needs to hear it.\n\nListen here: ${url}\n\nDistributed by SongDis ❤️🦢`;
+}
+
+function captionWithoutLink(r: ShareableRelease) {
+  return captionFor(r)
+    .split("\n")
+    .filter((line) => !line.includes(fullUrl(r.url)))
+    .join("\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
 }
 
 function track(id: string, platform: Platform | "copy" | "native") {
@@ -285,17 +298,19 @@ export default function ShareReleaseSheet({ release, onClose }: { release: Share
 
   const shareTo = async (t: Target) => {
     track(release.id, t.key);
+
+    // Open the app now, inside the tap: a phone blocks it if we wait for anything first.
+    if (t.direct) {
+      window.open(t.direct(url, caption, captionWithoutLink(release)), "_blank", "noopener");
+      return;
+    }
+
     setBusy(t.key);
     const shared = await nativeShare(t.format);
     setBusy(null);
     if (shared) return;
 
-    if (t.fallback) {
-      window.open(t.fallback(url, caption, release.isPresave ? `Pre-save "${release.title}" by ${release.artist}` : `"${release.title}" by ${release.artist} is out now`), "_blank", "noopener");
-      return;
-    }
-
-    // Stories can only be posted from the app itself: hand over the image and the caption.
+    // No share sheet (most computers): hand over the image and the caption to post by hand.
     const file = await image(t.format);
     if (file) download(file);
     navigator.clipboard?.writeText(caption).catch(() => undefined);
@@ -402,7 +417,9 @@ export default function ShareReleaseSheet({ release, onClose }: { release: Share
           ))}
         </div>
 
-        <p className={`font-body text-xs text-center mt-3 min-h-[16px] transition-opacity ${note ? "text-white/70 opacity-100" : "opacity-0"}`}>{note ?? "."}</p>
+        <p className="font-body text-white/45 text-xs text-center mt-3 min-h-[16px]">
+          {note ?? "Status, Story and TikTok open your share menu with the image — pick the app there."}
+        </p>
 
         <button
           onClick={shareNative}
