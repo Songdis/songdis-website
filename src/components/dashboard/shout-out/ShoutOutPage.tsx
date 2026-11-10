@@ -90,15 +90,15 @@ export function ShoutOutPage() {
       {/* Mobile: cards, form, history stacked. Desktop: form on the left, cards and history in a right-hand column. */}
       <div className="grid gap-4 sm:gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(320px,380px)] items-start">
         <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:col-start-2 lg:row-start-1">
-          <div className={`${panel} p-4 sm:p-5 flex flex-col`}>
+          <div className={`${panel} p-4 sm:p-5 flex flex-col min-w-0`}>
             <p className="font-body text-white/55 text-sm">Balance</p>
-            <p className="font-heading text-white text-3xl mt-1">{naira(data.balance_kobo)}</p>
+            <BalanceAmount kobo={data.balance_kobo} />
             <p className="font-body text-white/45 text-xs mt-1 flex-1">Only pay for what you send</p>
             <button onClick={() => setTopupOpen(true)} className={`${outlinePill} mt-4`}>
               Top up
             </button>
           </div>
-          <div className={`${panel} p-4 sm:p-5 flex flex-col`}>
+          <div className={`${panel} p-4 sm:p-5 flex flex-col min-w-0`}>
             <p className="font-body text-white/55 text-sm">Fans</p>
             <p className="font-heading text-white text-3xl mt-1">{data.fans.total.toLocaleString()}</p>
             <p className="font-body text-white/45 text-xs mt-1 flex-1">
@@ -1052,5 +1052,20 @@ function SentToast({ info, onDone }: { info: SentInfo; onDone: () => void }) {
         @keyframes so-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
       `}</style>
     </div>
+  );
+}
+
+/** Naira big, kobo small, and the whole figure shrinks as it grows so it never spills out of its card. */
+function BalanceAmount({ kobo }: { kobo: number }) {
+  const whole = Math.floor(kobo / 100);
+  const cents = kobo % 100;
+  const nairaText = `₦${whole.toLocaleString("en-NG")}`;
+  const size = nairaText.length > 9 ? "text-lg sm:text-xl" : nairaText.length > 6 ? "text-xl sm:text-2xl" : "text-2xl sm:text-3xl";
+
+  return (
+    <p className={`font-heading text-white ${size} mt-1 leading-tight whitespace-nowrap`}>
+      {nairaText}
+      {cents > 0 && <span className="text-white/45 text-base">.{String(cents).padStart(2, "0")}</span>}
+    </p>
   );
 }
