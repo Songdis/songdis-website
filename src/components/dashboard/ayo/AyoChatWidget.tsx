@@ -280,6 +280,7 @@ export default function AyoChatWidget() {
 
       {/* FAB */}
       <button
+        data-floating-fab
         onClick={() => setIsOpen(!isOpen)}
         className={[
           "fixed bottom-6 right-4 sm:right-6 z-50 w-14 h-14 rounded-full flex items-center justify-center shadow-lg",

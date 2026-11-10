@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Image from "next/image";
 import DashboardLayout from "@/components/dashboard/DashboardLayout";
 import { request } from "@/lib/api/core";
 import { deleteReleaseLink } from "@/lib/api/releaseLinks";
+import ShareReleaseSheet from "@/components/dashboard/release-links/ShareReleaseSheet";
 
 
 interface ReleaseLink {
@@ -26,6 +27,9 @@ interface ReleaseLink {
   countries: Breakdown[];
   devices: Breakdown[];
   sources: Breakdown[];
+  artist: string;
+  isPresave: boolean;
+  shares: Record<string, number>;
 }
 
 interface Breakdown {
@@ -208,6 +212,9 @@ function normaliseLink(raw: Record<string, unknown>, i: number): ReleaseLink {
     countries: (raw.countries ?? []) as Breakdown[],
     devices: (raw.devices ?? []) as Breakdown[],
     sources: (raw.sources ?? []) as Breakdown[],
+    artist: (raw.artist_display ?? raw.primary_artist ?? "") as string,
+    isPresave: Boolean(raw.is_presave),
+    shares: (raw.shares && !Array.isArray(raw.shares) ? raw.shares : {}) as Record<string, number>,
   };
 }
 
@@ -228,6 +235,7 @@ export default function ReleaseLinksPage() {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [sharing, setSharing] = useState<ReleaseLink | null>(null);
+  const closeShare = useCallback(() => setSharing(null), []);
 
   /* Fetch release links from API */
   useEffect(() => {
@@ -491,7 +499,19 @@ export default function ReleaseLinksPage() {
           </div>
         )}
 
-        {sharing && <ShareSheet link={sharing} onClose={() => setSharing(null)} />}
+        {sharing && (
+          <ShareReleaseSheet
+            release={{
+              id: sharing.id,
+              title: sharing.trackTitle,
+              artist: sharing.artist,
+              cover: sharing.cover,
+              url: sharing.url,
+              isPresave: sharing.isPresave,
+            }}
+            onClose={closeShare}
+          />
+        )}
 
         {confirmingDelete && (
           <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
@@ -572,147 +592,6 @@ function SearchIcon() {
   );
 }
 
-function fullUrl(url: string) {
-  return url.startsWith("http") ? url : `https://${url}`;
-}
-
-/** The artwork as a file, so it can go out as the post itself rather than a link preview. */
-async function artworkFile(link: ReleaseLink): Promise<File | null> {
-  if (!link.cover) return null;
-  try {
-    const res = await fetch(link.cover, { mode: "cors" });
-    if (!res.ok) return null;
-    const blob = await res.blob();
-    const ext = blob.type.includes("png") ? "png" : "jpg";
-    const name = `${link.trackTitle.replace(/[^\w\- ]+/g, "").trim() || "artwork"}.${ext}`;
-    return new File([blob], name, { type: blob.type || "image/jpeg" });
-  } catch {
-    return null;
-  }
-}
-
-function ShareSheet({ link, onClose }: { link: ReleaseLink; onClose: () => void }) {
-  const url = fullUrl(link.url);
-  const caption = `${link.trackTitle} is out now. Listen here: ${url}`;
-  const [busy, setBusy] = useState(false);
-  const [note, setNote] = useState<string | null>(null);
-
-  const flash = (msg: string) => {
-    setNote(msg);
-    setTimeout(() => setNote(null), 2200);
-  };
-
-  // Phones: hand the artwork and caption to the share menu (WhatsApp, Instagram, X…).
-  const shareWithArtwork = async () => {
-    setBusy(true);
-    const file = await artworkFile(link);
-    setBusy(false);
-    try {
-      if (file && navigator.canShare?.({ files: [file] })) {
-        await navigator.share({ files: [file], text: caption });
-        return;
-      }
-      if (navigator.share) {
-        await navigator.share({ title: link.trackTitle, text: caption, url });
-        return;
-      }
-    } catch (e) {
-      if ((e as Error).name === "AbortError") return; // closed the share menu
-    }
-    navigator.clipboard.writeText(caption).catch(() => {});
-    flash("Caption and link copied. Paste it anywhere.");
-  };
-
-  const saveArtwork = async () => {
-    setBusy(true);
-    const file = await artworkFile(link);
-    setBusy(false);
-    if (!file) {
-      window.open(link.cover, "_blank");
-      return;
-    }
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(file);
-    a.download = file.name;
-    a.click();
-    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
-  };
-
-  const enc = encodeURIComponent;
-  const targets = [
-    { label: "WhatsApp", href: `https://wa.me/?text=${enc(caption)}` },
-    { label: "X", href: `https://twitter.com/intent/tweet?text=${enc(`${link.trackTitle} is out now`)}&url=${enc(url)}` },
-    { label: "Facebook", href: `https://www.facebook.com/sharer/sharer.php?u=${enc(url)}` },
-    { label: "Telegram", href: `https://t.me/share/url?url=${enc(url)}&text=${enc(`${link.trackTitle} is out now`)}` },
-  ];
-
-  const pill =
-    "font-body text-white/70 text-xs border border-white/10 hover:border-white/30 hover:text-white rounded-full py-2.5 transition-colors text-center min-h-[40px] flex items-center justify-center";
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:px-4">
-      <div aria-hidden className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative z-10 w-full sm:max-w-[400px] rounded-t-2xl sm:rounded-2xl bg-[#1A0808] border border-white/[0.07] p-5 sm:p-6">
-        <div className="flex items-start justify-between gap-3 mb-4">
-          <p className="font-body text-white text-sm font-medium">Share your release</p>
-          <button onClick={onClose} aria-label="Close" className="text-white/40 hover:text-white -mt-1 -mr-1 p-1">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M18 6 6 18M6 6l12 12" /></svg>
-          </button>
-        </div>
-
-        {/* What fans will see */}
-        <div className="rounded-xl overflow-hidden border border-white/[0.07] bg-[#0E0808]">
-          {link.cover ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={link.cover} alt={link.trackTitle} className="w-full aspect-square object-cover" />
-          ) : (
-            <div className="w-full aspect-[3/1] bg-[#180F0F]" />
-          )}
-          <div className="px-3.5 py-3">
-            <p className="font-body text-white text-sm font-medium truncate">{link.trackTitle}</p>
-            <p className="font-body text-[#C30100] text-xs truncate mt-0.5">{link.url}</p>
-          </div>
-        </div>
-
-        <button
-          onClick={shareWithArtwork}
-          disabled={busy}
-          className="w-full mt-4 font-body text-white text-sm bg-[#C30100] hover:bg-[#a80000] rounded-full py-3 min-h-[46px] transition-colors disabled:opacity-60"
-        >
-          {busy ? "Getting the artwork…" : "Share with artwork"}
-        </button>
-
-        <div className="grid grid-cols-4 gap-2 mt-3">
-          {targets.map((t) => (
-            <a key={t.label} href={t.href} target="_blank" rel="noopener noreferrer" className={pill}>
-              {t.label}
-            </a>
-          ))}
-        </div>
-
-        <div className="grid grid-cols-2 gap-2 mt-2">
-          <button
-            onClick={() => {
-              navigator.clipboard.writeText(url).catch(() => {});
-              flash("Link copied");
-            }}
-            className={pill}
-          >
-            Copy link
-          </button>
-          <button onClick={saveArtwork} disabled={busy || !link.cover} className={`${pill} disabled:opacity-40`}>
-            Save artwork
-          </button>
-        </div>
-
-        <p className="font-body text-white/35 text-[11px] text-center mt-3 leading-relaxed">
-          {note ?? "Links show your artwork as the preview on WhatsApp, X and Facebook."}
-        </p>
-      </div>
-    </div>
-  );
-}
-
 /* ── Who is visiting ── */
 
 const regionNames =
@@ -746,9 +625,14 @@ function sourceName(domain: string) {
   return known[d] ?? d;
 }
 
+const SHARE_LABELS: Record<string, string> = {
+  whatsapp: "WhatsApp", whatsapp_status: "WhatsApp Status", instagram_story: "Instagram Story",
+  tiktok: "TikTok", x: "X", facebook: "Facebook", telegram: "Telegram",
+};
+
 function Audience({ link }: { link: ReleaseLink }) {
   const [open, setOpen] = useState(false);
-  const has = link.countries.length + link.devices.length + link.sources.length > 0;
+  const has = link.countries.length + link.devices.length + link.sources.length + Object.keys(link.shares).length > 0;
   if (!has) return null;
 
   const groups: { title: string; rows: { label: string; count: number }[] }[] = [
@@ -773,6 +657,13 @@ function Audience({ link }: { link: ReleaseLink }) {
         .map(([label, count]) => ({ label, count }))
         .sort((a, b) => b.count - a.count),
     },
+    {
+      title: "Where you shared it",
+      rows: Object.entries(link.shares)
+        .filter(([k]) => k !== "copy" && k !== "native")
+        .map(([k, count]) => ({ label: SHARE_LABELS[k] ?? k, count }))
+        .sort((a, b) => b.count - a.count),
+    },
   ].filter((g) => g.rows.length > 0);
 
   return (
@@ -790,7 +681,7 @@ function Audience({ link }: { link: ReleaseLink }) {
       </button>
 
       {open && (
-        <div className="grid gap-4 sm:grid-cols-3 mt-3 rounded-xl border border-white/[0.06] bg-[#140C0C] p-4">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 mt-3 rounded-xl border border-white/[0.06] bg-[#140C0C] p-4">
           {groups.map((g) => {
             const total = g.rows.reduce((t, r) => t + r.count, 0) || 1;
             return (

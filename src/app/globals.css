@@ -397,3 +397,8 @@ input[type="date"]::-webkit-calendar-picker-indicator {
     opacity: 0 !important;
   }
 }
+
+/* Full-screen sheets (Share) cover the corner the Ayo button sits in. */
+body[data-share-sheet] [data-floating-fab] {
+  display: none !important;
+}
