@@ -22,6 +22,15 @@ interface ReleaseLink {
   conversionRate: number;
   fansCaptured: number;
   topPlatforms: Record<string, number>;
+  uniqueViews: number | null;
+  countries: Breakdown[];
+  devices: Breakdown[];
+  sources: Breakdown[];
+}
+
+interface Breakdown {
+  label: string;
+  count: number;
 }
 
 
@@ -136,6 +145,8 @@ function LinkCard({
         </div>
       )}
 
+      {link.isSmartLink && <Audience link={link} />}
+
       {/* Action buttons */}
       <div className="grid grid-cols-3 gap-2 sm:gap-3">
         <button
@@ -193,6 +204,10 @@ function normaliseLink(raw: Record<string, unknown>, i: number): ReleaseLink {
     conversionRate: Number(raw.conversion_rate ?? 0),
     fansCaptured: (raw.fans_captured ?? 0) as number,
     topPlatforms: (raw.top_platforms ?? {}) as Record<string, number>,
+    uniqueViews: (raw.unique_views ?? null) as number | null,
+    countries: (raw.countries ?? []) as Breakdown[],
+    devices: (raw.devices ?? []) as Breakdown[],
+    sources: (raw.sources ?? []) as Breakdown[],
   };
 }
 
@@ -694,6 +709,114 @@ function ShareSheet({ link, onClose }: { link: ReleaseLink; onClose: () => void 
           {note ?? "Links show your artwork as the preview on WhatsApp, X and Facebook."}
         </p>
       </div>
+    </div>
+  );
+}
+
+/* ── Who is visiting ── */
+
+const regionNames =
+  typeof Intl !== "undefined" && "DisplayNames" in Intl
+    ? new Intl.DisplayNames(["en"], { type: "region" })
+    : null;
+
+function countryName(code: string) {
+  try {
+    return regionNames?.of(code.toUpperCase()) ?? code;
+  } catch {
+    return code;
+  }
+}
+
+function flag(code: string) {
+  if (!/^[a-z]{2}$/i.test(code)) return "";
+  return String.fromCodePoint(...code.toUpperCase().split("").map((c) => 0x1f1e6 + c.charCodeAt(0) - 65));
+}
+
+function sourceName(domain: string) {
+  const d = domain.replace(/^www\./, "").toLowerCase();
+  if (d === "go.songdis.com" || d === "songdis.com") return "Direct / shared link";
+  const known: Record<string, string> = {
+    "t.co": "X (Twitter)", "x.com": "X (Twitter)", "twitter.com": "X (Twitter)",
+    "l.instagram.com": "Instagram", "instagram.com": "Instagram",
+    "l.facebook.com": "Facebook", "lm.facebook.com": "Facebook", "m.facebook.com": "Facebook", "facebook.com": "Facebook",
+    "tiktok.com": "TikTok", "youtube.com": "YouTube", "wa.me": "WhatsApp", "web.whatsapp.com": "WhatsApp",
+    "linktr.ee": "Linktree", "google.com": "Google", "snapchat.com": "Snapchat", "t.me": "Telegram",
+  };
+  return known[d] ?? d;
+}
+
+function Audience({ link }: { link: ReleaseLink }) {
+  const [open, setOpen] = useState(false);
+  const has = link.countries.length + link.devices.length + link.sources.length > 0;
+  if (!has) return null;
+
+  const groups: { title: string; rows: { label: string; count: number }[] }[] = [
+    {
+      title: "Top countries",
+      rows: link.countries.map((c) => ({ label: `${flag(c.label)} ${countryName(c.label)}`.trim(), count: c.count })),
+    },
+    {
+      title: "Devices",
+      rows: link.devices.map((d) => ({ label: d.label.charAt(0).toUpperCase() + d.label.slice(1), count: d.count })),
+    },
+    {
+      // Several domains can be one source (l.facebook.com, m.facebook.com…), so fold them.
+      title: "Where they came from",
+      rows: Object.entries(
+        link.sources.reduce<Record<string, number>>((acc, r) => {
+          const k = sourceName(r.label);
+          acc[k] = (acc[k] ?? 0) + r.count;
+          return acc;
+        }, {}),
+      )
+        .map(([label, count]) => ({ label, count }))
+        .sort((a, b) => b.count - a.count),
+    },
+  ].filter((g) => g.rows.length > 0);
+
+  return (
+    <div className="mb-4">
+      <button
+        onClick={() => setOpen((o) => !o)}
+        className="flex items-center gap-1.5 font-body text-white/50 hover:text-white text-xs transition-colors"
+        aria-expanded={open}
+      >
+        Who&apos;s listening
+        {link.uniqueViews ? <span className="text-white/30">· {formatCount(link.uniqueViews)} people</span> : null}
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={`transition-transform ${open ? "rotate-180" : ""}`}>
+          <path d="m6 9 6 6 6-6" />
+        </svg>
+      </button>
+
+      {open && (
+        <div className="grid gap-4 sm:grid-cols-3 mt-3 rounded-xl border border-white/[0.06] bg-[#140C0C] p-4">
+          {groups.map((g) => {
+            const total = g.rows.reduce((t, r) => t + r.count, 0) || 1;
+            return (
+              <div key={g.title} className="min-w-0">
+                <p className="font-body text-white/40 text-[10px] uppercase tracking-[0.12em] mb-2.5">{g.title}</p>
+                <ul className="space-y-2">
+                  {g.rows.slice(0, 5).map((r) => {
+                    const pct = Math.round((r.count / total) * 100);
+                    return (
+                      <li key={r.label}>
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="font-body text-white/80 text-xs truncate">{r.label}</span>
+                          <span className="font-body text-white/40 text-[11px] shrink-0">{pct}%</span>
+                        </div>
+                        <div className="h-1 rounded-full bg-white/[0.06] mt-1 overflow-hidden">
+                          <div className="h-full rounded-full bg-[#C30100]" style={{ width: `${Math.max(pct, 3)}%` }} />
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
