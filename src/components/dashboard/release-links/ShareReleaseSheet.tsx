@@ -68,8 +68,8 @@ function shortUrl(url: string) {
 function captionFor(r: ShareableRelease) {
   const url = fullUrl(r.url);
   return r.isPresave
-    ? `"${r.title}" by ${r.artist} is coming soon. Pre-save it now so it's in your library the moment it drops 👇\n${url}`
-    : `"${r.title}" by ${r.artist} is out now 🔥 Listen here 👇\n${url}`;
+    ? `"${r.title}" by ${r.artist} is coming soon 🎧\n\nPre-save it now so it's in your library the moment it drops, and share it with someone who needs to hear it.\n\nPre-save here: ${url}\n\nDistributed by SongDis ❤️🦢`
+    : `"${r.title}" by ${r.artist} is out now 🎧\n\nIt's finally here. Stream it, add it to your playlists, and share it with someone who needs to hear it.\n\nListen here: ${url}\n\nDistributed by SongDis ❤️🦢`;
 }
 
 function track(id: string, platform: Platform | "copy" | "native") {
