@@ -1,5 +1,6 @@
 "use client";
 
+import JoinCard from "./JoinCard";
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { ChevronRight, FileText, Mail, Play, Users } from "lucide-react";
@@ -325,7 +326,7 @@ export default function PressKitView({ kit }: { kit: PublicPressKit }) {
         </a>
       </section>
     ),
-    join: null,
+    join: <JoinCard key="join" artistName={artist.name} artistSlug={artist.slug} />,
 
     cosign: <CoSignCard key="cosign" artistName={artist.name} artistSlug={artist.slug} cosign={kit.cosign} />,
   };
@@ -408,6 +409,11 @@ function resolveOrder(kit: PublicPressKit): PressKitSectionKey[] {
       : [...DEFAULT_SECTION_ORDER];
   const hidden = new Set(kit.kit.hidden_sections);
   const out = ordered.filter((k) => !hidden.has(k));
+  // Kits saved before "Stay close" existed: show it just above Co-sign unless switched off.
+  if (!out.includes("join") && !hidden.has("join") && !ordered.includes("join")) {
+    const at = out.indexOf("cosign");
+    out.splice(at < 0 ? out.length : at, 0, "join");
+  }
   if (!out.includes("cosign") && !hidden.has("cosign")) out.push("cosign");
   return out;
 }

@@ -297,9 +297,10 @@ function SectionBody({
       );
     case "join":
       return (
-        <Notice tone="warning">
-          Email capture is not part of this release, so this block is not rendered on your
-          public page yet.
+        <Notice>
+          Visitors can leave their email or WhatsApp number to hear from you. Everyone who
+          does lands in your Shout Out fans for this artist, so you can message them about
+          the next release, show or drop. Nothing to set up here.
         </Notice>
       );
     case "cosign":

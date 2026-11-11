@@ -252,8 +252,8 @@ export const SECTION_META: Record<SectionKey, SectionMeta> = {
   join: {
     key: "join",
     label: "Stay close",
-    hint: "Email capture isn't built yet, so this won't appear on your page.",
-    live: false,
+    hint: "Fans leave their email or WhatsApp. They go straight into your Shout Out list.",
+    live: true,
   },
   cosign: {
     key: "cosign",

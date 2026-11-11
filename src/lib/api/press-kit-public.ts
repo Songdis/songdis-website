@@ -46,6 +46,7 @@ export const DEFAULT_SECTION_ORDER: readonly PressKitSectionKey[] = [
   "live",
   "contact",
   "kit",
+  "join",
   "cosign",
 ];
 
