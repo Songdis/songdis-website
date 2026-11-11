@@ -1,4 +1,5 @@
 import { request, type ApiResponse } from "./core";
+import { onEpk } from "../epk";
 
 export const PRESS_KIT_THEMES = [
   "blaze",
@@ -217,8 +218,8 @@ export interface PressKitReleaseRef {
    * collide, so `id` alone is not a unique key for a merged list and is not enough to
    * address a row for deletion. Key on `${source}:${id}`.
    */
-  source: "songdis" | "spotify";
-  /** Present only on added releases; where the public page links them. */
+  source: "songdis" | "spotify" | "manual";
+  /** Present only on added releases (Spotify or by hand); where the public page links them. */
   spotify_url: string | null;
   /** Full date where known. Kept alongside `year` so the list can re-sort locally. */
   released_on: string | null;
@@ -425,7 +426,7 @@ function normaliseReleases(raw: unknown): PressKitReleaseRef[] {
         year: str(obj.year) ?? (released ? released.slice(0, 4) : null),
         // Defaults to songdis so older responses, and any caller that has not been
         // redeployed yet, keep behaving exactly as before.
-        source: str(obj.source) === "spotify" ? "spotify" : "songdis",
+        source: str(obj.source) === "spotify" ? "spotify" : str(obj.source) === "manual" ? "manual" : "songdis",
         spotify_url: str(obj.spotify_url),
         released_on: released,
       } satisfies PressKitReleaseRef;
@@ -548,6 +549,8 @@ export function publicKitOrigin(): string {
 
 export function publicKitUrl(slug: string | null): string | null {
   if (!slug) return null;
+  // On getepk.si a kit lives at the root: getepk.si/<slug>.
+  if (onEpk()) return `${window.location.origin}/${slug}`;
   return `${publicKitOrigin()}/k/${slug}`;
 }
 
@@ -601,6 +604,28 @@ export async function addExternalRelease(
     { method: "POST", body: JSON.stringify({ spotify_url: spotifyUrl }) },
     true
   );
+}
+
+export interface ManualRelease {
+  title: string;
+  type: "single" | "album_ep";
+  link: string;
+  releasedOn: string | null;
+  cover: File;
+}
+
+/** A release added by hand: cover, title and a listen link from anywhere. */
+export async function addManualRelease(
+  profileId: number,
+  release: ManualRelease
+): Promise<ApiResponse<unknown>> {
+  const form = new FormData();
+  form.append("title", release.title);
+  form.append("type", release.type);
+  form.append("link", release.link);
+  if (release.releasedOn) form.append("released_on", release.releasedOn);
+  form.append("cover", release.cover);
+  return request<unknown>(`${ROOT}/${profileId}/manual-releases`, { method: "POST", body: form }, true);
 }
 
 /** Removes only added releases. Songdis releases are not removable from the press kit. */

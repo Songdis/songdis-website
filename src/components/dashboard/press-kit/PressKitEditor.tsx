@@ -579,3 +579,39 @@ function SaveBar({ kit, onSave }: { kit: UsePressKit; onSave: () => void }) {
     </div>
   );
 }
+
+/**
+ * The editor for one artist, without the dashboard's artist switcher — used by getepk.si,
+ * which has its own artist list. `onBack` shows "change artist" when there is more than one.
+ */
+export function PressKitEditorFor({
+  profileId,
+  name,
+  image,
+  onBack,
+}: {
+  profileId: number;
+  name: string;
+  image: string | null;
+  onBack?: () => void;
+}) {
+  const profile: ProfileSummary = {
+    id: profileId,
+    display_name: name,
+    image_url: image,
+    role: "owner",
+    granted_at: "",
+  };
+
+  const scope: EditorScope = {
+    profiles: onBack ? [profile, profile] : [profile],
+    activeId: profileId,
+    loading: false,
+    error: null,
+    select: () => undefined,
+    clear: onBack ?? (() => undefined),
+    followsHeader: false,
+  };
+
+  return <EditorForProfile profileId={profileId} profile={profile} scope={scope} />;
+}

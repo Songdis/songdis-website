@@ -44,6 +44,7 @@
  */
 
 import { NextResponse, type NextRequest } from "next/server";
+import { EPK_PAGES, isEpkHost } from "@/lib/epk";
 
 /** Empty in every environment that has not opted in. Empty ⇒ middleware does nothing. */
 const BASE_DOMAIN = (process.env.PRESS_KIT_BASE_DOMAIN ?? "")
@@ -88,7 +89,44 @@ function isInfrastructurePath(pathname: string): boolean {
   );
 }
 
+/**
+ * getepk.si — the public press kit product, on its own domain.
+ *
+ *   /                       → /epk            (landing)
+ *   /sign-in, /app/3, …     → /epk/sign-in …  (its own account pages, see EPK_PAGES)
+ *   /<slug>[/r/<id>|/pdf]   → /k/<slug>…      (an artist's kit at the root)
+ *   /k/…, /_next, files     → untouched       (links inside a kit are /k/<slug>/r/<id>)
+ *
+ * Nothing else on this domain reaches the SongDis app: /dashboard becomes the kit
+ * "dashboard", which the backend never hands out, so it 404s.
+ */
+function epkRoute(request: NextRequest): NextResponse | null {
+  const { pathname } = request.nextUrl;
+  if (isInfrastructurePath(pathname) || pathname.startsWith("/epk")) return null;
+
+  const [first, ...rest] = pathname.split("/").filter(Boolean);
+  const url = request.nextUrl.clone();
+
+  if (!first) {
+    url.pathname = "/epk";
+  } else if (EPK_PAGES.has(first)) {
+    url.pathname = `/epk${pathname}`;
+  } else if (/^[a-z0-9][a-z0-9-]{0,38}[a-z0-9]$/i.test(first)) {
+    url.pathname = `/k/${first.toLowerCase()}${rest.length ? `/${rest.join("/")}` : ""}`;
+  } else {
+    return null;
+  }
+
+  return NextResponse.rewrite(url);
+}
+
 export function proxy(request: NextRequest) {
+  // getepk.si is matched first, and independently of the vanity-subdomain setting.
+  const forwarded = request.headers.get("x-forwarded-host") ?? request.headers.get("host");
+  if (isEpkHost(forwarded)) {
+    return epkRoute(request) ?? NextResponse.next();
+  }
+
   // 1. Not configured → do nothing at all.
   if (!BASE_DOMAIN) return NextResponse.next();
 

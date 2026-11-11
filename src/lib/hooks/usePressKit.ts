@@ -24,6 +24,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   addExternalRelease,
+  addManualRelease,
+  type ManualRelease,
   blankPressKit,
   classifySlugError,
   deletePressKitMedia,
@@ -158,6 +160,7 @@ export interface UsePressKit {
   /* Releases the artist put out elsewhere, added from a Spotify link */
   releases: ReleaseState;
   addRelease: (spotifyUrl: string) => Promise<boolean>;
+  addManual: (release: ManualRelease) => Promise<boolean>;
   removeRelease: (id: number) => Promise<boolean>;
 
   /* Address */
@@ -578,6 +581,33 @@ export function usePressKit(profileId: number | null, artistName = ""): UsePress
     [profileId, applyMedia]
   );
 
+  const addManual = useCallback(
+    async (release: ManualRelease): Promise<boolean> => {
+      if (profileId === null) return false;
+      setReleases((r) => ({ ...r, adding: true, failure: null }));
+
+      const res = await addManualRelease(profileId, release);
+
+      if (res.error) {
+        setReleases((r) => ({
+          ...r,
+          adding: false,
+          failure: failure(res.error, res.errors, res.status),
+        }));
+        return false;
+      }
+
+      const added = normaliseAddedRelease(res.data);
+      if (added !== null) {
+        applyMedia((st) => ({ ...st, releases: sortReleases([...st.releases, added]) }));
+      }
+
+      setReleases((r) => ({ ...r, adding: false }));
+      return true;
+    },
+    [profileId, applyMedia]
+  );
+
   const removeRelease = useCallback(
     async (id: number): Promise<boolean> => {
       if (id <= 0) return false;
@@ -598,7 +628,7 @@ export function usePressKit(profileId: number | null, artistName = ""): UsePress
         ...st,
         // Matched on source AS WELL AS id: a Songdis release can carry the same id, and
         // filtering on id alone would silently drop it from the list.
-        releases: st.releases.filter((r) => !(r.source === "spotify" && r.id === id)),
+        releases: st.releases.filter((r) => !(r.source !== "songdis" && r.id === id)),
       }));
       setReleases((r) => ({ ...r, removing: r.removing.filter((x) => x !== id) }));
       return true;
@@ -706,6 +736,7 @@ export function usePressKit(profileId: number | null, artistName = ""): UsePress
   return {
     releases,
     addRelease,
+    addManual,
     removeRelease,
 
     saved,

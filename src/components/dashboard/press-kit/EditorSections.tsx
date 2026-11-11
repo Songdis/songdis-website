@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   ChevronDown,
   ChevronUp,
@@ -363,7 +363,8 @@ function BioBody({ kit }: { kit: UsePressKit }) {
 function ListenBody({ kit }: { kit: UsePressKit }) {
   const [url, setUrl] = useState("");
   const releases = kit.draft.releases;
-  const added = releases.filter((r) => r.source === "spotify");
+  const added = releases.filter((r) => r.source !== "songdis");
+  const [byHand, setByHand] = useState(false);
 
   const submit = async () => {
     if (!url.trim() || kit.releases.adding) return;
@@ -382,7 +383,7 @@ function ListenBody({ kit }: { kit: UsePressKit }) {
         <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 gap-2.5">
           {releases.slice(0, 12).map((release) => {
             const removing =
-              release.source === "spotify" && kit.releases.removing.includes(release.id);
+              release.source !== "songdis" && kit.releases.removing.includes(release.id);
 
             return (
               <div key={`${release.source}:${release.id}`} className="min-w-0 group/rel relative">
@@ -403,7 +404,7 @@ function ListenBody({ kit }: { kit: UsePressKit }) {
                   )}
                 </div>
 
-                {release.source === "spotify" && (
+                {release.source !== "songdis" && (
                   <button
                     type="button"
                     onClick={() => void kit.removeRelease(release.id)}
@@ -426,7 +427,7 @@ function ListenBody({ kit }: { kit: UsePressKit }) {
                   {release.year && (
                     <p className="font-body text-white/30 text-[10px]">{release.year}</p>
                   )}
-                  {release.source === "spotify" && (
+                  {release.source !== "songdis" && (
                     <p className="font-body text-white/25 text-[10px]">· Added</p>
                   )}
                 </div>
@@ -474,8 +475,17 @@ function ListenBody({ kit }: { kit: UsePressKit }) {
         <p className="font-body text-white/30 text-[11px]">
           For music you released elsewhere. Songdis releases appear on their own once live.
           {added.length > 0 && ` ${added.length} added so far.`} Saved straight away — no
-          need to press save.
+          need to press save.{" "}
+          <button
+            type="button"
+            onClick={() => setByHand((v) => !v)}
+            className="underline underline-offset-2 text-white/55 hover:text-white transition-colors"
+          >
+            {byHand ? "Close" : "Not on Spotify? Add it by hand"}
+          </button>
         </p>
+
+        {byHand && <ManualReleaseForm kit={kit} onDone={() => setByHand(false)} />}
       </div>
 
       {kit.releases.failure && (
@@ -485,6 +495,87 @@ function ListenBody({ kit }: { kit: UsePressKit }) {
           errors={kit.releases.failure.errors}
         />
       )}
+    </div>
+  );
+}
+
+
+function ManualReleaseForm({ kit, onDone }: { kit: UsePressKit; onDone: () => void }) {
+  const [title, setTitle] = useState("");
+  const [type, setType] = useState<"single" | "album_ep">("single");
+  const [link, setLink] = useState("");
+  const [date, setDate] = useState("");
+  const [cover, setCover] = useState<File | null>(null);
+  const preview = useMemo(() => (cover ? URL.createObjectURL(cover) : null), [cover]);
+  useEffect(() => () => { if (preview) URL.revokeObjectURL(preview); }, [preview]);
+
+  const ready = title.trim() !== "" && link.trim() !== "" && cover !== null && !kit.releases.adding;
+  const input =
+    "w-full bg-white/[0.04] border border-white/[0.08] rounded-lg px-3 py-2 font-body text-[13px] text-white placeholder:text-white/25 focus:outline-none focus:border-white/25";
+
+  const submit = async () => {
+    if (!ready || !cover) return;
+    const ok = await kit.addManual({
+      title: title.trim(),
+      type,
+      link: link.trim(),
+      releasedOn: date || null,
+      cover,
+    });
+    if (ok) onDone();
+  };
+
+  return (
+    <div className="rounded-xl border border-white/[0.08] bg-black/20 p-3.5 flex gap-3.5 flex-col sm:flex-row">
+      <label className="w-28 h-28 shrink-0 rounded-lg border border-dashed border-white/15 hover:border-white/35 bg-white/[0.03] grid place-items-center cursor-pointer overflow-hidden transition-colors">
+        {preview ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={preview} alt="" className="w-full h-full object-cover" />
+        ) : (
+          <span className="font-body text-white/40 text-[11px] text-center px-2">Cover art</span>
+        )}
+        <input
+          type="file"
+          accept="image/jpeg,image/png,image/webp"
+          className="sr-only"
+          onChange={(e) => setCover(e.target.files?.[0] ?? null)}
+        />
+      </label>
+
+      <div className="flex-1 min-w-0 flex flex-col gap-2">
+        <input className={input} placeholder="Title" value={title} onChange={(e) => setTitle(e.target.value)} maxLength={255} />
+        <input
+          className={input}
+          type="url"
+          inputMode="url"
+          placeholder="Where to listen (Audiomack, Boomplay, YouTube…)"
+          value={link}
+          onChange={(e) => setLink(e.target.value)}
+        />
+        <div className="flex gap-2">
+          <select
+            className={input + " flex-1"}
+            value={type}
+            onChange={(e) => setType(e.target.value as "single" | "album_ep")}
+          >
+            <option value="single">Single</option>
+            <option value="album_ep">Album / EP</option>
+          </select>
+          <input
+            className={input + " flex-1"}
+            type="date"
+            value={date}
+            onChange={(e) => setDate(e.target.value)}
+            aria-label="Release date"
+          />
+        </div>
+        <div className="flex justify-end">
+          <SecondaryButton onClick={() => void submit()} disabled={!ready}>
+            {kit.releases.adding ? <Loader2 size={13} className="animate-spin" aria-hidden /> : <Plus size={13} aria-hidden />}
+            {kit.releases.adding ? "Adding…" : "Add to press kit"}
+          </SecondaryButton>
+        </div>
+      </div>
     </div>
   );
 }
