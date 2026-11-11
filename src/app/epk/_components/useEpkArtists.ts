@@ -55,5 +55,10 @@ export function useEpkArtists() {
     return { error: res.error ?? "Could not create that artist." };
   }, []);
 
-  return { data, error, create, reload: load };
+  const remove = useCallback(async (id: number): Promise<{ ok: boolean; error?: string }> => {
+    const res = await request<{ artist_deleted: boolean }>(`/epk/artists/${id}`, { method: "DELETE" }, true);
+    return res.error ? { ok: false, error: res.error } : { ok: true };
+  }, []);
+
+  return { data, error, create, remove, reload: load };
 }

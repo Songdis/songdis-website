@@ -68,7 +68,7 @@ export default function EpkHome() {
           </h1>
           <p className="mt-3 text-[15.5px] text-white/55">
             Search your artist name on Spotify, or paste your Spotify artist link. Your photo and
-            genres come with it.
+            releases come with it.
           </p>
           <ArtistFinder initialQuery={pending} busy={busy} error={createError} onCreate={(n, u) => void submit(n, u)} />
           {!first && (

@@ -14,7 +14,9 @@ export interface SpotifyArtist {
 
 const ARTIST_LINK = /open\.spotify\.com\/(?:intl-[a-z-]+\/)?artist\/[A-Za-z0-9]+/i;
 
+/** Spotify stopped sending follower counts to apps like ours; 0 means "unknown", not zero. */
 function followers(n: number): string {
+  if (!n) return "On Spotify";
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1).replace(/\.0$/, "")}M followers`;
   if (n >= 1_000) return `${(n / 1_000).toFixed(1).replace(/\.0$/, "")}K followers`;
   return n === 1 ? "1 follower" : `${n} followers`;
@@ -131,11 +133,11 @@ export function ArtistFinder({
             {!searching && results.length > 0 && (
               <ul className="divide-y divide-white/[0.06] overflow-hidden rounded-2xl border border-white/[0.08] bg-white/[0.03]">
                 {results.map((a) => (
-                  <li key={a.spotify_id ?? a.spotify_url ?? a.name}>
+                  <li key={a.spotify_id ?? a.spotify_url ?? a.name} className="flex items-center">
                     <button
                       type="button"
                       onClick={() => choose(a)}
-                      className="flex w-full items-center gap-3.5 px-4 py-3 text-left transition hover:bg-white/[0.05]"
+                      className="flex min-w-0 flex-1 items-center gap-3.5 px-4 py-3 text-left transition hover:bg-white/[0.05]"
                     >
                       <span className="h-12 w-12 shrink-0 overflow-hidden rounded-full bg-white/[0.08]">
                         {a.image_url && (
@@ -149,6 +151,17 @@ export function ArtistFinder({
                       </span>
                       <span className="text-[13px] text-white/40">That&apos;s me</span>
                     </button>
+                    {a.spotify_url && (
+                      <a
+                        href={a.spotify_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="shrink-0 px-4 py-3 text-[12.5px] text-white/35 hover:text-[#1ED760]"
+                        aria-label={`Open ${a.name} on Spotify`}
+                      >
+                        Check ↗
+                      </a>
+                    )}
                   </li>
                 ))}
               </ul>
@@ -192,7 +205,7 @@ export function ArtistFinder({
                   {picked.name} <Check className="h-4 w-4 text-[#1ED760]" aria-label="On Spotify" />
                 </span>
                 <span className="block text-[13px] text-white/45">
-                  {followers(picked.followers ?? 0)} · photo and genres come with it
+                  {followers(picked.followers ?? 0)} · your photo and releases come with it
                 </span>
               </span>
             </div>

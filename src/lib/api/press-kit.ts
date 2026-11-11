@@ -628,6 +628,11 @@ export async function addManualRelease(
   return request<unknown>(`${ROOT}/${profileId}/manual-releases`, { method: "POST", body: form }, true);
 }
 
+/** Brings the artist's Spotify albums and singles onto the kit (skips ones already there). */
+export async function importSpotifyReleases(profileId: number): Promise<ApiResponse<{ added: number }>> {
+  return request<{ added: number }>(`/epk/artists/${profileId}/spotify-releases`, { method: "POST" }, true);
+}
+
 /** Removes only added releases. Songdis releases are not removable from the press kit. */
 export async function removeExternalRelease(id: number): Promise<ApiResponse<unknown>> {
   return request<unknown>(`${ROOT}/external-releases/${id}`, { method: "DELETE" }, true);
