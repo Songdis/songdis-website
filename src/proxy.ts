@@ -44,7 +44,7 @@
  */
 
 import { NextResponse, type NextRequest } from "next/server";
-import { EPK_PAGES, epkSubdomainSlug, isEpkHost } from "@/lib/epk";
+import { EPK_ORIGIN, EPK_PAGES, cleanHost, epkSubdomainSlug, isEpkHost } from "@/lib/epk";
 
 /** Empty in every environment that has not opted in. Empty ⇒ middleware does nothing. */
 const BASE_DOMAIN = (process.env.PRESS_KIT_BASE_DOMAIN ?? "")
@@ -124,6 +124,11 @@ export function proxy(request: NextRequest) {
   // getepk.si is matched first, and independently of the vanity-subdomain setting.
   const forwarded = request.headers.get("x-forwarded-host") ?? request.headers.get("host");
   if (isEpkHost(forwarded)) {
+    // One origin for getepk, so a sign-in on www is not a different session.
+    if (cleanHost(forwarded).startsWith("www.")) {
+      const to = new URL(request.nextUrl.pathname + request.nextUrl.search, EPK_ORIGIN);
+      return NextResponse.redirect(to, 308);
+    }
     return epkRoute(request) ?? NextResponse.next();
   }
 
