@@ -120,7 +120,59 @@ function epkRoute(request: NextRequest): NextResponse | null {
   return NextResponse.rewrite(url);
 }
 
-export function proxy(request: NextRequest) {
+/**
+ * An artist's own domain (www.msjorji.com) → their kit. Only www.* hosts are asked about —
+ * that is the only shape the server accepts for custom domains — and answers are cached
+ * for five minutes so a busy kit costs one API call per five minutes, not one per visit.
+ */
+const domainCache = new Map<string, { slug: string | null; until: number }>();
+
+async function customDomainSlug(host: string): Promise<string | null> {
+  const hit = domainCache.get(host);
+  if (hit && hit.until > Date.now()) return hit.slug;
+
+  let slug: string | null = null;
+  try {
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/public/domains/${encodeURIComponent(host)}`, {
+      headers: { Accept: "application/json" },
+      signal: AbortSignal.timeout(3000),
+    });
+    if (res.ok) slug = ((await res.json()) as { slug?: string }).slug ?? null;
+  } catch {
+    // API unreachable: serve nothing for now rather than hang the request.
+  }
+
+  if (domainCache.size > 5000) domainCache.clear();
+  domainCache.set(host, { slug, until: Date.now() + (slug ? 300_000 : 60_000) });
+  return slug;
+}
+
+function isOwnHost(host: string): boolean {
+  return (
+    host === "songdis.com" || host.endsWith(".songdis.com") ||
+    host.endsWith("getepk.si") || host === "localhost" || host.endsWith(".localhost") ||
+    host.endsWith(".vercel.app") || /^\d+\.\d+\.\d+\.\d+$/.test(host)
+  );
+}
+
+export async function proxy(request: NextRequest) {
+  const rawHost = cleanHost(request.headers.get("x-forwarded-host") ?? request.headers.get("host"));
+  if (rawHost.startsWith("www.") && !isOwnHost(rawHost) && !isInfrastructurePath(request.nextUrl.pathname)) {
+    const slug = await customDomainSlug(rawHost);
+    if (slug) {
+      const url = request.nextUrl.clone();
+      url.pathname = `/k/${slug}${request.nextUrl.pathname === "/" ? "" : request.nextUrl.pathname}`;
+      const headers = new Headers(request.headers);
+      headers.set("x-pk-domain", rawHost);
+      return NextResponse.rewrite(url, { request: { headers } });
+    }
+    return new NextResponse("This domain isn't connected to a press kit yet.", { status: 404 });
+  }
+
+  return routeKnownHosts(request);
+}
+
+function routeKnownHosts(request: NextRequest) {
   // getepk.si is matched first, and independently of the vanity-subdomain setting.
   const forwarded = request.headers.get("x-forwarded-host") ?? request.headers.get("host");
   if (isEpkHost(forwarded)) {

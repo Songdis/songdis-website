@@ -6,6 +6,7 @@ import { PressKitEditorFor } from "@/components/dashboard/press-kit/PressKitEdit
 import { AppShell } from "../../_components/AppShell";
 import { useEpkArtists } from "../../_components/useEpkArtists";
 import { DeleteKit } from "../../_components/DeleteKit";
+import { DomainPanel } from "../../_components/DomainPanel";
 
 export default function EpkEditorPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -30,6 +31,7 @@ export default function EpkEditorPage({ params }: { params: Promise<{ id: string
             image={artist.image}
             onBack={data.artists.length > 1 || data.can_create ? () => router.push("/app") : undefined}
           />
+          <DomainPanel artistId={artist.id} />
           <DeleteKit
             name={artist.stage_name}
             songdis={artist.source === "songdis"}
