@@ -21,7 +21,7 @@ const AboutVision: React.FC = () => {
               <div className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-full overflow-hidden border-2 border-white/10">
                 <Image
                   src="/images/melody.webp"
-                  alt="Founder"
+                  alt="Melody Nehemiah, co-founder and CEO of Songdis"
                   fill
                   className="object-cover object-center"
                   loading="lazy"
@@ -33,10 +33,11 @@ const AboutVision: React.FC = () => {
                 style={{ background: "#1A0808" }}
               >
                 <span className="font-body text-white text-xs whitespace-nowrap">
-                  Founder
+                  Co-founder &amp; CEO
                 </span>
               </div>
             </div>
+            <p className="font-body text-white text-xs sm:text-sm mt-5 text-right">Melody Nehemiah</p>
           </div>
 
           {/* ── Co-Founder — bottom left, absolutely positioned ── */}
@@ -46,7 +47,7 @@ const AboutVision: React.FC = () => {
               <div className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-full overflow-hidden border-2 border-white/10">
                 <Image
                   src="/images/obed.webp"
-                  alt="Co-Founder"
+                  alt="Obed Ugwu, co-founder and CTO of Songdis"
                   fill
                   className="object-cover object-center"
                   loading="lazy"
@@ -58,10 +59,11 @@ const AboutVision: React.FC = () => {
                 style={{ background: "#1A0808" }}
               >
                 <span className="font-body text-white text-xs whitespace-nowrap">
-                  Co-Founder
+                  Co-founder &amp; CTO
                 </span>
               </div>
             </div>
+            <p className="font-body text-white text-xs sm:text-sm mt-5">Obed Ugwu</p>
           </div>
 
           {/* ── HEADING ── */}
@@ -73,9 +75,9 @@ const AboutVision: React.FC = () => {
           <div className="max-w-[680px] mx-auto flex flex-col gap-6 text-center">
             <p className="font-body text-white text-sm sm:text-base leading-relaxed">
               Founded in 2024, Songdis was built to fix a broken system and make
-              global music distribution work for African artists. Our founder,
-              Melody Nehemiah, saw how independent artists across the continent
-              were underserved by existing platforms. Delayed royalty payments,
+              global music distribution work for African artists. Our co-founders,
+              Melody Nehemiah (CEO) and Obed Ugwu (CTO), saw how independent artists
+              across the continent were underserved by existing platforms. Delayed royalty payments,
               limited access to local currencies, and a lack of real support were
               holding back incredible talent.
             </p>
