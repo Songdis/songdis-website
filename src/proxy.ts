@@ -44,7 +44,7 @@
  */
 
 import { NextResponse, type NextRequest } from "next/server";
-import { EPK_PAGES, isEpkHost } from "@/lib/epk";
+import { EPK_PAGES, epkSubdomainSlug, isEpkHost } from "@/lib/epk";
 
 /** Empty in every environment that has not opted in. Empty ⇒ middleware does nothing. */
 const BASE_DOMAIN = (process.env.PRESS_KIT_BASE_DOMAIN ?? "")
@@ -125,6 +125,16 @@ export function proxy(request: NextRequest) {
   const forwarded = request.headers.get("x-forwarded-host") ?? request.headers.get("host");
   if (isEpkHost(forwarded)) {
     return epkRoute(request) ?? NextResponse.next();
+  }
+
+  // msjorji.getepk.si → that artist's kit. Same rule as the songdis.com subdomains below.
+  const epkSlug = epkSubdomainSlug(forwarded);
+  if (epkSlug) {
+    const { pathname } = request.nextUrl;
+    if (isInfrastructurePath(pathname)) return NextResponse.next();
+    const url = request.nextUrl.clone();
+    url.pathname = `/k/${epkSlug}${pathname === "/" ? "" : pathname}`;
+    return NextResponse.rewrite(url);
   }
 
   // 1. Not configured → do nothing at all.

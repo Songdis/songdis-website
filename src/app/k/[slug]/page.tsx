@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 
-import { EPK_ORIGIN, isEpkHost } from "@/lib/epk";
+import { epkKitUrl, isAnyEpkHost } from "@/lib/epk";
 
 import { getPublicPressKit } from "@/lib/api/press-kit-public";
 import { SITE_ORIGIN, summarise } from "./_format";
@@ -29,7 +29,7 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
     `Bio, music, photos and booking contacts for ${artist.name}.`;
   const image = artist.cover_image_url ?? artist.avatar_url ?? null;
   const epk = await viewedOnEpk();
-  const url = epk ? `${EPK_ORIGIN}/${artist.slug}` : `${SITE_ORIGIN}/k/${artist.slug}`;
+  const url = epk ? epkKitUrl(artist.slug) : `${SITE_ORIGIN}/k/${artist.slug}`;
 
   return {
     title,
@@ -64,7 +64,7 @@ export default async function PressKitPage({ params }: Params) {
     <PressKitChrome
       kit={kit}
       brand={epk ? "getepk" : "songdis"}
-      shareUrl={epk ? `${EPK_ORIGIN}/${kit.artist.slug}` : undefined}
+      shareUrl={epk ? epkKitUrl(kit.artist.slug) : undefined}
     >
       <PressKitView kit={kit} />
     </PressKitChrome>
@@ -73,5 +73,5 @@ export default async function PressKitPage({ params }: Params) {
 
 async function viewedOnEpk(): Promise<boolean> {
   const h = await headers();
-  return isEpkHost(h.get("x-forwarded-host") ?? h.get("host"));
+  return isAnyEpkHost(h.get("x-forwarded-host") ?? h.get("host"));
 }

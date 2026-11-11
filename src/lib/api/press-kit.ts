@@ -1,5 +1,5 @@
 import { request, type ApiResponse } from "./core";
-import { onEpk } from "../epk";
+import { epkKitUrl, onEpk } from "../epk";
 
 export const PRESS_KIT_THEMES = [
   "blaze",
@@ -549,8 +549,8 @@ export function publicKitOrigin(): string {
 
 export function publicKitUrl(slug: string | null): string | null {
   if (!slug) return null;
-  // On getepk.si a kit lives at the root: getepk.si/<slug>.
-  if (onEpk()) return `${window.location.origin}/${slug}`;
+  // On getepk.si a kit has its own subdomain: <slug>.getepk.si.
+  if (onEpk()) return epkKitUrl(slug);
   return `${publicKitOrigin()}/k/${slug}`;
 }
 

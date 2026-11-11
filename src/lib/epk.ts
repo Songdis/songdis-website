@@ -24,9 +24,32 @@ export function isEpkHost(host: string | null | undefined): boolean {
   return h === EPK_DOMAIN || h === `www.${EPK_DOMAIN}`;
 }
 
+/** Subdomains that are never an artist (mirrors the backend's reserved slugs). */
+const NOT_ARTISTS = new Set(["www", "api", "app", "admin", "mail", "email", "cdn", "assets", "static", "status", "help", "support", "blog", "dev", "staging", "custom"]);
+
+/** "msjorji" for msjorji.getepk.si, else null. */
+export function epkSubdomainSlug(host: string | null | undefined): string | null {
+  const h = cleanHost(host);
+  if (!h.endsWith(`.${EPK_DOMAIN}`)) return null;
+  const label = h.slice(0, -(EPK_DOMAIN.length + 1));
+  if (!label || label.includes(".") || NOT_ARTISTS.has(label)) return null;
+  if (!/^[a-z0-9][a-z0-9-]{0,38}[a-z0-9]$/.test(label) || /^\d+$/.test(label)) return null;
+  return label;
+}
+
+/** Any getepk host: the apex, www, or an artist's subdomain. */
+export function isAnyEpkHost(host: string | null | undefined): boolean {
+  return isEpkHost(host) || epkSubdomainSlug(host) !== null;
+}
+
+/** An artist's kit address: https://<slug>.getepk.si */
+export function epkKitUrl(slug: string): string {
+  return `https://${slug}.${EPK_DOMAIN}`;
+}
+
 /** True in the browser when the page is being viewed on getepk.si. */
 export function onEpk(): boolean {
-  return typeof window !== "undefined" && isEpkHost(window.location.hostname);
+  return typeof window !== "undefined" && isAnyEpkHost(window.location.hostname);
 }
 
 /** getepk.si paths that are pages, not artist slugs. Mirrored in the backend's reserved slugs. */

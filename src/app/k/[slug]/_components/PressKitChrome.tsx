@@ -7,6 +7,7 @@ import type { PublicPressKit } from "@/lib/api/press-kit-public";
 import { headlineStyle, pressKitThemeVars } from "../_theme";
 import { bookingMailto } from "../_format";
 import ShareButton from "./ShareButton";
+import { EPK_ORIGIN } from "@/lib/epk";
 
 interface PressKitChromeProps {
   kit: PublicPressKit;
@@ -50,7 +51,7 @@ export default function PressKitChrome({
       <div className="absolute inset-x-0 top-0 z-20 bg-[linear-gradient(180deg,rgba(10,6,7,.85),transparent)]">
         <div className="mx-auto flex max-w-[1080px] items-center justify-between px-5 py-4 sm:px-8 sm:py-5">
           {epk ? (
-            <Link href="/" aria-label="getepk home" className="shrink-0 text-white">
+            <Link href={EPK_ORIGIN} aria-label="getepk home" className="shrink-0 text-white">
               <EpkWordmark className="text-[22px] sm:text-[24px]" />
             </Link>
           ) : (
@@ -104,7 +105,7 @@ export default function PressKitChrome({
                 </p>
               </div>
               <Link
-                href="/sign-up"
+                href={`${EPK_ORIGIN}/sign-up`}
                 className="inline-flex shrink-0 items-center gap-2.5 rounded-full bg-white px-6 py-3.5 text-[14px] font-semibold text-black transition hover:bg-white/85 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--pk-accent)]"
               >
                 Make yours
@@ -157,7 +158,7 @@ export default function PressKitChrome({
           {epk ? (
             <p className="mt-5 text-[12.5px] text-[var(--pk-muted-2)]">
               Made with{" "}
-              <Link href="/" className="text-[var(--pk-muted)] hover:text-[var(--pk-text)]">
+              <Link href={EPK_ORIGIN} className="text-[var(--pk-muted)] hover:text-[var(--pk-text)]">
                 <EpkWordmark />
               </Link>
               {" "}by{" "}

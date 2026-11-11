@@ -2,7 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
 import { EpkWordmark } from "@/app/k/[slug]/_components/PressKitChrome";
-import { EPK_DOMAIN } from "@/lib/epk";
+import { EPK_DOMAIN, epkKitUrl } from "@/lib/epk";
 import ClaimLink from "./_components/ClaimLink";
 
 /*
@@ -97,7 +97,7 @@ export default function EpkLanding() {
           {ARTISTS.slice(0, 3).map((a, i) => (
             <Link
               key={a.slug}
-              href={`/${a.slug}`}
+              href={epkKitUrl(a.slug)}
               className="group absolute w-[50%] overflow-hidden rounded-[18px] bg-white shadow-[0_30px_60px_-25px_rgba(0,0,0,.45)] ring-1 ring-black/5 transition-transform duration-300 hover:z-10 hover:-translate-y-2"
               style={{
                 left: ["0%", "25%", "50%"][i],
@@ -173,7 +173,7 @@ export default function EpkLanding() {
         </div>
         <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
           {ARTISTS.map((a) => (
-            <Link key={a.slug} href={`/${a.slug}`} className="group">
+            <Link key={a.slug} href={epkKitUrl(a.slug)} className="group">
               <div className="relative aspect-[4/5] overflow-hidden rounded-2xl bg-black/5">
                 <Image
                   src={a.image}
@@ -188,7 +188,7 @@ export default function EpkLanding() {
                   <p className="text-[17px] font-semibold tracking-[-0.01em]">{a.name}</p>
                   <p className="text-[13.5px] text-black/55">{a.note}</p>
                   <p className="mt-1 text-[12.5px] text-black/35 group-hover:text-[#FF5A1F]">
-                    {EPK_DOMAIN}/{a.slug}
+                    {a.slug}.{EPK_DOMAIN}
                   </p>
                 </div>
                 <ArrowUpRight className="mt-1 h-4 w-4 shrink-0 text-black/30 transition group-hover:text-[#FF5A1F]" />

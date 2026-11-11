@@ -129,7 +129,7 @@ export default function EpkHome() {
                   <span className="min-w-0 flex-1">
                     <span className="block truncate text-[17px] font-semibold">{a.stage_name}</span>
                     <span className="mt-0.5 block truncate text-[13px] text-white/45">
-                      {a.is_published && a.slug ? `Live at getepk.si/${a.slug}` : "Not published yet"}
+                      {a.is_published && a.slug ? `Live at ${a.slug}.getepk.si` : "Not published yet"}
                       {a.source === "songdis" && " · SongDis"}
                     </span>
                   </span>
