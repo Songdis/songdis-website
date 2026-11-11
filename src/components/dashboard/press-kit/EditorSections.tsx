@@ -502,7 +502,7 @@ function ListenBody({ kit }: { kit: UsePressKit }) {
 }
 
 
-/** Pull in every album and single from the artist's linked Spotify profile. */
+/** Fill the kit from Spotify (and Last.fm / MusicBrainz): releases, photo, genre, links. Empty fields only. */
 function SpotifyImport({ kit }: { kit: UsePressKit }) {
   const [state, setState] = useState<"idle" | "busy" | "done" | "error">("idle");
   const [message, setMessage] = useState<string | null>(null);
@@ -519,19 +519,19 @@ function SpotifyImport({ kit }: { kit: UsePressKit }) {
     }
     setState("done");
     setMessage(res.message);
-    if ((res.data?.added ?? 0) > 0) kit.reload();
+    if ((res.data?.added ?? 0) > 0 || (res.data?.filled?.length ?? 0) > 0) kit.reload();
   };
 
   return (
     <div className="flex flex-wrap items-center gap-2 pt-1">
       <SecondaryButton onClick={() => void run()} disabled={state === "busy" || kit.isDirty}>
         {state === "busy" ? <Loader2 size={13} className="animate-spin" aria-hidden /> : <Plus size={13} aria-hidden />}
-        {state === "busy" ? "Bringing them in…" : "Import from Spotify"}
+        {state === "busy" ? "Filling it in…" : "Fill from Spotify"}
       </SecondaryButton>
       <p className="font-body text-white/35 text-[11px]">
         {kit.isDirty
           ? "Save your changes first, then import."
-          : message ?? "Adds every album and single from this artist's Spotify."}
+          : message ?? "Adds your releases, photo, genre and links. Only fills empty boxes, never replaces what you wrote."}
       </p>
     </div>
   );
