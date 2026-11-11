@@ -45,10 +45,10 @@ export function useEpkArtists() {
     };
   }, []);
 
-  const create = useCallback(async (stageName: string): Promise<{ id?: number; error?: string }> => {
+  const create = useCallback(async (stageName: string, spotifyUrl: string | null = null): Promise<{ id?: number; error?: string }> => {
     const res = await request<{ id: number }>(
       "/epk/artists",
-      { method: "POST", body: JSON.stringify({ stage_name: stageName }) },
+      { method: "POST", body: JSON.stringify({ stage_name: stageName, spotify_url: spotifyUrl }) },
       true
     );
     if (res.data?.id) return { id: res.data.id };

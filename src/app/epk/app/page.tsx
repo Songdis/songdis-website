@@ -7,12 +7,13 @@ import { ArrowUpRight, Plus } from "lucide-react";
 import { AppShell } from "../_components/AppShell";
 import { PENDING_NAME_KEY } from "../_components/AuthShell";
 import { useEpkArtists } from "../_components/useEpkArtists";
+import { ArtistFinder } from "../_components/ArtistFinder";
 
 export default function EpkHome() {
   const router = useRouter();
   const { data, error, create } = useEpkArtists();
   // The name typed on the landing page, if they came that way.
-  const [name, setName] = useState(() => {
+  const [pending] = useState(() => {
     if (typeof window === "undefined") return "";
     try {
       return sessionStorage.getItem(PENDING_NAME_KEY) ?? "";
@@ -24,12 +25,10 @@ export default function EpkHome() {
   const [createError, setCreateError] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
 
-  const submit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!name.trim()) return;
+  const submit = async (stageName: string, spotifyUrl: string | null) => {
     setBusy(true);
     setCreateError(null);
-    const res = await create(name.trim());
+    const res = await create(stageName, spotifyUrl);
     if (res.id) {
       try {
         sessionStorage.removeItem(PENDING_NAME_KEY);
@@ -63,38 +62,21 @@ export default function EpkHome() {
   return (
     <AppShell>
       {showForm ? (
-        <form onSubmit={submit} className="mx-auto max-w-[520px] py-10">
+        <div className="mx-auto max-w-[560px] py-10">
           <h1 className="text-[44px] leading-[1] sm:text-[56px]" style={{ fontFamily: "var(--font-epk-serif)" }}>
-            {first ? "What do you perform as?" : "Add an artist."}
+            {first ? "Let's find you." : "Add an artist."}
           </h1>
           <p className="mt-3 text-[15.5px] text-white/55">
-            The name on the posters. You can change everything else later.
+            Search your artist name on Spotify, or paste your Spotify artist link. Your photo and
+            genres come with it.
           </p>
-          <input
-            autoFocus
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="Artist name"
-            maxLength={50}
-            className="mt-8 w-full border-b-2 border-white/20 bg-transparent pb-3 text-[32px] outline-none placeholder:text-white/20 focus:border-[#FF5A1F]"
-            style={{ fontFamily: "var(--font-epk-serif)" }}
-          />
-          {createError && <p className="mt-3 text-[14px] text-[#FF7A5C]">{createError}</p>}
-          <div className="mt-8 flex items-center gap-4">
-            <button
-              type="submit"
-              disabled={busy || !name.trim()}
-              className="rounded-full bg-[#FF5A1F] px-6 py-3.5 text-[15px] font-semibold text-black transition hover:brightness-105 disabled:opacity-50"
-            >
-              {busy ? "Setting it up…" : "Build my press kit"}
+          <ArtistFinder initialQuery={pending} busy={busy} error={createError} onCreate={(n, u) => void submit(n, u)} />
+          {!first && (
+            <button type="button" onClick={() => setAdding(false)} className="mt-8 text-[14px] text-white/40 hover:text-white">
+              Cancel
             </button>
-            {!first && (
-              <button type="button" onClick={() => setAdding(false)} className="text-[14px] text-white/50 hover:text-white">
-                Cancel
-              </button>
-            )}
-          </div>
-        </form>
+          )}
+        </div>
       ) : (
         <>
           <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
