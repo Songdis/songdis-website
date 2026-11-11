@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import {
+  Check,
   ChevronDown,
   ChevronUp,
   Eye,
@@ -11,6 +12,7 @@ import {
   Loader2,
   Plus,
   Quote as QuoteIcon,
+  Sparkles,
   Trash2,
 } from "lucide-react";
 import type {
@@ -19,7 +21,7 @@ import type {
   PressKitQuote,
   SectionKey,
 } from "@/lib/api/press-kit";
-import { importSpotifyReleases, sectionOrderAllows } from "@/lib/api/press-kit";
+import { generateKitBio, importSpotifyReleases, sectionOrderAllows } from "@/lib/api/press-kit";
 import type { UsePressKit } from "@/lib/hooks/usePressKit";
 import { CoSignPanel } from "./CoSignPanel";
 import {
@@ -355,6 +357,110 @@ function BioBody({ kit }: { kit: UsePressKit }) {
         hint="Third person reads better in press than first."
         onChange={kit.setBio}
       />
+      <AyoBio kit={kit} />
+    </div>
+  );
+}
+
+/**
+ * Ayo drafts the bio from everything else on the kit. The draft is shown first and only
+ * goes into the bio when the artist chooses it, so nothing they wrote is lost by accident.
+ */
+function AyoBio({ kit }: { kit: UsePressKit }) {
+  const [open, setOpen] = useState(false);
+  const [notes, setNotes] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [draft, setDraft] = useState<{ bio: string; short_bio: string } | null>(null);
+  const id = kit.draft.artist.id;
+  if (!id) return null;
+
+  const write = async () => {
+    setBusy(true);
+    setError(null);
+    const res = await generateKitBio(id, notes.trim());
+    setBusy(false);
+    if (res.error || !res.data?.bio) {
+      setError(res.error ?? "Ayo could not write a bio right now.");
+      return;
+    }
+    setDraft(res.data);
+  };
+
+  if (!open) {
+    return (
+      <div>
+        <SecondaryButton onClick={() => setOpen(true)}>
+          <Sparkles size={13} aria-hidden /> Write it with Ayo
+        </SecondaryButton>
+      </div>
+    );
+  }
+
+  return (
+    <div className="rounded-xl border border-white/[0.08] bg-black/20 p-3.5 flex flex-col gap-3">
+      {!draft ? (
+        <>
+          <p className="font-body text-white/60 text-[12.5px] leading-relaxed">
+            Ayo reads your releases, genre, where you&apos;re based, placements and press quotes, and
+            writes a bio for press. Add anything it can&apos;t see, like where you started or what your
+            music is about.
+          </p>
+          <textarea
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            maxLength={1000}
+            rows={3}
+            placeholder="Optional: “Started singing in church in Ughelli. My music is about…”"
+            className="w-full bg-white/[0.04] border border-white/[0.08] rounded-lg px-3 py-2 font-body text-[13px] text-white placeholder:text-white/25 focus:outline-none focus:border-white/25 resize-y"
+          />
+          {error && <p className="font-body text-[12px] text-[#FF7A5C]">{error}</p>}
+          <div className="flex items-center gap-3">
+            <SecondaryButton onClick={() => void write()} disabled={busy}>
+              {busy ? <Loader2 size={13} className="animate-spin" aria-hidden /> : <Sparkles size={13} aria-hidden />}
+              {busy ? "Ayo is writing…" : "Write my bio"}
+            </SecondaryButton>
+            <button type="button" onClick={() => setOpen(false)} className="font-body text-white/40 text-[12px] hover:text-white">
+              Cancel
+            </button>
+          </div>
+        </>
+      ) : (
+        <>
+          <p className="font-body text-white/45 text-[11px] uppercase tracking-wide">Ayo&apos;s draft</p>
+          <p className="font-body text-white/85 text-[13.5px] leading-relaxed whitespace-pre-line">{draft.bio}</p>
+          <p className="font-body text-white/35 text-[11.5px]">
+            Check every fact before you publish. Ayo only uses what&apos;s on your kit, but you know your story best.
+          </p>
+          <div className="flex flex-wrap items-center gap-3">
+            <SecondaryButton
+              onClick={() => {
+                kit.setBio(draft.bio.slice(0, 2000));
+                setDraft(null);
+                setOpen(false);
+              }}
+            >
+              <Check size={13} aria-hidden /> Use this bio
+            </SecondaryButton>
+            {draft.short_bio && (
+              <button
+                type="button"
+                onClick={() => {
+                  kit.setBio(draft.short_bio.slice(0, 2000));
+                  setDraft(null);
+                  setOpen(false);
+                }}
+                className="font-body text-white/55 text-[12px] underline underline-offset-2 hover:text-white"
+              >
+                Use the short one
+              </button>
+            )}
+            <button type="button" onClick={() => void write()} disabled={busy} className="font-body text-white/40 text-[12px] hover:text-white">
+              {busy ? "Rewriting…" : "Try again"}
+            </button>
+          </div>
+        </>
+      )}
     </div>
   );
 }

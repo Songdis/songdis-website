@@ -633,6 +633,18 @@ export async function importSpotifyReleases(profileId: number): Promise<ApiRespo
   return request<{ added: number; filled?: string[] }>(`/epk/artists/${profileId}/spotify-releases`, { method: "POST" }, true);
 }
 
+/** Ayo writes a press bio for this artist from what is on their kit. */
+export async function generateKitBio(
+  profileId: number,
+  notes: string
+): Promise<ApiResponse<{ bio: string; short_bio: string }>> {
+  return request<{ bio: string; short_bio: string }>(
+    `${ROOT}/${profileId}/bio/generate`,
+    { method: "POST", body: JSON.stringify({ notes: notes || null }) },
+    true
+  );
+}
+
 /** Removes only added releases. Songdis releases are not removable from the press kit. */
 export async function removeExternalRelease(id: number): Promise<ApiResponse<unknown>> {
   return request<unknown>(`${ROOT}/external-releases/${id}`, { method: "DELETE" }, true);
