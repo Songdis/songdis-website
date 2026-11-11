@@ -12,6 +12,16 @@ export interface EpkArtist {
   is_published: boolean;
 }
 
+export interface Created {
+  id: number;
+  stage_name: string;
+  slug: string | null;
+  is_published: boolean;
+  releases_imported: number;
+  releases_queued: boolean;
+  filled: string[];
+}
+
 interface Listing {
   artists: EpkArtist[];
   can_create: boolean;
@@ -45,13 +55,13 @@ export function useEpkArtists() {
     };
   }, []);
 
-  const create = useCallback(async (stageName: string, spotifyUrl: string | null = null): Promise<{ id?: number; error?: string }> => {
-    const res = await request<{ id: number }>(
+  const create = useCallback(async (stageName: string, spotifyUrl: string | null = null): Promise<{ id?: number; error?: string; created?: Created }> => {
+    const res = await request<Created>(
       "/epk/artists",
       { method: "POST", body: JSON.stringify({ stage_name: stageName, spotify_url: spotifyUrl }) },
       true
     );
-    if (res.data?.id) return { id: res.data.id };
+    if (res.data?.id) return { id: res.data.id, created: res.data };
     return { error: res.error ?? "Could not create that artist." };
   }, []);
 

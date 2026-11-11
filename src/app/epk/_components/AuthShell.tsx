@@ -5,32 +5,36 @@ import { useState } from "react";
 import { EpkWordmark } from "@/app/k/[slug]/_components/PressKitChrome";
 import { request } from "@/lib/api/core";
 
-/** The paper card every getepk account page sits in. */
+/** The paper page every getepk account screen sits on. */
 export function AuthShell({
   title,
+  accent,
   subtitle,
   children,
   footer,
 }: {
   title: string;
+  /** The last words of the title, set in signal blue. */
+  accent?: string;
   subtitle?: React.ReactNode;
   children: React.ReactNode;
   footer?: React.ReactNode;
 }) {
   return (
-    <main className="min-h-screen bg-[#F4F1EA] text-[#121110]">
+    <main className="min-h-screen bg-[#F4F4F4] text-[#101010]">
       <header className="mx-auto flex max-w-[1180px] items-center px-5 py-5 sm:px-8">
         <Link href="/" aria-label="getepk home">
           <EpkWordmark className="text-[26px]" />
         </Link>
       </header>
-      <div className="mx-auto w-full max-w-[420px] px-5 pb-20 pt-8 sm:pt-14">
-        <h1 className="text-[44px] leading-[1] tracking-[-0.01em]" style={{ fontFamily: "var(--font-epk-serif)" }}>
+      <div className="mx-auto w-full max-w-[440px] px-5 pb-20 pt-6 sm:pt-12">
+        <h1 className="ed text-[56px] sm:text-[68px]">
           {title}
+          {accent && <span className="text-[#0038FF]"> {accent}</span>}
         </h1>
-        {subtitle && <p className="mt-3 text-[15.5px] leading-relaxed text-black/60">{subtitle}</p>}
+        {subtitle && <p className="mt-4 text-[16px] leading-relaxed text-[#3A3A3A]">{subtitle}</p>}
         <div className="mt-8">{children}</div>
-        {footer && <div className="mt-6 text-[14px] text-black/55">{footer}</div>}
+        {footer && <div className="mt-7 text-[14.5px] text-[#3A3A3A]">{footer}</div>}
       </div>
     </main>
   );
@@ -43,27 +47,30 @@ export function Field({
 }: React.InputHTMLAttributes<HTMLInputElement> & { label: string; error?: string | null }) {
   return (
     <label className="block">
-      <span className="mb-1.5 block text-[13px] font-medium text-black/70">{label}</span>
+      <span className="el mb-1.5 block text-[11px] text-[#3A3A3A]">{label}</span>
       <input
         {...props}
         className={[
-          "w-full rounded-xl bg-white px-4 py-3 text-[15px] outline-none ring-1 transition placeholder:text-black/30",
-          error ? "ring-[#C30100]" : "ring-black/10 focus:ring-2 focus:ring-[#121110]",
+          "min-h-[52px] w-full border-2 bg-white px-4 text-[16px] outline-none transition placeholder:text-[#8A8A8A]",
+          error ? "border-[#FF4A2B]" : "border-[#101010] focus:border-[#0038FF]",
         ].join(" ")}
       />
-      {error && <span className="mt-1.5 block text-[13px] text-[#C30100]">{error}</span>}
+      {error && <span className="mt-1.5 block text-[13.5px] font-semibold text-[#C2361C]">{error}</span>}
     </label>
   );
 }
 
 export function SubmitButton({ busy, children }: { busy?: boolean; children: React.ReactNode }) {
   return (
-    <button
-      type="submit"
-      disabled={busy}
-      className="w-full rounded-full bg-[#121110] px-5 py-3.5 text-[15px] font-semibold text-white transition hover:bg-black disabled:opacity-60"
-    >
-      {busy ? "One moment…" : children}
+    <button type="submit" disabled={busy} className="group flex min-h-[52px] w-full items-stretch disabled:opacity-60">
+      <span className="grid w-[52px] place-items-center bg-[#101010]">
+        <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" strokeWidth="2.5">
+          <path d="M5 12h14M13 6l6 6-6 6" />
+        </svg>
+      </span>
+      <span className="el flex flex-1 items-center justify-center bg-[#0038FF] text-[13px] text-white group-hover:underline">
+        {busy ? "One moment…" : children}
+      </span>
     </button>
   );
 }
@@ -71,7 +78,7 @@ export function SubmitButton({ busy, children }: { busy?: boolean; children: Rea
 export function FormError({ message }: { message: string | null }) {
   if (!message) return null;
   return (
-    <p role="alert" className="rounded-xl bg-[#C30100]/[0.07] px-4 py-3 text-[14px] text-[#9A0000]">
+    <p role="alert" className="border-2 border-[#FF4A2B] bg-white px-4 py-3 text-[14.5px] font-semibold text-[#C2361C]">
       {message}
     </p>
   );
@@ -97,14 +104,14 @@ export function GoogleButton() {
 
   return (
     <div>
-      <div className="my-5 flex items-center gap-3 text-[12px] uppercase tracking-[0.14em] text-black/35">
-        <span className="h-px flex-1 bg-black/10" /> or <span className="h-px flex-1 bg-black/10" />
+      <div className="el my-5 flex items-center gap-3 text-[11px] text-[#6B6B6B]">
+        <span className="h-0.5 flex-1 bg-[#101010]/15" /> or <span className="h-0.5 flex-1 bg-[#101010]/15" />
       </div>
       <button
         type="button"
         onClick={() => void go()}
         disabled={busy}
-        className="flex w-full items-center justify-center gap-2.5 rounded-full bg-white px-5 py-3.5 text-[15px] font-medium ring-1 ring-black/10 transition hover:ring-black/25 disabled:opacity-60"
+        className="el flex min-h-[52px] w-full items-center justify-center gap-2.5 border-2 border-[#101010] bg-white text-[13px] transition hover:bg-[#101010] hover:text-white disabled:opacity-60"
       >
         <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden>
           <path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 7.9 3l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5z" />
@@ -114,7 +121,7 @@ export function GoogleButton() {
         </svg>
         {busy ? "Opening Google…" : "Continue with Google"}
       </button>
-      {error && <p className="mt-2 text-[13px] text-[#C30100]">{error}</p>}
+      {error && <p className="mt-2 text-[13.5px] font-semibold text-[#C2361C]">{error}</p>}
     </div>
   );
 }

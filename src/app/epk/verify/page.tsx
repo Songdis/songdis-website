@@ -41,10 +41,11 @@ function VerifyInner() {
 
   return (
     <AuthShell
-      title="Check your email."
+      title="Check your"
+      accent="email."
       subtitle={
         <>
-          We sent a 6-digit code to <span className="font-medium text-black">{email || "your email"}</span>. It
+          We sent a 6-digit code to <span className="font-bold text-[#101010]">{email || "your email"}</span>. It
           comes from SongDis, who make getepk.
         </>
       }

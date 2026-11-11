@@ -402,3 +402,18 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 body[data-share-sheet] [data-floating-fab] {
   display: none !important;
 }
+
+/* getepk.si — poster headings, small loud labels. Scoped so nothing else changes. */
+.epk .ed {
+  font-family: var(--font-epk-display);
+  font-weight: 900;
+  text-transform: uppercase;
+  line-height: 0.86;
+  letter-spacing: -0.005em;
+}
+.epk .el {
+  font-family: var(--font-epk-body);
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}

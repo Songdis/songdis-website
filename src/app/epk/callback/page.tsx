@@ -23,7 +23,8 @@ function CallbackInner() {
 
   return (
     <AuthShell
-      title={failed ? "That didn't work." : "Signing you in…"}
+      title={failed ? "That didn't" : "Signing you"}
+      accent={failed ? "work." : "in…"}
       subtitle={failed ? "Google sign-in was cancelled or failed. Taking you back to try again." : undefined}
     >
       {null}

@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Instrument_Serif, Inter_Tight } from "next/font/google";
+import { Big_Shoulders, Hanken_Grotesk, Instrument_Serif, Inter_Tight } from "next/font/google";
 import { EPK_ORIGIN } from "@/lib/epk";
 
 const serif = Instrument_Serif({
@@ -14,6 +14,21 @@ const sans = Inter_Tight({
   subsets: ["latin"],
   weight: ["400", "500", "600", "700"],
   variable: "--font-epk-sans",
+  display: "swap",
+});
+
+// The redesign: a gig-poster display face over a plain, sturdy grotesk.
+const display = Big_Shoulders({
+  subsets: ["latin"],
+  weight: ["700", "800", "900"],
+  variable: "--font-epk-display",
+  display: "swap",
+});
+
+const body = Hanken_Grotesk({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700", "800"],
+  variable: "--font-epk-body",
   display: "swap",
 });
 
@@ -37,7 +52,7 @@ export const metadata: Metadata = {
 /** getepk's own look: ink and paper, a serif for headlines. Applies to /epk/* only. */
 export default function EpkLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className={`${serif.variable} ${sans.variable} epk min-h-screen`} style={{ fontFamily: "var(--font-epk-sans)" }}>
+    <div className={`${serif.variable} ${sans.variable} ${display.variable} ${body.variable} epk min-h-screen`} style={{ fontFamily: "var(--font-epk-body)" }}>
       {children}
     </div>
   );

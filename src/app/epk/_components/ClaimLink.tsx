@@ -2,13 +2,12 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { EPK_DOMAIN } from "@/lib/epk";
+import { Arrow } from "./Poster";
 
-/** "getepk.si/[yourname]" — type a name, go straight to sign-up with it filled in. */
-export default function ClaimLink({ tone = "light" }: { tone?: "light" | "dark" }) {
+/** "Search your artist name → Get my EPK": straight into sign-up with the name carried over. */
+export default function ClaimLink({ tone = "light", id = "hero-search" }: { tone?: "light" | "dark"; id?: string }) {
   const router = useRouter();
   const [name, setName] = useState("");
-  const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 40);
 
   const go = (e: React.FormEvent) => {
     e.preventDefault();
@@ -18,37 +17,38 @@ export default function ClaimLink({ tone = "light" }: { tone?: "light" | "dark" 
   const dark = tone === "dark";
 
   return (
-    <form
-      onSubmit={go}
-      className={[
-        "flex w-full max-w-[520px] items-center rounded-full p-1.5 pl-6 transition-shadow focus-within:shadow-[0_0_0_3px_rgba(255,90,31,.35)]",
-        dark ? "bg-white/[0.07] ring-1 ring-white/15" : "bg-white ring-1 ring-black/10",
-      ].join(" ")}
-    >
-      <input
-        id="claim"
-        value={name}
-        onChange={(e) => setName(e.target.value)}
-        placeholder="yourname"
-        size={8}
-        autoComplete="off"
-        spellCheck={false}
-        className={`min-w-0 flex-1 bg-transparent py-2.5 text-[15px] outline-none ${dark ? "text-white placeholder:text-white/30" : "text-black placeholder:text-black/30"}`}
-        aria-describedby="claim-hint"
-        aria-label="Your artist name"
-      />
-      <span className={`shrink-0 pr-3 text-[15px] ${dark ? "text-white/45" : "text-black/40"}`}>
-        .{EPK_DOMAIN}
-      </span>
-      <button
-        type="submit"
-        className="shrink-0 rounded-full bg-[#FF5A1F] px-5 py-3 text-[14px] font-semibold text-black transition hover:brightness-105 active:scale-[.98]"
+    <form onSubmit={go} className="flex w-full max-w-[560px] flex-col gap-2 sm:flex-row sm:gap-0">
+      <label htmlFor={id} className="sr-only">
+        Your artist name
+      </label>
+      <div
+        className={[
+          "flex min-h-[56px] flex-1 items-center gap-3 border-2 px-4",
+          dark ? "border-[#F4F4F4] bg-[#F4F4F4]" : "border-[#101010] bg-white",
+        ].join(" ")}
       >
-        {slug ? "Claim it" : "Make yours"}
+        <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#101010" strokeWidth="2.2">
+          <circle cx="11" cy="11" r="7" />
+          <path d="M20 20l-3.5-3.5" />
+        </svg>
+        <input
+          id={id}
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder="Search your artist name"
+          autoComplete="off"
+          spellCheck={false}
+          className="min-w-0 flex-1 bg-transparent text-[17px] text-[#101010] outline-none placeholder:text-[#6B6B6B]"
+        />
+      </div>
+      <button type="submit" className="group flex min-h-[56px] items-stretch">
+        <span className="grid w-14 place-items-center bg-[#101010] sm:border-y-2 sm:border-[#101010]">
+          <Arrow />
+        </span>
+        <span className="el flex flex-1 items-center justify-center bg-[#0038FF] px-6 text-[14px] text-white group-hover:underline">
+          Get my EPK
+        </span>
       </button>
-      <span id="claim-hint" className="sr-only">
-        Your press kit address. Free.
-      </span>
     </form>
   );
 }

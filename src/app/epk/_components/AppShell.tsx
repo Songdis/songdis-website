@@ -15,7 +15,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <div className="min-h-screen bg-[#0E0B0A] text-white">
+    <div className="min-h-screen bg-[#101010] text-white">
       <header className="border-b border-white/[0.07]">
         <div className="mx-auto flex max-w-[1180px] items-center justify-between px-5 py-4 sm:px-8">
           <Link href="/app" aria-label="Your artists">

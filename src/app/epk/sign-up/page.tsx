@@ -63,12 +63,13 @@ function SignUpInner() {
 
   return (
     <AuthShell
-      title={artist ? `Let's make ${artist}'s kit.` : "Make your press kit."}
-      subtitle="Free. About ten minutes. Already on SongDis? Sign in with that account instead."
+      title={artist ? `${artist}'s EPK,` : "Your EPK"}
+      accent={artist ? "in a minute." : "in a minute."}
+      subtitle={<>Free. No card. <Link href="/sign-in" className="font-bold underline underline-offset-4">Already on SongDis? Sign in</Link> with the same account.</>}
       footer={
         <>
           Have an account?{" "}
-          <Link href="/sign-in" className="font-medium text-black underline underline-offset-4">
+          <Link href="/sign-in" className="font-bold text-[#101010] underline underline-offset-4">
             Sign in
           </Link>
         </>
@@ -103,10 +104,10 @@ function SignUpInner() {
           error={fieldError("password")}
           required
         />
-        <SubmitButton busy={busy}>Create account</SubmitButton>
+        <SubmitButton busy={busy}>Continue</SubmitButton>
       </form>
       <GoogleButton />
-      <p className="mt-6 text-[12.5px] leading-relaxed text-black/45">
+      <p className="mt-6 text-[12.5px] leading-relaxed text-[#6B6B6B]">
         By signing up you agree to the SongDis{" "}
         <a href="https://songdis.com/terms" className="underline">terms</a> and{" "}
         <a href="https://songdis.com/privacy-policy" className="underline">privacy policy</a>. getepk is made by SongDis.

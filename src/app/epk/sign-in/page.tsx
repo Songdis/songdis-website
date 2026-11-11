@@ -32,13 +32,14 @@ export default function EpkSignIn() {
 
   return (
     <AuthShell
-      title="Welcome back."
+      title="Welcome"
+      accent="back."
       subtitle="SongDis artists: same email, same password."
       footer={
         <div className="flex flex-wrap justify-between gap-3">
           <span>
             New here?{" "}
-            <Link href="/sign-up" className="font-medium text-black underline underline-offset-4">
+            <Link href="/sign-up" className="font-bold text-[#101010] underline underline-offset-4">
               Make your EPK
             </Link>
           </span>
