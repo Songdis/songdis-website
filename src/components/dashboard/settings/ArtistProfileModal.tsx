@@ -670,6 +670,16 @@ export default function ArtistProfileModal({
                   Continue
                 </button>
               </div>
+              {!isEdit && (
+                <button
+                  type="button"
+                  onClick={() => void handleSave()}
+                  disabled={isSaving}
+                  className="self-center font-montserrat text-white/50 text-xs underline underline-offset-4 hover:text-white disabled:opacity-50"
+                >
+                  {isSaving ? "Creating…" : "Skip social links and create the profile now"}
+                </button>
+              )}
             </div>
           )}
 
