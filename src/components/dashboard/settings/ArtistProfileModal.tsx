@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
-import { createProfile, updateProfile, searchSpotifyArtists, verifySpotifyUrl } from "@/lib/api/auth";
+import { createProfile, updateProfile, searchSpotifyArtists, verifySpotifyUrl, lookupArtist } from "@/lib/api/auth";
 import type { SpotifyArtist } from "@/lib/api/auth";
 import { useToast } from "@/components/ui/Toast";
 
@@ -124,9 +124,16 @@ export default function ArtistProfileModal({
 
   /* ── Spotify URL verification state ── */
   const [spotifyUrlInput, setSpotifyUrlInput] = useState("");
-  const [isVerifyingUrl, setIsVerifyingUrl] = useState(false);
-  const [spotifyVerified, setSpotifyVerified] = useState(false);
-  const [verifiedArtistData, setVerifiedArtistData] = useState<SpotifyArtist | null>(null);
+  /* What the Spotify pick filled in for them, and a bio we found (they can drop it). */
+  const [autoFilled, setAutoFilled] = useState<string[]>([]);
+  const [isPrefilling, setIsPrefilling] = useState(false);
+  const [foundBio, setFoundBio] = useState("");
+  const fieldsRef = useRef({ location, instagram, twitter, facebook, youtube, appleMusic });
+  // The search box handler is memoised above where verifyLink is defined; it calls through this.
+  const verifyLinkRef = useRef<((url: string) => Promise<void>) | null>(null);
+  useEffect(() => {
+    fieldsRef.current = { location, instagram, twitter, facebook, youtube, appleMusic };
+  }, [location, instagram, twitter, facebook, youtube, appleMusic]);
 
   const isEdit = !!profile;
 
@@ -158,6 +165,14 @@ export default function ArtistProfileModal({
 
   /* ── Spotify artist search (debounced) ── */
   const handleArtistSearch = useCallback((query: string) => {
+    // A pasted Spotify artist link goes straight to that artist.
+    if (/open\.spotify\.com\/(?:intl-[a-z-]+\/)?artist\/[A-Za-z0-9]+/i.test(query)) {
+      if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
+      setSearchQuery(query);
+      setShowSearchResults(false);
+      void verifyLinkRef.current?.(query.trim());
+      return;
+    }
     setSearchQuery(query);
     if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
     if (query.length < 2) {
@@ -178,57 +193,73 @@ export default function ArtistProfileModal({
     }, 500);
   }, []);
 
+  /*
+   * Fill every EMPTY field we can from the internet: location and socials from MusicBrainz
+   * (matched by this exact Spotify link), a bio from Last.fm. Never overwrites what they typed.
+   */
+  const prefillFromSpotify = async (url: string) => {
+    if (isEdit || !url) return;
+    setIsPrefilling(true);
+    const res = await lookupArtist(url);
+    setIsPrefilling(false);
+    const d = res.data;
+    if (!d) return;
+    // Read the LATEST field values (this can run from a memoised handler), fill only empties.
+    const latest = fieldsRef.current;
+    const filled: string[] = [];
+    const take = (current: string, value: string | null | undefined, set: (v: string) => void, label: string) => {
+      if (!current && value) {
+        set(value);
+        filled.push(label);
+      }
+    };
+    take(latest.location, d.location, setLocation, "Location");
+    take(latest.instagram, d.links.instagram_url, setInstagram, "Instagram");
+    take(latest.twitter, d.links.twitter_url, setTwitter, "X");
+    take(latest.facebook, d.links.facebook_url, setFacebook, "Facebook");
+    take(latest.youtube, d.links.youtube_url, setYoutube, "YouTube");
+    take(latest.appleMusic, d.links.apple_music_url, setAppleMusic, "Apple Music");
+    if (d.bio) {
+      setFoundBio(d.bio);
+      filled.push("Bio");
+    }
+    setAutoFilled(filled);
+  };
+
   /* ── Select artist from search results ── */
   const handleSelectArtist = (artist: SpotifyArtist) => {
+    void prefillFromSpotify(artist.spotify_url);
     setShowSearchResults(false);
     setSelectedArtist(artist);
     setSearchQuery(artist.name);
-    setSpotifyVerified(true);
-    setVerifiedArtistData(artist);
     setSpotifyUrlInput(artist.spotify_url);
     if (!stageName) setStageName(artist.name);
   };
 
   const clearArtistSelection = () => {
+    setAutoFilled([]);
+    setFoundBio("");
     setSelectedArtist(null);
     setSearchQuery("");
     setSearchResults([]);
     setShowSearchResults(false);
-    setSpotifyVerified(false);
-    setVerifiedArtistData(null);
     setSpotifyUrlInput("");
   };
 
-  /* ── Spotify URL verification ── */
-  const handleVerifyUrl = async () => {
-    if (!spotifyUrlInput) return;
-    if (!spotifyUrlInput.includes("spotify.com/artist/")) {
-      toastError("Invalid URL", "That doesn't look like a Spotify artist URL. It should look like: https://open.spotify.com/artist/...");
-      return;
-    }
-    setIsVerifyingUrl(true);
-    const res = await verifySpotifyUrl(spotifyUrlInput);
-    setIsVerifyingUrl(false);
-    if (res.error) {
-      toastError("Verification failed", res.error);
-      setSpotifyVerified(false);
-      setVerifiedArtistData(null);
-    } else if (res.data?.artist) {
-      setSpotifyVerified(true);
-      setVerifiedArtistData(res.data.artist);
-      setSelectedArtist(res.data.artist);
-      setSearchQuery(res.data.artist.name);
-      if (!stageName) setStageName(res.data.artist.name);
+  const verifyLink = async (url: string) => {
+    setIsSearching(true);
+    const res = await verifySpotifyUrl(url);
+    setIsSearching(false);
+    if (res.data?.artist) {
+      handleSelectArtist(res.data.artist);
+    } else {
+      toastError("Not found", res.error ?? "We couldn't find that Spotify artist link.");
     }
   };
 
-  const clearSpotifyVerification = () => {
-    setSpotifyVerified(false);
-    setVerifiedArtistData(null);
-    setSpotifyUrlInput("");
-    setSelectedArtist(null);
-    setSearchQuery("");
-  };
+  useEffect(() => {
+    verifyLinkRef.current = verifyLink;
+  });
 
   /* ── Save ── */
   const handleSave = async () => {
@@ -242,6 +273,7 @@ export default function ArtistProfileModal({
       location,
       phone,
       country_code: "+234",
+      ...(!isEdit && foundBio ? { bio: foundBio.slice(0, 500) } : {}),
       twitter_url: twitter,
       instagram_url: instagram,
       facebook_url: facebook,
@@ -388,15 +420,15 @@ export default function ArtistProfileModal({
               <div className="rounded-xl border border-dashed border-[#C30100]/30 p-4">
                 <div className="flex items-center justify-between mb-0.5">
                   <p className="font-montserrat text-white text-xs font-semibold flex items-center gap-2">
-                    <SpotifyIcon /> Find Your Spotify Profile
+                    <SpotifyIcon /> Start with Spotify
                   </p>
-                  <span className="text-[10px] bg-white/10 text-white/40 px-2 py-0.5 rounded-full">Optional</span>
                 </div>
-                <p className="font-montserrat text-white/50 text-[11px] mb-1">
-                  Search for your artist name on Spotify to auto-fill your profile and get a verified badge.
+                <p className="font-montserrat text-white/60 text-[11px] mb-1">
+                  Search your artist name or paste your Spotify artist link. We&apos;ll fill in your photo,
+                  location and social links, and you get a verified badge.
                 </p>
-                <p className="font-montserrat text-white/30 text-[11px] mb-3">
-                  Don&apos;t have Spotify or can&apos;t find yourself? You can skip this section entirely.
+                <p className="font-montserrat text-white/35 text-[11px] mb-3">
+                  Not on Spotify yet? Skip this and fill in the details below.
                 </p>
 
                 {!selectedArtist ? (
@@ -404,7 +436,7 @@ export default function ArtistProfileModal({
                     <Input
                       value={searchQuery}
                       onChange={handleArtistSearch}
-                      placeholder="e.g Burna Boy, Wizkid, your artist name..."
+                      placeholder="Your artist name, or a Spotify artist link"
                       icon={isSearching ? <SpinIcon /> : <SearchIcon />}
                     />
                     {showSearchResults && (
@@ -508,74 +540,33 @@ export default function ArtistProfileModal({
                         <CloseIcon />
                       </button>
                     </div>
-                  </div>
-                )}
-              </div>
-
-              {/* ── OR Divider ── */}
-              <div className="relative">
-                <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-white/10" />
-                </div>
-                <div className="relative flex justify-center">
-                  <span className="px-3 bg-[#140C0C] text-white/40 text-[11px] font-montserrat">OR paste your Spotify artist URL</span>
-                </div>
-              </div>
-
-              {/* ── Spotify URL Verification ── */}
-              <div className="rounded-xl border border-dashed border-[#C30100]/30 p-4">
-                <div className="flex items-center justify-between mb-0.5">
-                  <p className="font-montserrat text-white text-xs font-semibold">Verify by Spotify URL</p>
-                  <span className="text-[10px] bg-white/10 text-white/40 px-2 py-0.5 rounded-full">Optional</span>
-                </div>
-                <p className="font-montserrat text-white/50 text-[11px] mb-3">
-                  Can&apos;t find yourself in the search above? Paste your Spotify artist page URL directly.
-                </p>
-
-                {spotifyVerified && verifiedArtistData ? (
-                  <div className="rounded-lg border border-green-500/30 bg-green-500/5 p-3 flex items-center justify-between gap-3">
-                    <div className="flex items-center gap-2">
-                      <CheckCircleIcon />
-                      <div>
-                        <p className="font-montserrat text-white text-sm font-medium">{verifiedArtistData.name} verified</p>
-                        <p className="font-montserrat text-green-400 text-[11px]">Spotify artist URL confirmed</p>
+                    {isPrefilling ? (
+                      <p className="mt-3 flex items-center gap-2 font-montserrat text-[11px] text-white/50">
+                        <SpinIcon /> Filling in your details…
+                      </p>
+                    ) : autoFilled.length > 0 ? (
+                      <div className="mt-3">
+                        <p className="font-montserrat text-[11px] text-green-400">
+                          Filled in for you: {autoFilled.join(", ")}. Check them before saving.
+                        </p>
+                        {foundBio && (
+                          <div className="mt-2 rounded-lg bg-white/[0.04] p-2.5">
+                            <p className="font-montserrat text-[11px] text-white/60 line-clamp-3">{foundBio}</p>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setFoundBio("");
+                                setAutoFilled((f) => f.filter((x) => x !== "Bio"));
+                              }}
+                              className="mt-1 font-montserrat text-[11px] text-white/40 underline hover:text-white"
+                            >
+                              Don&apos;t use this bio
+                            </button>
+                          </div>
+                        )}
                       </div>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={clearSpotifyVerification}
-                      className="text-[11px] text-white/50 hover:text-white transition-colors shrink-0"
-                    >
-                      Remove
-                    </button>
+                    ) : null}
                   </div>
-                ) : (
-                  <div className="flex gap-2">
-                    <Input
-                      value={spotifyUrlInput}
-                      onChange={setSpotifyUrlInput}
-                      placeholder="https://open.spotify.com/artist/..."
-                      disabled={isVerifyingUrl || !!selectedArtist}
-                    />
-                    <button
-                      type="button"
-                      onClick={handleVerifyUrl}
-                      disabled={isVerifyingUrl || !spotifyUrlInput || !!selectedArtist}
-                      className="shrink-0 font-nulshock text-white uppercase text-[10px] tracking-widest rounded-full border border-[#C30100] bg-[#C30100]/10 hover:bg-[#C30100] px-4 py-2.5 transition-all flex items-center gap-1.5 whitespace-nowrap min-h-[48px] disabled:opacity-40 disabled:cursor-not-allowed"
-                    >
-                      {isVerifyingUrl ? (
-                        <><SpinIcon /> Verifying...</>
-                      ) : (
-                        <><CheckSmallIcon /> Verify</>
-                      )}
-                    </button>
-                  </div>
-                )}
-
-                {selectedArtist && !spotifyVerified && (
-                  <p className="text-[11px] text-white/30 mt-2">
-                    You already selected an artist above. Remove that selection first to use URL verification instead.
-                  </p>
                 )}
               </div>
 
@@ -871,13 +862,6 @@ function CloseIcon() {
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <line x1="18" y1="6" x2="6" y2="18" />
       <line x1="6" y1="6" x2="18" y2="18" />
-    </svg>
-  );
-}
-function CheckSmallIcon() {
-  return (
-    <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-      <polyline points="20 6 9 17 4 12" />
     </svg>
   );
 }

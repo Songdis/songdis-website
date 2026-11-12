@@ -313,3 +313,22 @@ export async function getGoogleAuthUrl() {
 }
 
 export { getToken, setToken, removeToken };
+
+export interface ArtistLookupResult {
+  name: string;
+  image_url: string | null;
+  spotify_url: string;
+  location: string | null;
+  bio: string | null;
+  genres: string[];
+  links: Partial<Record<"instagram_url" | "twitter_url" | "facebook_url" | "youtube_url" | "apple_music_url", string>>;
+}
+
+/** Everything we can pre-fill for a new artist from their Spotify artist link. */
+export async function lookupArtist(spotifyUrl: string) {
+  return request<ArtistLookupResult>(
+    "/artist-lookup",
+    { method: "POST", body: JSON.stringify({ spotify_url: spotifyUrl }) },
+    true
+  );
+}
