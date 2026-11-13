@@ -156,11 +156,8 @@ export default function DashboardPage() {
                   style={{ background: "radial-gradient(circle at bottom right, rgba(195,1,0,0.55) 0%, transparent 65%)", filter: "blur(20px)" }} />
                 <div className="relative z-10">
                   <p className="font-body text-white/60 text-sm mb-2">Total Earnings</p>
-                  <p className="font-heading text-white text-4xl font-bold mb-3">
+                  <p className="font-heading text-white text-4xl font-bold">
                     ${wallet.totalEarnings.toLocaleString("en-US", { minimumFractionDigits: 2 })}
-                  </p>
-                  <p className="font-body text-white/40 text-sm">
-                    {wallet.streams.toLocaleString()} streams &nbsp;·&nbsp; Avg ${wallet.avgPerStream.toFixed(4)}/stream
                   </p>
                 </div>
                 <Link href="/dashboard/earnings" className="relative z-10 block w-full mt-5 font-heading text-white uppercase text-xs tracking-widest rounded-full border border-[#C30100] bg-transparent hover:bg-[#C30100] py-3.5 transition-all duration-300 text-center">
