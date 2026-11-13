@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import { createProfile, updateProfile, searchSpotifyArtists, verifySpotifyUrl, lookupArtist } from "@/lib/api/auth";
+import QuickArtistCreate from "./QuickArtistCreate";
 import type { SpotifyArtist } from "@/lib/api/auth";
 import { useToast } from "@/components/ui/Toast";
 
@@ -77,8 +78,24 @@ function Input({
   );
 }
 
-/* ─── Artist Profile Modal (2-step) ──────────────────────────── */
-export default function ArtistProfileModal({
+/*
+ * New artist: the quick create (find on Spotify → legal name + WhatsApp). Existing artist:
+ * the full two-step editor below, which is also where the rest gets completed later.
+ */
+export default function ArtistProfileModal(props: {
+  profile: ArtistProfile | null;
+  onClose: () => void;
+  onSave: (p: ArtistProfile) => void;
+}) {
+  return props.profile ? (
+    <ArtistProfileEditor {...props} />
+  ) : (
+    <QuickArtistCreate onClose={props.onClose} onSave={props.onSave} />
+  );
+}
+
+/* ─── Artist Profile Editor (2-step) ─────────────────────────── */
+function ArtistProfileEditor({
   profile,
   onClose,
   onSave,
