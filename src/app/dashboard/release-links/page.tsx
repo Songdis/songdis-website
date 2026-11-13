@@ -40,12 +40,10 @@ interface Breakdown {
 
 function LinkCard({
   link,
-  onCopy,
   onShare,
   onDelete,
 }: {
   link: ReleaseLink;
-  onCopy: () => void;
   onShare: () => void;
   onDelete: () => void;
 }) {
@@ -152,13 +150,7 @@ function LinkCard({
       {link.isSmartLink && <Audience link={link} />}
 
       {/* Action buttons */}
-      <div className="grid grid-cols-3 gap-2 sm:gap-3">
-        <button
-          onClick={onCopy}
-          className="font-body text-white/60 text-xs border border-white/10 hover:border-white/25 rounded-full py-2.5 transition-colors hover:text-white"
-        >
-          Copy Link
-        </button>
+      <div className="grid grid-cols-2 gap-2 sm:gap-3">
         <button
           onClick={onShare}
           className="font-body text-white/60 text-xs border border-white/10 hover:border-white/25 rounded-full py-2.5 transition-colors hover:text-white"
@@ -230,7 +222,6 @@ export default function ReleaseLinksPage() {
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const PAGE_SIZE = 10;
-  const [copied, setCopied] = useState<string | null>(null);
   const [confirmingDelete, setConfirmingDelete] = useState<ReleaseLink | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
@@ -264,14 +255,6 @@ export default function ReleaseLinksPage() {
   const totalPages = Math.max(1, Math.ceil(allFiltered.length / PAGE_SIZE));
   const filtered = allFiltered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
-  const handleCopy = (link: ReleaseLink) => {
-    const fullUrl = link.url.startsWith("http")
-      ? link.url
-      : `https://${link.url}`;
-    navigator.clipboard.writeText(fullUrl).catch(() => {});
-    setCopied(link.id);
-    setTimeout(() => setCopied(null), 2000);
-  };
 
 
   const handleDelete = async (id: string) => {
@@ -390,36 +373,6 @@ export default function ReleaseLinksPage() {
           </div>
         </div>
 
-        {/* Ayo insight */}
-        <div className="rounded-2xl border border-white/[0.06] bg-[#180F0F] p-5">
-          <div className="flex items-start gap-3">
-            <div className="w-9 h-9 rounded-full bg-yellow-500/20 flex items-center justify-center shrink-0 mt-0.5">
-              <Image
-                src="/images/ayo.svg"
-                alt="Ayo"
-                width={20}
-                height={20}
-                unoptimized
-              />
-            </div>
-            <div>
-              <p className="font-body text-[#C30100] text-xs font-semibold mb-2">
-                Ayo AI · Promotion Insight
-              </p>
-              <p className="font-body text-white/60 text-sm leading-relaxed mb-4">
-                Based on your streaming data, your Nigerian audience is your
-                strongest segment. A targeted $50 TikTok campaign for "Scatter
-                the Place" aimed at Lagos + UK Afrobeats listeners would likely
-                yield 800–1,400 new listeners this week. This is your highest
-                ROI opportunity right now.
-              </p>
-              <button className="font-body text-white text-xs bg-[#C30100]/20 border border-[#C30100]/40 hover:bg-[#C30100]/40 rounded-full px-4 py-2 transition-colors">
-                Launch recommended campaign
-              </button>
-            </div>
-          </div>
-        </div>
-
         {/* Search */}
         <div className="flex items-center gap-3 rounded-xl border border-white/[0.06] bg-[#0E0808] px-4 py-3">
           <SearchIcon />
@@ -450,7 +403,6 @@ export default function ReleaseLinksPage() {
                 <LinkCard
                   key={link.id}
                   link={link}
-                  onCopy={() => handleCopy(link)}
                   onShare={() => setSharing(link)}
                   onDelete={() => {
                     setDeleteError(null);
@@ -490,14 +442,6 @@ export default function ReleaseLinksPage() {
           )}
         </div>
 
-        {/* Copy toast */}
-        {copied && (
-          <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-[#1A0808] border border-white/10 rounded-full px-5 py-2.5 shadow-xl">
-            <p className="font-body text-white text-sm">
-              Link copied to clipboard
-            </p>
-          </div>
-        )}
 
         {sharing && (
           <ShareReleaseSheet
