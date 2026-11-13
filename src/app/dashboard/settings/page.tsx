@@ -108,6 +108,8 @@ function ArtistProfileTab() {
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const { isLocked, artists } = useBilling(0);
   const router = useRouter();
+  // "Finish now" on the dashboard links here with ?finish=<artist id>: open that artist's editor.
+  const finishId = useSearchParams().get("finish");
 
 
   const handleAddArtist = () => {
@@ -134,8 +136,7 @@ function ArtistProfileTab() {
               ? raw.data
               : [];
 
-        setProfiles(
-          (list as Record<string, unknown>[]).map((p) => ({
+        const mapped: ArtistProfile[] = (list as Record<string, unknown>[]).map((p) => ({
             id: String(p.id ?? ""),
             stageName: (p.stage_name ?? p.stageName ?? "") as string,
             fullName: (p.full_name ?? p.fullName ?? "") as string,
@@ -156,11 +157,17 @@ function ArtistProfileTab() {
               p.spotify_image_url ??
               p.avatar_url ??
               "/images/avatar-artiste.svg") as string,
-          })),
-        );
+          }));
+        setProfiles(mapped);
+        const toFinish = finishId ? mapped.find((p) => p.id === finishId) : undefined;
+        if (toFinish) {
+          setEditingProfile(toFinish);
+          setShowEditModal(true);
+        }
       }
       setIsLoading(false);
     });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const isAtLimit = profiles.length >= 3;

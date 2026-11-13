@@ -426,6 +426,14 @@ function ArtistProfileEditor({
 
           {step === "info" && (
             <div className="flex flex-col gap-5">
+              {isEdit && !profile?.dob && (
+                <div className="rounded-xl border border-[#C30100]/40 bg-[#C30100]/10 p-3">
+                  <p className="font-montserrat text-white text-sm font-semibold">Still needed: date of birth</p>
+                  <p className="font-montserrat text-white/60 text-xs mt-0.5">
+                    We need it before payouts and publishing. Add it below, then save.
+                  </p>
+                </div>
+              )}
               {/* ── API Error Banner ── */}
               {apiError && (
                 <div className="rounded-xl border border-red-500/30 bg-red-500/10 p-3 flex items-start gap-2">

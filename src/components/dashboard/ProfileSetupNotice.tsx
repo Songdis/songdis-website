@@ -60,7 +60,7 @@ export default function ProfileSetupNotice() {
           </p>
         </div>
         <Link
-          href="/dashboard/settings?tab=artist-profile"
+          href={`/dashboard/settings?tab=artist-profile&finish=${(artists.find((a) => a.important.length > 0) ?? artists[0]).id}`}
           className="font-heading text-white uppercase text-[10px] tracking-widest rounded-full border border-[#C30100] bg-[#C30100]/10 hover:bg-[#C30100] px-4 py-2.5 transition-all min-h-[40px] flex items-center"
         >
           Finish now
@@ -70,12 +70,20 @@ export default function ProfileSetupNotice() {
       <ul className="mt-4 flex flex-col gap-2.5">
         {shown.map((a) => (
           <li key={a.id} className="font-body text-xs text-white/70">
-            <span className="text-white font-semibold">{a.stage_name}</span>
-            {": "}
-            {[
-              ...a.important.map((i) => `${i.label} (${i.why ?? "needed"})`),
-              ...a.optional.map((i) => i.label.toLowerCase()),
-            ].join(", ")}
+            <Link
+              href={`/dashboard/settings?tab=artist-profile&finish=${a.id}`}
+              className="group inline-flex flex-wrap items-baseline gap-x-1 hover:text-white"
+            >
+              <span className="text-white font-semibold group-hover:underline">{a.stage_name}</span>
+              <span>
+                {": "}
+                {[
+                  ...a.important.map((i) => `${i.label} (${i.why ?? "needed"})`),
+                  ...a.optional.map((i) => i.label.toLowerCase()),
+                ].join(", ")}
+              </span>
+              <span className="text-[#C30100]">Finish →</span>
+            </Link>
           </li>
         ))}
         {artists.length > shown.length && (
