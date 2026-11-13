@@ -174,7 +174,7 @@ export default function EarningsPage() {
               label={item.label}
               value={fmt(item.amount_usd)}
               icon="/images/balance.svg"
-              note={item.description ?? "Outstanding — not yet available to withdraw."}
+              note={item.description ?? "Outstanding. Not yet available to withdraw."}
             />
           ))}
         </div>
@@ -193,12 +193,12 @@ export default function EarningsPage() {
             {balanceLoading
               ? "Loading your earnings data..."
               : totalEarnings > 0
-                ? `You've earned a total of ${fmt(totalEarnings)} from your releases${fromSplits > 0 ? `, plus ${fmt(fromSplits)} from splits` : ""}. Your available balance is ${fmt(availableBalance)} — ${
+                ? `You've earned a total of ${fmt(totalEarnings)} from your releases${fromSplits > 0 ? `, plus ${fmt(fromSplits)} from splits` : ""}. Your available balance is ${fmt(availableBalance)}. ${
                     availableBalance > 0
                       ? withdrawalsPaused
-                        ? "it is safe where it is while withdrawals are paused."
-                        : "you can withdraw anytime from the Wallet."
-                      : "keep releasing music to start earning."
+                        ? "It is safe where it is while withdrawals are paused."
+                        : "You can withdraw anytime from the Wallet."
+                      : "Keep releasing music to grow it."
                   }`
               : "Start releasing music to see your earnings grow. Every stream counts towards your balance."
             }
@@ -296,13 +296,13 @@ export default function EarningsPage() {
                       i < history.length - 1 ? "border-b border-white/[0.05]" : ""].join(" ")}>
                     <div>
                       <p className="font-body text-white text-sm">
-                        Withdrawal — {tx.target_currency}
+                        Withdrawal in {tx.target_currency}
                       </p>
                       <p className="font-body text-white/40 text-xs mt-0.5">
                         {new Date(tx.created_at as string).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })}
                         {" · "}
-                        <span className={(tx.status as string) === "completed" ? "text-green-400" : "text-yellow-400"}>
-                          {tx.status as string}
+                        <span className={statusStyle(tx.status as string).cls}>
+                          {statusStyle(tx.status as string).label}
                         </span>
                       </p>
                     </div>
@@ -391,4 +391,22 @@ function PauseNoticeIcon() {
 
 function ChevronRightIcon() {
   return <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="9 18 15 12 9 6"/></svg>;
+}
+/** Colour and wording for a withdrawal's status: paid is green, failed or reversed red, in progress yellow. */
+function statusStyle(status: string): { cls: string; label: string } {
+  switch (status) {
+    case "successful":
+    case "completed":
+      return { cls: "text-green-400", label: "Successful" };
+    case "failed":
+      return { cls: "text-red-400", label: "Failed" };
+    case "reversed":
+      return { cls: "text-red-400", label: "Reversed" };
+    case "conversion_pending":
+      return { cls: "text-yellow-400", label: "Converting" };
+    case "processing":
+      return { cls: "text-yellow-400", label: "Processing" };
+    default:
+      return { cls: "text-yellow-400", label: status ? status.charAt(0).toUpperCase() + status.slice(1).replace(/_/g, " ") : "Pending" };
+  }
 }
