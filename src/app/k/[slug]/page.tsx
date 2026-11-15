@@ -29,10 +29,12 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
   const description =
     summarise(artist.bio) ??
     `Bio, music, photos and booking contacts for ${artist.name}.`;
-  const image = artist.cover_image_url ?? artist.avatar_url ?? null;
+  const hasImage = Boolean(artist.cover_image_url ?? artist.avatar_url);
   const epk = await viewedOnEpk();
   const domain = await ownDomain();
   const url = domain ? `https://${domain}` : epk ? epkKitUrl(artist.slug) : `${SITE_ORIGIN}/k/${artist.slug}`;
+  // A small 1200×630 share picture made from the cover (see ./og/route.ts), on the same host.
+  const image = hasImage ? `${url.replace(/\/$/, "")}/og` : null;
 
   return {
     title,
@@ -44,7 +46,7 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
       url,
       title,
       description,
-      images: image ? [{ url: image, alt: artist.name }] : undefined,
+      images: image ? [{ url: image, width: 1200, height: 630, alt: artist.name, type: "image/jpeg" }] : undefined,
     },
     twitter: {
       card: image ? "summary_large_image" : "summary",

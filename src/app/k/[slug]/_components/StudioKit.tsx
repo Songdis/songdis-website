@@ -65,6 +65,16 @@ function studioVars(theme: string): CSSProperties {
 
 const display: CSSProperties = { fontFamily: "var(--font-studio-display)" };
 
+/**
+ * The name fills its column without spilling out: sized from the column width (cqw) and the
+ * name's length. Syne is wide, so a 12-letter name like "Mollythevibe" at a fixed size ran off
+ * a phone screen and dragged the photo with it.
+ */
+function nameSize(name: string): string {
+  const longestWord = Math.max(...name.split(/\s+/).map((w) => w.length), 1);
+  return `clamp(2rem, calc(100cqw / ${(longestWord * 0.98).toFixed(2)}), 6rem)`;
+}
+
 function Label({ children }: { children: ReactNode }) {
   return (
     <h2 className="mb-5 flex items-center gap-2.5 text-[15px] font-bold lowercase tracking-[-0.01em] text-[var(--pk-text)]" style={display}>
@@ -314,13 +324,16 @@ export default function StudioKit({
 
         {/* Hero */}
         <header className="mx-auto grid max-w-[1080px] items-center gap-10 px-5 pb-6 pt-10 sm:px-8 md:grid-cols-[1.05fr_.95fr] md:pt-16">
-          <div className="order-2 md:order-1">
+          <div className="order-2 min-w-0 [container-type:inline-size] md:order-1">
             {artist.eyebrow && (
               <p className="mb-4 inline-block rounded-full bg-[var(--pk-tint)] px-3.5 py-1.5 text-[13px] font-semibold text-[var(--pk-text-soft)]">
                 {artist.eyebrow}
               </p>
             )}
-            <h1 className="break-words text-[clamp(3rem,11vw,6rem)] font-extrabold leading-[0.92] tracking-[-0.03em] text-[var(--pk-text)]" style={display}>
+            <h1
+              className="font-extrabold leading-[0.92] tracking-[-0.03em] text-[var(--pk-text)] [overflow-wrap:anywhere]"
+              style={{ ...display, fontSize: nameSize(artist.name) }}
+            >
               {artist.name}
             </h1>
             {(chips.length > 0 || cfg.facts.for_fans_of) && (
@@ -362,7 +375,7 @@ export default function StudioKit({
           </div>
 
           {/* The photo as a print, with the latest release pinned to it */}
-          <div className="relative order-1 mx-auto w-full max-w-[440px] md:order-2">
+          <div className="relative order-1 mx-auto w-full min-w-0 max-w-[440px] md:order-2">
             <div aria-hidden className="absolute -right-3 -top-3 h-full w-full rotate-[4deg] rounded-[34px] bg-[var(--pk-tint)]" />
             <div className="relative -rotate-[2deg] overflow-hidden rounded-[34px] bg-[#151515] shadow-[0_30px_60px_-30px_rgba(0,0,0,.55)]">
               <div className="relative aspect-[4/5]">
