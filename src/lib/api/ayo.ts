@@ -168,10 +168,11 @@ export async function generateBio(payload: BioPayload) {
 }
 
 /** Save generated bio to the user's profile */
-export async function saveBio(bio: string) {
+/** Save a bio to the artist it was written for (matched by name; refused if unclear). */
+export async function saveBio(bio: string, artistName?: string) {
   return request<{ bio: string }>(
     "/ayo/bio/save",
-    { method: "POST", body: JSON.stringify({ bio }) },
+    { method: "POST", body: JSON.stringify({ bio, artist_name: artistName || null }) },
     true
   );
 }

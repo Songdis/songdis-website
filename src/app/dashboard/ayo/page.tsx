@@ -77,12 +77,12 @@ function BioGenerator() {
     const bioText = result?.bio ?? result?.long_bio ?? result?.short_bio ?? "";
     if (!bioText) return;
     setIsSaving(true);
-    const res = await saveBio(bioText);
+    const res = await saveBio(bioText, form.artist_name);
     if (res.error) {
       toastError("Failed to save bio", res.error);
     } else {
       setSaved(true);
-      toast({ type: "success", title: "Bio saved to your profile" });
+      toast({ type: "success", title: `Bio saved to ${form.artist_name}` });
     }
     setIsSaving(false);
   };
