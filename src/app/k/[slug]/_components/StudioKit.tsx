@@ -1,7 +1,7 @@
 import type { CSSProperties, ReactNode } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowUpRight, HeartHandshake, Mail, Play } from "lucide-react";
+import { ArrowUpRight, HeartHandshake, Mail, Pencil, Play } from "lucide-react";
 import {
   FaApple,
   FaFacebookF,
@@ -19,7 +19,7 @@ import {
 } from "@/lib/api/press-kit-public";
 import { EPK_ORIGIN } from "@/lib/epk";
 import { PRESS_KIT_THEMES } from "../_theme";
-import { bookingMailto, formatReleaseDate, formatReleaseType, releaseYear } from "../_format";
+import { bookingMailto } from "../_format";
 import { studioBody, studioDisplay } from "../_studioFonts";
 import BioCard from "./BioCard";
 import CoSignCard from "./CoSignCard";
@@ -27,10 +27,10 @@ import JoinCard from "./JoinCard";
 import { EpkWordmark } from "./PressKitChrome";
 import ShareButton from "./ShareButton";
 import SpotlightRail from "./SpotlightRail";
+import StudioReleases, { type StudioRelease } from "./StudioReleases";
 
 /*
- * "Studio": the alternate press kit look, offered next to the classic one for feedback
- * (?look=alt). Same content, same order and the same Co-sign / Stay close / booking parts —
+ * "Studio": the press kit design (the classic one is still at ?look=classic). Same content, same order and the same Co-sign / Stay close / booking parts —
  * only the styling differs: light and airy, an expressive display face, the artist's own
  * colour as the accent, the photo as a tilted print, music as a swipeable row of covers.
  */
@@ -116,10 +116,13 @@ export default function StudioKit({
   kit,
   brand,
   shareUrl,
+  onEdit,
 }: {
   kit: PublicPressKit;
   brand: "songdis" | "getepk";
   shareUrl?: string;
+  /** Set in the editor's preview: shows an Edit button and leaves out the fixed phone bar. */
+  onEdit?: () => void;
 }) {
   const epk = brand === "getepk";
   const { artist, kit: cfg, photos, spotlights, releases } = kit;
@@ -147,16 +150,7 @@ export default function StudioKit({
     { label: "Press & sync", email: cfg.contacts.press },
   ].flatMap((c) => (c.email ? [{ label: c.label, email: c.email }] : []));
 
-  const allReleases: {
-    id: number;
-    title: string;
-    cover: string | null;
-    spotify_url: string | null;
-    type: string | null;
-    released_on: string | null;
-    year: string | null;
-    isFeatured: boolean;
-  }[] = [
+  const allReleases: StudioRelease[] = [
     ...(featured
       ? [{ id: featured.id, title: featured.title, cover: featured.cover, spotify_url: featured.spotify_url ?? null,
           type: featured.type ?? null, released_on: featured.released_on ?? null,
@@ -179,38 +173,7 @@ export default function StudioKit({
     listen: allReleases.length === 0 ? null : (
       <section key="listen" className="pt-14 sm:pt-20">
         <Label>listen</Label>
-        <div className="-mx-5 flex snap-x snap-mandatory gap-4 overflow-x-auto px-5 pb-3 sm:-mx-8 sm:px-8 [scrollbar-width:none]">
-          {allReleases.map((r) => (
-            <ReleaseLink
-              key={r.spotify_url ?? `songdis:${r.id}`}
-              slug={artist.slug}
-              id={r.id}
-              url={r.spotify_url}
-              className={`group shrink-0 snap-start ${r.isFeatured ? "w-[78%] sm:w-[420px]" : "w-[44%] sm:w-[220px]"}`}
-            >
-              <span className="relative block aspect-square overflow-hidden rounded-[22px] bg-[var(--pk-tint)] shadow-[0_18px_40px_-24px_rgba(0,0,0,.45)]">
-                {r.cover && (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={r.cover} alt={r.title} loading="lazy" referrerPolicy="no-referrer" className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.04]" />
-                )}
-                {r.isFeatured && (
-                  <span className="absolute left-3 top-3 rounded-full bg-white/90 px-3 py-1 text-[11.5px] font-semibold text-[#151515] backdrop-blur">
-                    {r.type === "single" ? "New single" : r.type === "album_ep" ? "New album" : formatReleaseType(r.type) ? `New ${formatReleaseType(r.type)?.toLowerCase()}` : "New"}
-                  </span>
-                )}
-                <span className="absolute bottom-3 right-3 grid h-11 w-11 place-items-center rounded-full bg-white text-[#151515] opacity-0 shadow transition group-hover:opacity-100 group-focus-visible:opacity-100">
-                  <Play className="ml-0.5 h-4 w-4 fill-current" strokeWidth={0} />
-                </span>
-              </span>
-              <span className={`mt-3 block truncate font-bold text-[var(--pk-text)] ${r.isFeatured ? "text-[20px]" : "text-[15px]"}`} style={display}>
-                {r.title}
-              </span>
-              <span className="block text-[13px] text-[var(--pk-muted)]">
-                {r.isFeatured && r.released_on ? formatReleaseDate(r.released_on) : r.year ? releaseYear(r.year) : ""}
-              </span>
-            </ReleaseLink>
-          ))}
-        </div>
+        <StudioReleases slug={artist.slug} releases={allReleases} />
       </section>
     ),
 
@@ -320,7 +283,7 @@ export default function StudioKit({
     >
       <div style={{ fontFamily: "var(--font-studio-body)" }} className="pt-3">
         {/* Floating top bar */}
-        <div className="sticky top-3 z-30 mx-auto flex max-w-[1080px] items-center justify-between rounded-full bg-[#151515]/90 px-4 py-2 text-white backdrop-blur sm:mx-auto sm:px-5" style={{ marginInline: "max(12px, calc((100% - 1080px) / 2))" }}>
+        <div className={`${onEdit ? "relative" : "sticky top-3"} z-30 mx-auto flex max-w-[1080px] items-center justify-between rounded-full bg-[#151515]/90 px-4 py-2 text-white backdrop-blur sm:mx-auto sm:px-5`} style={{ marginInline: "max(12px, calc((100% - 1080px) / 2))" }}>
           {epk ? (
             <Link href={EPK_ORIGIN} aria-label="getepk home" className="text-white">
               <EpkWordmark className="text-[20px]" />
@@ -330,7 +293,23 @@ export default function StudioKit({
               <Image src="/images/logo.svg" alt="Songdis" width={90} height={32} className="h-7 w-auto" />
             </Link>
           )}
-          <ShareButton variant="icon" title={`${artist.name}'s press kit`} url={shareUrl} />
+          <div className="flex items-center gap-2">
+            {onEdit && (
+              <button
+                type="button"
+                onClick={onEdit}
+                className="inline-flex items-center gap-1.5 rounded-full bg-white px-4 py-2 text-[13px] font-semibold text-[#151515] hover:bg-[var(--pk-tint)]"
+              >
+                <Pencil className="h-3.5 w-3.5" aria-hidden /> Edit
+              </button>
+            )}
+            <ShareButton
+              variant="icon"
+              title={`${artist.name}'s press kit`}
+              url={shareUrl}
+              className="!border-white/25 !bg-white/10 !text-white hover:!bg-white/20"
+            />
+          </div>
         </div>
 
         {/* Hero */}
@@ -470,7 +449,7 @@ export default function StudioKit({
         </main>
 
         {/* Phone: booking and co-sign always within reach */}
-        {(bookingEmail || cosignEnabled) && (
+        {(bookingEmail || cosignEnabled) && !onEdit && (
           <div className="fixed inset-x-0 bottom-0 z-30 flex gap-2.5 bg-[linear-gradient(180deg,transparent,var(--pk-bg)_38%)] px-5 pb-[calc(14px+env(safe-area-inset-bottom))] pt-6 lg:hidden">
             {cosignEnabled && (
               <a href="#cosign" className="flex flex-1 items-center justify-center gap-2 rounded-full bg-[var(--pk-accent)] px-5 py-4 text-[15px] font-semibold text-white shadow-[0_10px_26px_var(--pk-glow)]">

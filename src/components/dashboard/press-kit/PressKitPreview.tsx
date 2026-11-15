@@ -3,8 +3,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { Eye } from "lucide-react";
 
-import PressKitChrome from "@/app/k/[slug]/_components/PressKitChrome";
-import PressKitView from "@/app/k/[slug]/_components/PressKitView";
+import StudioKit from "@/app/k/[slug]/_components/StudioKit";
+import { onEpk } from "@/lib/epk";
 import { CO_SIGN_DISABLED } from "@/lib/api/co-sign";
 import type { PressKitEditorState } from "@/lib/api/press-kit";
 import {
@@ -153,9 +153,7 @@ export function PressKitPreview({
       </div>
 
       <div className="border-t border-white/[0.05]">
-        <PressKitChrome kit={preview} onEdit={onEdit} shareUrl={shareUrl}>
-          <PressKitView kit={preview} />
-        </PressKitChrome>
+        <StudioKit kit={preview} brand={onEpk() ? "getepk" : "songdis"} onEdit={onEdit} shareUrl={shareUrl} />
       </div>
     </Panel>
   );

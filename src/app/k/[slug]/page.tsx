@@ -66,9 +66,9 @@ export default async function PressKitPage({ params, searchParams }: PageProps) 
   const domain = await ownDomain();
   const shareUrl = domain ? `https://${domain}` : epk ? epkKitUrl(kit.artist.slug) : undefined;
 
-  // ?look=alt: the alternate "Studio" design, shown side by side with the classic one for feedback.
-  if (look === "alt") {
-    return <StudioKit kit={kit} brand={epk ? "getepk" : "songdis"} shareUrl={shareUrl ? `${shareUrl}${shareUrl.includes("?") ? "&" : "?"}look=alt` : undefined} />;
+  // Studio is the design; the classic one stays reachable at ?look=classic for comparison.
+  if (look !== "classic") {
+    return <StudioKit kit={kit} brand={epk ? "getepk" : "songdis"} shareUrl={shareUrl} />;
   }
 
   return (
