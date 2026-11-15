@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { EpkWordmark } from "@/app/k/[slug]/_components/PressKitChrome";
@@ -10,6 +11,25 @@ import { Arrow, KITS, KitPhone, PosterButton } from "./_components/Poster";
  * be featured. Claims match what the product does today — Spotify import, SongDis releases
  * appearing on their own, a nightly check for new Spotify drops, co-signs by card or transfer.
  */
+
+export const metadata: Metadata = {
+  alternates: { canonical: "https://getepk.si/" },
+};
+
+/** What getepk is, for search engines. No ratings or reviews: only facts. */
+const SCHEMA = {
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  name: "getepk",
+  url: "https://getepk.si/",
+  description:
+    "Make a free electronic press kit (EPK) in 60 seconds. Search your artist name and get your music, photos, bio and booking button on one link.",
+  applicationCategory: "MultimediaApplication",
+  operatingSystem: "Web",
+  image: "https://getepk.si/epk/og.jpg",
+  offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
+  publisher: { "@type": "Organization", name: "SongDis", url: "https://songdis.com" },
+};
 
 const Tick = () => (
   <span className="grid h-6 w-6 shrink-0 place-items-center bg-[#FF77CD]">
@@ -46,6 +66,7 @@ const FAQ = [
 export default function EpkLanding() {
   return (
     <main className="bg-[#F4F4F4] text-[#101010] selection:bg-[#FF77CD]">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(SCHEMA) }} />
       {/* Nav */}
       <header className="mx-auto flex max-w-[1280px] items-center justify-between gap-4 px-5 py-5 sm:px-8">
         <Link href="/" aria-label="getepk home">
@@ -157,7 +178,7 @@ export default function EpkLanding() {
                     Kdiv Coco
                   </div>
                   <div className="mt-4 flex items-center gap-3">
-                    <span className="relative h-12 w-12 overflow-hidden rounded-full"><Image src="/epk/kdiv-coco.jpg" alt="" fill sizes="48px" className="object-cover" /></span>
+                    <span className="relative h-12 w-12 overflow-hidden rounded-full"><Image src="/epk/kdiv-coco.jpg" alt="Kdiv Coco, Afrobeats artist, in Spotify search results" fill sizes="48px" className="object-cover" /></span>
                     <span className="flex-1"><span className="block font-bold">Kdiv Coco</span><span className="block text-[12px] text-white/50">On Spotify</span></span>
                     <span className="el rounded-full bg-white px-3 py-1.5 text-[10px] text-[#101010]">That&apos;s me</span>
                   </div>
@@ -264,7 +285,7 @@ export default function EpkLanding() {
             <div aria-hidden className="absolute -right-4 -top-4 h-full w-full bg-[#FF77CD]" />
             <div className="relative bg-[#F4F4F4] p-6 text-[#101010]">
               <div className="flex items-center gap-3">
-                <span className="relative h-11 w-11 overflow-hidden rounded-full"><Image src="/epk/kdiv-coco.jpg" alt="" fill sizes="44px" className="object-cover" /></span>
+                <span className="relative h-11 w-11 overflow-hidden rounded-full"><Image src="/epk/kdiv-coco.jpg" alt="Kdiv Coco's profile photo on the co-sign card" fill sizes="44px" className="object-cover" /></span>
                 <p className="ed text-[30px]">Co-sign Kdiv Coco</p>
               </div>
               <p className="mt-3 text-[14px] text-[#3A3A3A]">Put your name behind the movement. Card or bank transfer, no sign-up.</p>
@@ -304,7 +325,7 @@ export default function EpkLanding() {
       <section id="songdis" className="bg-[#FFE08A]">
         <div className="mx-auto grid max-w-[1280px] gap-12 px-5 py-20 sm:px-8 lg:grid-cols-[1.2fr_.8fr] lg:items-center lg:py-28">
           <div>
-            <Image src="/images/logo.svg" alt="SongDis" width={108} height={39} className="mb-6 h-9 w-auto rounded bg-[#140C0C] p-1.5" />
+            <Image src="/images/logo.svg" alt="SongDis logo" width={108} height={39} className="mb-6 h-9 w-auto rounded bg-[#140C0C] p-1.5" />
             <p className="el text-[12px] text-[#3A3A3A]">getepk is made by SongDis</p>
             <h2 className="ed mt-3 text-[60px] sm:text-[88px]">
               Not on Spotify yet? <span className="text-[#FF4A2B]">Start here.</span>
@@ -326,7 +347,7 @@ export default function EpkLanding() {
           </div>
           <div className="relative mx-auto aspect-[4/5] w-full max-w-[380px]">
             <div aria-hidden className="absolute -left-4 -top-4 h-full w-full bg-[#0038FF]" />
-            <Image src="/epk/mollythevibe.jpg" alt="Mollythevibe" fill sizes="380px" className="relative object-cover" />
+            <Image src="/epk/mollythevibe.jpg" alt="Mollythevibe, Afro R&B artist from Lagos, in a black-and-white portrait" fill sizes="380px" className="relative object-cover" />
           </div>
         </div>
       </section>

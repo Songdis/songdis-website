@@ -100,7 +100,18 @@ function isInfrastructurePath(pathname: string): boolean {
  * Nothing else on this domain reaches the SongDis app: /dashboard becomes the kit
  * "dashboard", which the backend never hands out, so it 404s.
  */
+/** robots.txt and sitemap.xml are getepk's own on every getepk host, not the SongDis ones. */
+function epkSeoFile(request: NextRequest): NextResponse | null {
+  const { pathname } = request.nextUrl;
+  if (pathname !== "/robots.txt" && pathname !== "/sitemap.xml") return null;
+  const url = request.nextUrl.clone();
+  url.pathname = `/epk${pathname}`;
+  return NextResponse.rewrite(url);
+}
+
 function epkRoute(request: NextRequest): NextResponse | null {
+  const seo = epkSeoFile(request);
+  if (seo) return seo;
   const { pathname } = request.nextUrl;
   if (isInfrastructurePath(pathname) || pathname.startsWith("/epk")) return null;
 
@@ -187,6 +198,8 @@ function routeKnownHosts(request: NextRequest) {
   // msjorji.getepk.si → that artist's kit. Same rule as the songdis.com subdomains below.
   const epkSlug = epkSubdomainSlug(forwarded);
   if (epkSlug) {
+    const seo = epkSeoFile(request);
+    if (seo) return seo;
     const { pathname } = request.nextUrl;
     if (isInfrastructurePath(pathname)) return NextResponse.next();
     const url = request.nextUrl.clone();

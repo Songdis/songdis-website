@@ -46,10 +46,10 @@ export function PosterButton({
 }
 
 export const KITS = [
-  { slug: "msjorji", name: "MsJorji", image: "/epk/msjorji.jpg", line: "Afro Trap · Texas" },
-  { slug: "kdiv-coco-2", name: "Kdiv Coco", image: "/epk/kdiv-coco.jpg", line: "Afrobeats · Lagos" },
-  { slug: "mollythevibe", name: "Mollythevibe", image: "/epk/mollythevibe.jpg", line: "Afro R&B · Lagos" },
-  { slug: "r33nzo", name: "R33NZO", image: "/epk/r33nzo.jpg", line: "Afro-fusion" },
+  { slug: "msjorji", name: "MsJorji", image: "/epk/msjorji.jpg", line: "Afro Trap · Texas", alt: "MsJorji, Afro Trap rapper from Texas, performing live on stage" },
+  { slug: "kdiv-coco-2", name: "Kdiv Coco", image: "/epk/kdiv-coco.jpg", line: "Afrobeats · Lagos", alt: "Kdiv Coco, Afrobeats singer from Lagos, with friends in a red headband" },
+  { slug: "mollythevibe", name: "Mollythevibe", image: "/epk/mollythevibe.jpg", line: "Afro R&B · Lagos", alt: "Mollythevibe, Afro R&B artist from Lagos, in a black-and-white portrait" },
+  { slug: "r33nzo", name: "R33NZO", image: "/epk/r33nzo.jpg", line: "Afro-fusion", alt: "Cover art for R33NZO's single 2016 with bigaj" },
 ] as const;
 
 /** A phone with a kit's first screen: cover, name, address, booking button. */
@@ -66,7 +66,7 @@ export function KitPhone({
     <div className={`rounded-[34px] bg-[#101010] p-[7px] shadow-[0_30px_60px_-30px_rgba(0,0,0,.6)] ${className}`}>
       <div className="relative overflow-hidden rounded-[28px] bg-[#101010]">
         <div className="relative aspect-[9/14]">
-          <Image src={kit.image} alt={`${kit.name}'s press kit`} fill sizes="260px" className="object-cover" priority={priority} />
+          <Image src={kit.image} alt={kit.alt} fill sizes="260px" className="object-cover" priority={priority} />
           <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(16,16,16,0)_35%,rgba(16,16,16,.92)_88%)]" />
           <div className="absolute inset-x-3 bottom-3">
             <p className="el text-[9px] text-white/60">{kit.line}</p>

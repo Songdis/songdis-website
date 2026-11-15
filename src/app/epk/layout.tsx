@@ -32,21 +32,30 @@ const body = Hanken_Grotesk({
   display: "swap",
 });
 
+const title = "Free EPK Maker for Musicians | Electronic Press Kit – getepk";
 const description =
-  "Your bio, music, photos, press and a booking button on one link. Make your electronic press kit in minutes. Free.";
+  "Make a free electronic press kit (EPK) in 60 seconds. Search your artist name and get your music, photos, bio and booking button on one link.";
 
 export const metadata: Metadata = {
   metadataBase: new URL(EPK_ORIGIN),
-  title: { default: "getepk — the press kit that gets opened", template: "%s · getepk" },
+  title: { default: title, template: "%s · getepk" },
   description,
+  // The SongDis keywords were inherited from the root layout; search engines ignore the tag.
+  keywords: null,
   openGraph: {
     type: "website",
     siteName: "getepk",
-    title: "getepk — the press kit that gets opened",
+    title,
     description,
     url: EPK_ORIGIN,
+    images: [{ url: "/epk/og.jpg", width: 1200, height: 630, alt: "getepk: your EPK in 60 seconds. Free electronic press kits for musicians." }],
   },
-  twitter: { card: "summary_large_image", title: "getepk", description },
+  twitter: {
+    card: "summary_large_image",
+    title,
+    description,
+    images: ["/epk/og.jpg"],
+  },
 };
 
 /** getepk's own look: ink and paper, a serif for headlines. Applies to /epk/* only. */
