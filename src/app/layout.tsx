@@ -1,15 +1,17 @@
 import type { Metadata, Viewport } from "next";
 import Script from "next/script";
-import { Montserrat } from "next/font/google";
+import localFont from "next/font/local";
 import "./globals.css";
 import { ToastProvider } from "@/components/ui/Toast";
 
 
-const montserrat = Montserrat({
-  subsets: ["latin"],
+// Bundled with the site rather than fetched from Google at build time: the build server's
+// Google Fonts downloads kept failing and taking deploys down with them.
+const montserrat = localFont({
+  src: "../fonts/montserrat.woff2",
+  weight: "400 700",
   variable: "--font-montserrat",
   display: "swap",
-  weight: ["400", "500", "600", "700"],
 });
 
 export const metadata: Metadata = {

@@ -1,16 +1,16 @@
-import { Figtree, Syne } from "next/font/google";
+import localFont from "next/font/local";
 
-/** The "Studio" look: an expressive gallery display face over a friendly, legible body face. */
-export const studioDisplay = Syne({
-  subsets: ["latin"],
-  weight: ["600", "700", "800"],
+/** The press kit look: an expressive gallery display face over a friendly body face. Bundled, not fetched. */
+export const studioDisplay = localFont({
+  src: "../../../fonts/syne.woff2",
+  weight: "600 800",
   variable: "--font-studio-display",
   display: "swap",
 });
 
-export const studioBody = Figtree({
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
+export const studioBody = localFont({
+  src: "../../../fonts/figtree.woff2",
+  weight: "400 700",
   variable: "--font-studio-body",
   display: "swap",
 });
