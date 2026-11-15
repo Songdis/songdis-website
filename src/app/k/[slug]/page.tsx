@@ -8,8 +8,10 @@ import { getPublicPressKit } from "@/lib/api/press-kit-public";
 import { SITE_ORIGIN, summarise } from "./_format";
 import PressKitChrome from "./_components/PressKitChrome";
 import PressKitView from "./_components/PressKitView";
+import StudioKit from "./_components/StudioKit";
 
 type Params = { params: Promise<{ slug: string }> };
+type PageProps = Params & { searchParams: Promise<{ look?: string }> };
 
 export async function generateMetadata({ params }: Params): Promise<Metadata> {
   const { slug } = await params;
@@ -53,20 +55,27 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
   };
 }
 
-export default async function PressKitPage({ params }: Params) {
+export default async function PressKitPage({ params, searchParams }: PageProps) {
   const { slug } = await params;
+  const { look } = await searchParams;
   const kit = await getPublicPressKit(slug);
 
   if (!kit) notFound();
 
   const epk = await viewedOnEpk();
   const domain = await ownDomain();
+  const shareUrl = domain ? `https://${domain}` : epk ? epkKitUrl(kit.artist.slug) : undefined;
+
+  // ?look=alt: the alternate "Studio" design, shown side by side with the classic one for feedback.
+  if (look === "alt") {
+    return <StudioKit kit={kit} brand={epk ? "getepk" : "songdis"} shareUrl={shareUrl ? `${shareUrl}${shareUrl.includes("?") ? "&" : "?"}look=alt` : undefined} />;
+  }
 
   return (
     <PressKitChrome
       kit={kit}
       brand={epk ? "getepk" : "songdis"}
-      shareUrl={domain ? `https://${domain}` : epk ? epkKitUrl(kit.artist.slug) : undefined}
+      shareUrl={shareUrl}
     >
       <PressKitView kit={kit} />
     </PressKitChrome>
