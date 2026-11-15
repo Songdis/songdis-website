@@ -245,8 +245,8 @@ export const SECTION_META: Record<SectionKey, SectionMeta> = {
   },
   kit: {
     key: "kit",
-    label: "Full press kit download",
-    hint: "PDF + ZIP generation isn't built yet, so this won't appear on your page.",
+    label: "Full press kit (PDF)",
+    hint: "Download it with Download PDF at the top. It isn't shown on your public page.",
     live: false,
   },
   join: {

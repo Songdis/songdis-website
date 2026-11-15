@@ -289,10 +289,9 @@ function SectionBody({
       return <ContactBody kit={kit} />;
     case "kit":
       return (
-        <Notice tone="warning">
-          A downloadable PDF + ZIP is not part of this release, so this block is not
-          rendered on your public page yet. Leave it where it is — the order is saved and
-          it will appear the moment the download is built.
+        <Notice>
+          Your full press kit as a PDF, ready to attach to an email. Download it with
+          Download PDF at the top of the editor. Visitors to your page don&apos;t see it.
         </Notice>
       );
     case "join":

@@ -265,13 +265,8 @@ export default function StudioKit({
       </section>
     ),
 
-    kit: (
-      <section key="kit" className="pt-10">
-        <a href={`/k/${artist.slug}/pdf`} target="_blank" rel="noopener" className="inline-flex items-center gap-2 rounded-full border border-[var(--pk-line)] bg-white px-5 py-3 text-[14px] font-semibold text-[var(--pk-text)] transition hover:border-[var(--pk-accent)]">
-          Download the full press kit <ArrowUpRight className="h-4 w-4" />
-        </a>
-      </section>
-    ),
+    // The PDF is the artist's to download from the editor, not a button on the public page.
+    kit: null,
 
     join: (
       <div key="join" className="pt-6 [&_input:not([type=checkbox])]:!bg-white [&_input]:!text-[#151515] [&_input]:!border-[rgba(0,0,0,0.12)]">

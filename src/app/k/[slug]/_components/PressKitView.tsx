@@ -303,29 +303,8 @@ export default function PressKitView({ kit }: { kit: PublicPressKit }) {
       ),
 
  
-    kit: (
-      <section key="kit" className="pt-10 sm:pt-12">
-        <a
-          href={`/k/${artist.slug}/pdf`}
-          target="_blank"
-          rel="noopener"
-          className="flex items-center gap-4 rounded-2xl border border-[var(--pk-line)] bg-[var(--pk-surface)] p-5 transition hover:border-[var(--pk-accent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--pk-accent)] sm:p-6"
-        >
-          <span className="grid h-12 w-12 shrink-0 place-items-center rounded-xl border border-[var(--pk-accent)]/30 bg-[var(--pk-accent)]/10 text-[var(--pk-accent)]">
-            <FileText className="h-[22px] w-[22px]" strokeWidth={1.8} />
-          </span>
-          <span className="min-w-0 flex-1">
-            <span className="block font-heading text-[15px] uppercase tracking-wide text-[var(--pk-text)]">
-              Full press kit
-            </span>
-            <span className="block text-[12.5px] text-[var(--pk-muted)]">
-              Bio, music, photos and contacts - ready to print or attach
-            </span>
-          </span>
-          <ChevronRight className="h-5 w-5 shrink-0 text-[var(--pk-muted-2)]" />
-        </a>
-      </section>
-    ),
+    // The PDF is downloaded from the editor, not from the public page.
+    kit: null,
     join: <JoinCard key="join" artistName={artist.name} artistSlug={artist.slug} />,
 
     cosign: <CoSignCard key="cosign" artistName={artist.name} artistSlug={artist.slug} cosign={kit.cosign} />,

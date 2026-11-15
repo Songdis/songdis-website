@@ -5,6 +5,7 @@ import {
   AlertTriangle,
   Check,
   Copy,
+  Download,
   ExternalLink,
   Eye,
   EyeOff,
@@ -366,6 +367,18 @@ function EditorForProfile({
                 >
                   <ExternalLink size={13} aria-hidden />
                   View
+                </a>
+              )}
+
+              {slugValue && kit.isPublished && (
+                <a
+                  href={`/k/${slugValue}/pdf`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-body text-[12px] rounded-full px-4 py-2 border border-white/12 text-white/70 hover:text-white hover:border-white/30 transition-colors inline-flex items-center gap-2 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#E5342F]"
+                >
+                  <Download size={13} aria-hidden />
+                  Download PDF
                 </a>
               )}
 
