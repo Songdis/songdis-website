@@ -75,6 +75,21 @@ function nameSize(name: string): string {
   return `clamp(2rem, calc(100cqw / ${(longestWord * 0.98).toFixed(2)}), 6rem)`;
 }
 
+/** The verified tick after the name: SongDis has confirmed this is really the artist. */
+function VerifiedTick() {
+  return (
+    <span className="ml-[0.18em] inline-block align-[0.08em]" title="Verified by SongDis">
+      <svg viewBox="0 0 24 24" className="inline h-[0.42em] w-[0.42em]" role="img" aria-label="Verified">
+        <path
+          fill="#1D9BF0"
+          d="M22.5 12.5c0-1.58-.88-2.95-2.18-3.65.15-.44.23-.92.23-1.42 0-2.21-1.71-3.99-3.82-3.99-.47 0-.92.08-1.33.25C14.82 2.42 13.52 1.5 12 1.5s-2.82.92-3.4 2.19c-.41-.17-.86-.25-1.33-.25-2.11 0-3.82 1.78-3.82 3.99 0 .5.08.98.23 1.42C2.38 9.55 1.5 10.92 1.5 12.5c0 1.5.8 2.8 1.97 3.53-.04.27-.06.54-.06.82 0 2.21 1.71 3.99 3.82 3.99.48 0 .93-.09 1.35-.26.57 1.29 1.88 2.19 3.42 2.19s2.85-.9 3.42-2.19c.42.17.87.26 1.35.26 2.11 0 3.82-1.78 3.82-3.99 0-.28-.02-.55-.06-.82 1.17-.73 1.97-2.03 1.97-3.53z"
+        />
+        <path fill="#fff" d="M10.6 16.2l-3.5-3.5 1.4-1.4 2.1 2.1 5.2-5.2 1.4 1.4z" />
+      </svg>
+    </span>
+  );
+}
+
 function Label({ children }: { children: ReactNode }) {
   return (
     <h2 className="mb-5 flex items-center gap-2.5 text-[15px] font-bold lowercase tracking-[-0.01em] text-[var(--pk-text)]" style={display}>
@@ -330,6 +345,7 @@ export default function StudioKit({
               style={{ ...display, fontSize: nameSize(artist.name) }}
             >
               {artist.name}
+              {artist.verified && <VerifiedTick />}
             </h1>
             {(chips.length > 0 || cfg.facts.for_fans_of) && (
               <div className="mt-6 flex flex-wrap gap-2">

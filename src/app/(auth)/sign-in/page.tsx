@@ -24,7 +24,7 @@ function SignInInner() {
   const { mutate, isLoading, error } = useSignIn();
   const { isLoading: googleLoading, trigger: googleSignIn } = useGoogleSignIn();
 
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState(params.get("email") ?? "");
   const [password, setPassword] = useState("");
   const [fieldErrors, setFieldErrors] = useState<{
     email?: string;

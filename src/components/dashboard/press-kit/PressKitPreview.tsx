@@ -35,6 +35,7 @@ function buildPreviewPressKit(
     artist: {
       name: draft.artist.name || published?.artist.name || "Your artist name",
       slug: draft.artist.slug || published?.artist.slug || "",
+      verified: published?.artist.verified ?? false,
       eyebrow: draft.kit.eyebrow ?? published?.artist.eyebrow ?? null,
       bio: draft.artist.bio ?? published?.artist.bio ?? null,
       cover_image_url:

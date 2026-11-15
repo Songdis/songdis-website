@@ -131,6 +131,14 @@ export default function SignUpPage() {
 
       <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-4">
         <FormError message={error} />
+        {error?.includes("already have") && (
+          <Link
+            href={`/sign-in?email=${encodeURIComponent(fields.email)}`}
+            className="font-body text-center text-sm font-semibold text-white underline underline-offset-4"
+          >
+            Sign in with this email
+          </Link>
+        )}
 
         <AuthInput
           label="Full Name"

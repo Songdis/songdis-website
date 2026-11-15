@@ -64,6 +64,8 @@ export interface PressKitSocials {
 export interface PressKitArtist {
   name: string;
   slug: string;
+  /** SongDis has confirmed this is really the artist (set by SongDis, never by the artist). */
+  verified?: boolean;
   eyebrow: string | null;
   bio: string | null;
   cover_image_url: string | null;
@@ -259,6 +261,7 @@ function normaliseArtist(v: unknown): PressKitArtist | null {
   return {
     name,
     slug,
+    verified: a.verified === true,
     eyebrow: str(a.eyebrow),
     bio: str(a.bio),
     cover_image_url: url(a.cover_image_url),

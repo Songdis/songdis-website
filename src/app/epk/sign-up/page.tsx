@@ -77,6 +77,14 @@ function SignUpInner() {
     >
       <form onSubmit={submit} className="space-y-4" noValidate>
         <FormError message={error} />
+        {error?.includes("already have") && (
+          <Link
+            href={`/sign-in?email=${encodeURIComponent(email.trim())}`}
+            className="block text-center text-[15px] font-bold underline underline-offset-4"
+          >
+            Sign in with this email
+          </Link>
+        )}
         <Field
           label="Your name"
           value={name}
