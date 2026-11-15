@@ -204,7 +204,7 @@ export default function StudioKit({
 
     press: cfg.quotes.length === 0 && cfg.placements.length === 0 ? null : (
       <section key="press" className="pt-14 sm:pt-20">
-        <Label>what people say</Label>
+        <Label>{cfg.quotes.length > 0 ? "what people say" : "highlights"}</Label>
         {cfg.quotes.length > 0 && (
           <div className="grid gap-4 sm:grid-cols-2">
             {cfg.quotes.map((q, i) => (
