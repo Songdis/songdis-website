@@ -23,6 +23,7 @@ import { bookingMailto } from "../_format";
 import { studioBody, studioDisplay } from "../_studioFonts";
 import BioCard from "./BioCard";
 import CoSignCard from "./CoSignCard";
+import FitName from "./FitName";
 import JoinCard from "./JoinCard";
 import { EpkWordmark } from "./PressKitChrome";
 import ShareButton from "./ShareButton";
@@ -65,21 +66,12 @@ function studioVars(theme: string): CSSProperties {
 
 const display: CSSProperties = { fontFamily: "var(--font-studio-display)" };
 
-/**
- * The name fills its column without spilling out: sized from the column width (cqw) and the
- * name's length. Syne is wide, so a 12-letter name like "Mollythevibe" at a fixed size ran off
- * a phone screen and dragged the photo with it.
- */
-function nameSize(name: string): string {
-  const longestWord = Math.max(...name.split(/\s+/).map((w) => w.length), 1);
-  return `clamp(2rem, calc(100cqw / ${(longestWord * 0.98).toFixed(2)}), 6rem)`;
-}
 
 /** The verified tick after the name: SongDis has confirmed this is really the artist. */
 function VerifiedTick() {
   return (
-    <span className="ml-[0.18em] inline-block align-[0.08em]" title="Verified by SongDis">
-      <svg viewBox="0 0 24 24" className="inline h-[0.42em] w-[0.42em]" role="img" aria-label="Verified">
+    <span className="inline-flex">
+      <svg viewBox="0 0 24 24" className="h-[22px] w-[22px]" aria-hidden="true">
         <path
           fill="#1D9BF0"
           d="M22.5 12.5c0-1.58-.88-2.95-2.18-3.65.15-.44.23-.92.23-1.42 0-2.21-1.71-3.99-3.82-3.99-.47 0-.92.08-1.33.25C14.82 2.42 13.52 1.5 12 1.5s-2.82.92-3.4 2.19c-.41-.17-.86-.25-1.33-.25-2.11 0-3.82 1.78-3.82 3.99 0 .5.08.98.23 1.42C2.38 9.55 1.5 10.92 1.5 12.5c0 1.5.8 2.8 1.97 3.53-.04.27-.06.54-.06.82 0 2.21 1.71 3.99 3.82 3.99.48 0 .93-.09 1.35-.26.57 1.29 1.88 2.19 3.42 2.19s2.85-.9 3.42-2.19c.42.17.87.26 1.35.26 2.11 0 3.82-1.78 3.82-3.99 0-.28-.02-.55-.06-.82 1.17-.73 1.97-2.03 1.97-3.53z"
@@ -340,13 +332,11 @@ export default function StudioKit({
                 {artist.eyebrow}
               </p>
             )}
-            <h1
-              className="font-extrabold leading-[0.92] tracking-[-0.03em] text-[var(--pk-text)] [overflow-wrap:anywhere]"
-              style={{ ...display, fontSize: nameSize(artist.name) }}
-            >
-              {artist.name}
-              {artist.verified && <VerifiedTick />}
-            </h1>
+            <FitName
+              name={artist.name}
+              className="relative font-extrabold leading-[0.92] tracking-[-0.03em] text-[var(--pk-text)]"
+              style={display}
+            />
             {(chips.length > 0 || cfg.facts.for_fans_of) && (
               <div className="mt-6 flex flex-wrap gap-2">
                 {chips.map((c) => (
@@ -399,6 +389,12 @@ export default function StudioKit({
             <span className="absolute -left-2 top-6 rotate-[-8deg] rounded-full bg-[var(--pk-accent)] px-4 py-2 text-[13px] font-bold text-white shadow" style={display}>
               press kit
             </span>
+            {artist.verified && (
+              <span className="absolute -right-2 top-5 flex rotate-[6deg] items-center gap-1.5 rounded-full bg-white py-1.5 pl-1.5 pr-3.5 text-[13px] font-bold text-[#151515] shadow-[0_8px_20px_-8px_rgba(0,0,0,.45)]" title="Verified by SongDis">
+                <VerifiedTick />
+                Verified
+              </span>
+            )}
             {featured && (
               <ReleaseLink
                 slug={artist.slug}
