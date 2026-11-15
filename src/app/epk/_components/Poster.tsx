@@ -47,7 +47,7 @@ export function PosterButton({
 
 export const KITS = [
   { slug: "msjorji", name: "MsJorji", image: "/epk/msjorji.jpg", line: "Afro Trap · Texas" },
-  { slug: "kdiv-coco", name: "Kdiv Coco", image: "/epk/kdiv-coco.jpg", line: "Afrobeats · Lagos" },
+  { slug: "kdiv-coco-2", name: "Kdiv Coco", image: "/epk/kdiv-coco.jpg", line: "Afrobeats · Lagos" },
   { slug: "mollythevibe", name: "Mollythevibe", image: "/epk/mollythevibe.jpg", line: "Afro R&B · Lagos" },
   { slug: "r33nzo", name: "R33NZO", image: "/epk/r33nzo.jpg", line: "Afro-fusion" },
 ] as const;
