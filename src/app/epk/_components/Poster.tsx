@@ -47,7 +47,7 @@ export function PosterButton({
 
 export const KITS = [
   { slug: "msjorji", name: "MsJorji", image: "/epk/msjorji.jpg", line: "Afro Trap · Texas", alt: "MsJorji, Afro Trap rapper from Texas, performing live on stage" },
-  { slug: "kdiv-coco-2", name: "Kdiv Coco", image: "/epk/kdiv-coco.jpg", line: "Afrobeats · Lagos", alt: "Kdiv Coco, Afrobeats singer from Lagos, with friends in a red headband" },
+  { slug: "kdiv-coco", name: "Kdiv Coco", image: "/epk/kdiv-coco.jpg", line: "Afrobeats · Lagos", alt: "Kdiv Coco, Afrobeats singer from Lagos, with friends in a red headband" },
   { slug: "mollythevibe", name: "Mollythevibe", image: "/epk/mollythevibe.jpg", line: "Afro R&B · Lagos", alt: "Mollythevibe, Afro R&B artist from Lagos, in a black-and-white portrait" },
   { slug: "r33nzo", name: "R33NZO", image: "/epk/r33nzo.jpg", line: "Afro-fusion", alt: "Cover art for R33NZO's single 2016 with bigaj" },
 ] as const;
