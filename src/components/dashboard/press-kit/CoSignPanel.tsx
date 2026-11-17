@@ -16,7 +16,6 @@ import {
   type CoSignPayoutRecord,
 } from "@/lib/api/co-sign";
 import { useCoSign } from "@/lib/hooks/useCoSign";
-import { CoSignPayoutSheet } from "./CoSignPayoutSheet";
 import {
   FailureNotice,
   Notice,
@@ -58,7 +57,6 @@ export function CoSignPanel({ profileId, artistName, bare = false }: Props) {
   const cs = useCoSign(profileId);
   const { toast, show } = useToast();
 
-  const [payoutOpen, setPayoutOpen] = useState(false);
 
   const account = cs.state?.account ?? null;
   const accountNumber = account?.account_number ?? null;
@@ -95,14 +93,6 @@ export function CoSignPanel({ profileId, artistName, bare = false }: Props) {
     cs.reload();
   }, [profileId, cs, show]);
 
-  const onRequestPayout = useCallback(
-    async (amountKobo: number) => {
-      const ok = await cs.requestPayout(amountKobo);
-      if (ok) show(`${formatNaira(amountKobo)} payout requested`);
-      return ok;
-    },
-    [cs, show]
-  );
 
   if (cs.isLoading) {
     return (
@@ -187,7 +177,6 @@ export function CoSignPanel({ profileId, artistName, bare = false }: Props) {
               account={account}
               cs={cs}
               onCopy={() => void copyNumber()}
-              onPayout={() => setPayoutOpen(true)}
             />
             <div className="mt-4 border-t border-white/[0.06] pt-3.5">
               {confirmOff ? (
@@ -224,17 +213,6 @@ export function CoSignPanel({ profileId, artistName, bare = false }: Props) {
         )}
       </Shell>
 
-
-      {payoutOpen && (
-        <CoSignPayoutSheet
-          onClose={() => setPayoutOpen(false)}
-          availableKobo={cs.balance?.available_kobo ?? 0}
-          destination={cs.payoutAccount}
-          busy={cs.isRequestingPayout}
-          failure={cs.payoutFailure}
-          onSubmit={onRequestPayout}
-        />
-      )}
 
       <Toaster toast={toast} />
     </>
@@ -316,12 +294,10 @@ function ActiveCoSign({
   account,
   cs,
   onCopy,
-  onPayout,
 }: {
   account: NonNullable<ReturnType<typeof useCoSign>["state"]>["account"];
   cs: ReturnType<typeof useCoSign>;
   onCopy: () => void;
-  onPayout: () => void;
 }) {
   if (!account) return null;
 
@@ -367,33 +343,17 @@ function ActiveCoSign({
       </div>
 
       <div className="flex flex-wrap items-center gap-2">
-        <PrimaryButton onClick={onPayout} disabled={available <= 0 || cs.isRequestingPayout}>
-          {cs.isRequestingPayout ? (
-            <span className="inline-flex items-center gap-2">
-              <Loader2 size={12} className="animate-spin" aria-hidden />
-              Requesting…
-            </span>
-          ) : (
-            <span className="inline-flex items-center gap-2">
-              <ArrowDownToLine size={12} aria-hidden />
-              Request payout
-            </span>
-          )}
-        </PrimaryButton>
-        {available <= 0 && (
-          <span className="font-body text-white/30 text-[11px]">
-            Nothing to pay out yet.
-          </span>
-        )}
+        <a
+          href="/dashboard/earnings#co-sign"
+          className="inline-flex items-center gap-2 rounded-full bg-[#C30100] px-4 py-2 font-body text-[12px] font-semibold text-white transition hover:bg-[#a50100]"
+        >
+          <ArrowDownToLine size={12} aria-hidden />
+          Withdraw on Earnings
+        </a>
+        <span className="font-body text-white/30 text-[11px]">
+          {available > 0 ? "Sent to your bank straight away." : "Nothing to withdraw yet."}
+        </span>
       </div>
-
-      {cs.payoutFailure && (
-        <FailureNotice
-          title="Your payout was not requested"
-          error={cs.payoutFailure.error}
-          errors={cs.payoutFailure.errors}
-        />
-      )}
 
       <RecentCoSigns items={cs.ledger} />
       <RecentPayouts items={cs.payouts} />

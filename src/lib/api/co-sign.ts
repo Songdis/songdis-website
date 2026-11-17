@@ -347,15 +347,14 @@ export function readPayoutFromResponse(raw: unknown): CoSignPayoutRecord | null 
 export function describePayoutStatus(status: CoSignPayoutStatus): string {
   switch (status) {
     case "requested":
-      return "Waiting for review";
     case "approved":
-      return "Approved — not sent yet";
+      return "Sending to your bank";
     case "sent":
-      return "Sent to your bank";
+      return "On its way to your bank";
     case "settled":
-      return "Paid out";
+      return "Paid";
     case "failed":
-      return "Failed — the money stayed in your balance";
+      return "Failed. The money is back in your balance";
   }
 }
 
@@ -438,4 +437,41 @@ export async function getPublicCoSignStatus(
     { method: "GET" },
     false
   );
+}
+
+/* ─── Earnings: Co-sign money across all the account's artists ─── */
+
+export interface CoSignArtistMoney {
+  profile_id: number;
+  stage_name: string;
+  image: string | null;
+  balance: CoSignBalance;
+  payouts: CoSignPayoutRecord[];
+}
+
+export interface CoSignOverview {
+  artists: CoSignArtistMoney[];
+  available_kobo: number;
+}
+
+export function normaliseCoSignOverview(raw: unknown): CoSignOverview {
+  const root = asRecord(raw);
+  const artists = (Array.isArray(root.artists) ? root.artists : []).flatMap((entry) => {
+    const a = asRecord(entry);
+    const id = Number(a.profile_id);
+    if (!Number.isFinite(id)) return [];
+    return [{
+      profile_id: id,
+      stage_name: str(a.stage_name) ?? "Artist",
+      image: str(a.image),
+      balance: normaliseCoSignBalance({ balance: a.balance }),
+      payouts: normalisePayouts({ items: a.payouts }),
+    }];
+  });
+  return { artists, available_kobo: kobo(root.available_kobo) };
+}
+
+/** `GET /api/co-sign` → every artist with co-sign money, for the Earnings page. */
+export async function getCoSignOverview(): Promise<ApiResponse<unknown>> {
+  return request<unknown>(ROOT, { method: "GET" }, true);
 }

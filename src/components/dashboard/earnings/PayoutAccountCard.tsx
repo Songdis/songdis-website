@@ -88,7 +88,7 @@ export default function PayoutAccountCard({
   if (!status.provider_ready && !status.identity_verified) return null;
 
   return (
-    <div className="rounded-2xl border border-white/[0.06] bg-[#180F0F] p-5 mb-6">
+    <div id="payout-account" className="scroll-mt-24 rounded-2xl border border-white/[0.06] bg-[#180F0F] p-5 mb-6">
       <div className="flex flex-wrap items-start justify-between gap-3 mb-4">
         <div>
           <p className="font-heading text-white uppercase text-sm tracking-wide">

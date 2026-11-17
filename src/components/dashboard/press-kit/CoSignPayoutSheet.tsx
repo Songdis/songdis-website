@@ -57,13 +57,13 @@ export function CoSignPayoutSheet({
     <Sheet
       open
       onClose={onClose}
-      title="Request a payout"
-      subtitle="Co-sign money is paid out on request — it is never sent automatically."
+      title="Withdraw co-sign money"
+      subtitle="Sent to your bank account straight away. It usually arrives within minutes."
       footer={
         <div className="flex flex-col gap-3">
           {failure && (
             <FailureNotice
-              title="Your payout was not requested"
+              title="Your withdrawal did not go through"
               error={failure.error}
               errors={failure.errors}
             />
@@ -76,10 +76,10 @@ export function CoSignPayoutSheet({
             {busy ? (
               <span className="inline-flex items-center gap-2">
                 <Loader2 size={13} className="animate-spin" aria-hidden />
-                Requesting…
+                Sending…
               </span>
             ) : (
-              "Request payout"
+              "Withdraw"
             )}
           </PrimaryButton>
         </div>
@@ -90,13 +90,13 @@ export function CoSignPayoutSheet({
           You have no verified bank account yet, and a co-sign payout lands in the same
           account as your royalties.{" "}
           <a
-            href="/dashboard/earnings"
+            href="#payout-account"
             className="underline underline-offset-2"
             style={{ color: ACCENT_TEXT }}
           >
-            Add one under Earnings
+            Add one under Payout Account
           </a>{" "}
-          first.
+          on this page first.
         </Notice>
       ) : (
         <>
@@ -166,7 +166,7 @@ export function CoSignPayoutSheet({
                 .join(" · ")}
             </p>
             <a
-              href="/dashboard/earnings"
+              href="#payout-account"
               className="font-body text-[11px] underline underline-offset-2 mt-2 inline-block"
               style={{ color: ACCENT_TEXT }}
             >
@@ -175,9 +175,8 @@ export function CoSignPayoutSheet({
           </div>
 
           <Notice>
-            Requesting holds the amount out of your available balance straight away. It is
-            reviewed before it is sent, and if it ever fails the money returns to your
-            balance rather than disappearing.
+            The amount leaves your co-sign balance straight away. If the bank ever turns it
+            down, the money comes back to your balance.
           </Notice>
         </>
       )}

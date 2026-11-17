@@ -6,6 +6,7 @@ import Link from "next/link";
 import DashboardLayout from "@/components/dashboard/DashboardLayout";
 import WithdrawModal from "@/components/dashboard/earnings/WithdrawModal";
 import PayoutAccountCard from "@/components/dashboard/earnings/PayoutAccountCard";
+import CoSignEarnings from "@/components/dashboard/earnings/CoSignEarnings";
 import { useEarningsBalance, useWithdrawalHistory, useWithdrawalConfig } from "@/lib/hooks/useEarnings";
 import { useSplitEarnings } from "@/lib/hooks/useSplit";
 import { WITHDRAWALS_PAUSED_FALLBACK } from "@/lib/api/earnings";
@@ -180,6 +181,9 @@ export default function EarningsPage() {
         </div>
 
         <PayoutAccountCard onStatusChange={setPayoutStatus} />
+
+        {/* Co-sign: fans' money, per artist, withdrawn to the same bank account. */}
+        <CoSignEarnings destination={payoutStatus?.account ?? null} />
 
         {/* Ayo insight */}
         <div className="rounded-2xl border border-white/[0.06] bg-[#180F0F] p-5">
