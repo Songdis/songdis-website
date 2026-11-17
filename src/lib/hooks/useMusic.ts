@@ -342,14 +342,27 @@ export function useDrafts() {
 
     if (res.error) return res.error;
 
-    setDrafts((prev) => prev.filter((d) => d.id !== id));
+    // The list endpoint names the id draft_id; d.id is undefined there, so filtering on it
+    // alone kept the deleted draft on screen until the page was reloaded.
+    setDrafts((prev) => prev.filter((d) => Number((d as unknown as { draft_id?: number }).draft_id ?? d.id) !== id));
     return null;
   }, []);
 
   useEffect(() => { load(); }, [load]);
 
+  // The upload modal opened from the sidebar is not this page's; it announces saves and
+  // submits so the Drafts tab is current without a reload.
+  useEffect(() => {
+    const onChange = () => { load(); };
+    window.addEventListener(DRAFTS_CHANGED_EVENT, onChange);
+    return () => window.removeEventListener(DRAFTS_CHANGED_EVENT, onChange);
+  }, [load]);
+
   return { drafts, isLoading, error, refresh: load, remove };
 }
+
+/** Fired by the upload modal after a draft is saved or its release submitted. */
+export const DRAFTS_CHANGED_EVENT = "songdis:drafts-changed";
 
 export function useMusicRequests() {
   const [requests, setRequests] = useState<EditRequest[]>([]);

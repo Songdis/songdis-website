@@ -9,6 +9,7 @@ import ReleaseAvailability from "./steps/ReleaseAvailability";
 import SubmittedModal from "./steps/SubmittedModal";
 import QuickDropModal from "./steps/QuickDropModal";
 import { uploadMusic, saveDraft, getDraft } from "@/lib/api/music";
+import { DRAFTS_CHANGED_EVENT } from "@/lib/hooks/useMusic";
 import { useToast } from "@/components/ui/Toast";
 
 export type ReleaseType = "single" | "album" | "mixtape";
@@ -483,12 +484,51 @@ export default function UploadModal({
 
         draftIdRef.current = initialDraftId;
 
+        // upload_type only knows Single and Album/EP; a mixtape was saved as Album/EP and
+        // came back as an album. form_data has kept the real type since tracks were added.
+        const savedType = fd.releaseType as ReleaseType | undefined;
+        const releaseType: ReleaseType =
+          savedType === "single" || savedType === "album" || savedType === "mixtape"
+            ? savedType
+            : uploadType.includes("single") ? "single" : "album";
+
+        // Tracks saved by older versions of the form lack fields the form now reads
+        // (contributors, additionalArtists, isCoverSong); without defaults, submitting a
+        // resumed album threw on the first such track.
+        const savedTracks = Array.isArray(fd.tracks) ? (fd.tracks as Partial<UploadState["tracks"][number]>[]) : [];
+        const tracks: UploadState["tracks"] = savedTracks.map((t, i) => ({
+          id: t.id ?? `track_restored_${i}`,
+          trackTitle: t.trackTitle ?? "",
+          audioUrl: t.audioUrl ?? "",
+          audioKey: t.audioKey ?? "",
+          audioBucket: t.audioBucket ?? "",
+          audioDuration: t.audioDuration ?? "",
+          isrc: t.isrc ?? "",
+          lyrics: t.lyrics ?? "",
+          genre: t.genre ?? "",
+          subGenre: t.subGenre ?? "",
+          explicitContent: t.explicitContent ?? "Yes",
+          isCoverSong: t.isCoverSong ?? "",
+          contributors: {
+            writers: t.contributors?.writers ?? [],
+            producers: t.contributors?.producers ?? [],
+            performers: t.contributors?.performers ?? [],
+          },
+          additionalArtists: t.additionalArtists ?? [],
+          tiktokTimestamp: normaliseTimestamp(t.tiktokTimestamp),
+          mixedVersion: t.mixedVersion ?? "",
+        }));
+
+        const artworkUrl = (fd.artworkUrl as string) ?? "";
+        const preview = fd.albumArtPreview as string | null | undefined;
+
         setState({
           ...INITIAL_STATE,
           draftId: initialDraftId,
-          releaseType: uploadType.includes("single") ? "single" : "album",
+          releaseType,
           step: targetStep,
-          artwork: (fd.albumArtPreview as string) ?? null,
+          // Drafts saved before this fix stored a blob: URL here, dead once that tab closed.
+          artwork: artworkUrl || (preview && !preview.startsWith("blob:") ? preview : null),
           artworkUrl: (fd.artworkUrl as string) ?? "",
           artworkKey: (fd.artworkKey as string) ?? "",
           artworkSizes: (fd.artworkSizes as Record<string, unknown>) ?? null,
@@ -524,15 +564,18 @@ export default function UploadModal({
           preOrderDate: (fd.preOrderDate as string) ?? "",
           territory: (fd.territory as "worldwide" | "custom") ?? "worldwide",
           selectedDSPs: (fd.selectedDSPs as string[]) ?? [],
-          tracks: (fd.tracks as UploadState["tracks"]) ?? [],
+          tracks,
           artworkFile: null, audioFile: null,
-          mixedVersion: "",
+          mixedVersion: (fd.mixedVersion as string) ?? "",
+          additionalArtists: Array.isArray(fd.additionalArtists) ? (fd.additionalArtists as AdditionalArtist[]) : [],
           // Restored alongside the url: the submit sends s3_key from here, and without it a
           // resumed draft uploaded fine and then failed validation for a missing file.
           audioKey: (fd.audioKey as string) ?? "",
           audioBucket: (fd.audioBucket as string) ?? "", agreedToTerms: false,
           quickDropDate: "", quickDropPaid: false,
-          isPreviouslyReleased: false, originalReleaseDate: "",
+          // Saved all along, but reset to blank on every resume.
+          isPreviouslyReleased: Boolean(fd.isPreviouslyReleased),
+          originalReleaseDate: (fd.originalReleaseDate as string) ?? "",
         });
       } catch {
         toastError("Could not load draft", "Something went wrong");
@@ -864,6 +907,9 @@ export default function UploadModal({
       }
       const base = {
         idempotency_key: idempotencyKeyRef.current,
+        // The API deletes this draft once the release is in. It used to stay in the Drafts
+        // tab after submitting, and resuming it later created the same release a second time.
+        draft_id: draftIdRef.current ?? null,
         release_title: state.releaseTitle, metadata_language: state.metaLanguage,
         primary_artist: state.primaryArtist, primary_artist_id: null,
         composer: state.contributors.writers.map((w) => w.name).filter(Boolean).join(", "),
@@ -957,6 +1003,11 @@ export default function UploadModal({
       }
 
       idempotencyKeyRef.current = undefined;
+      if (draftIdRef.current) {
+        // The API has deleted it; stop this modal from writing it back.
+        draftIdRef.current = undefined;
+        window.dispatchEvent(new Event(DRAFTS_CHANGED_EVENT));
+      }
       success("Release submitted!", "Your release is now under review.");
       goTo("submitted");
     } catch {
@@ -995,7 +1046,11 @@ export default function UploadModal({
       artistDetails: state.artistDetails, releaseDate: state.releaseDate,
       preOrderDate: state.preOrderDate, territory: state.territory,
       selectedDSPs: state.selectedDSPs, noOfTracks: state.noOfTracks,
-      albumArtPreview: state.artwork, audioFileUrl: state.audioUrl,
+      // state.artwork is a blob: URL while a cover is on screen from the artist's own disk.
+      // That URL dies with the tab, so a resumed draft showed a broken cover; only a real
+      // URL is worth keeping, and the stored artwork URL is the better one anyway.
+      albumArtPreview: state.artworkUrl || (state.artwork?.startsWith("blob:") ? null : state.artwork),
+      audioFileUrl: state.audioUrl,
       artworkUrl: state.artworkUrl, artworkKey: state.artworkKey,
       artworkSizes: state.artworkSizes,
       tiktokTimestamp: state.tiktokTimestamp, audioDuration: state.audioDuration,
@@ -1009,51 +1064,93 @@ export default function UploadModal({
       audioKey: state.audioKey,
       audioBucket: state.audioBucket,
       releaseType: state.releaseType,
+      // Also never saved before, so they came back blank on resume.
+      mixedVersion: state.mixedVersion,
+      additionalArtists: state.additionalArtists,
     },
   }), [state]);
 
 
+  /*
+   * Every draft save goes through one queue.
+   *
+   * Two saves used to be able to run at once — a double-tapped Save Draft, or the quick-drop
+   * save alongside a manual one — and when neither had a draft id yet, both created a draft.
+   * That is the "it saved as a fresh upload" duplicate. Queued, the second save waits for the
+   * first and reads the id it got back. The id is read when the save is sent, not when it is
+   * queued, for the same reason.
+   */
+  const saveQueueRef = useRef<Promise<unknown>>(Promise.resolve());
+
+  const persistDraft = useCallback((): Promise<{ id?: number; error?: string }> => {
+    const payload = buildDraftPayload();
+
+    const run = saveQueueRef.current.then(async () => {
+      try {
+        const res = await saveDraft({ ...payload, draft_id: draftIdRef.current ?? payload.draft_id });
+        if (res.error) return { error: res.error };
+
+        const raw = res.data as unknown as Record<string, unknown> | null;
+        const id = (raw?.draft_id as number | undefined) ?? (raw?.id as number | undefined);
+        if (id) {
+          draftIdRef.current = id;
+          setState((s) => (s.draftId === id ? s : { ...s, draftId: id }));
+        }
+        window.dispatchEvent(new Event(DRAFTS_CHANGED_EVENT));
+        return { id: id ?? draftIdRef.current };
+      } catch {
+        return { error: "Something went wrong." };
+      }
+    });
+
+    saveQueueRef.current = run;
+    return run;
+  }, [buildDraftPayload]);
+
   const saveDraftQuietly = useCallback(async (): Promise<number | undefined> => {
-    const res = await saveDraft(buildDraftPayload());
-
-    if (res.error) return state.draftId;
-
-    const raw = res.data as unknown as Record<string, unknown> | null;
-    const newDraftId = (raw?.draft_id as number | undefined) ?? (raw?.id as number | undefined);
-
-    if (newDraftId) {
-      draftIdRef.current = newDraftId;
-      if (!state.draftId) update({ draftId: newDraftId });
-    }
-
-    return newDraftId ?? state.draftId;
-  }, [buildDraftPayload, state.draftId, update]);
+    const r = await persistDraft();
+    return r.id ?? draftIdRef.current;
+  }, [persistDraft]);
 
   const handleSaveDraft = useCallback(async () => {
     const t = toastLoading("Saving draft...");
-    try {
-      const res = await saveDraft(buildDraftPayload());
-      dismiss(t);
-      if (res.error) {
-        toastError("Draft not saved", res.error);
-      } else {
-        const newDraftId = (res.data as unknown as Record<string, unknown>)?.draft_id as number | undefined
-          ?? (res.data as unknown as Record<string, unknown>)?.id as number | undefined;
+    const r = await persistDraft();
+    dismiss(t);
+    if (r.error) toastError("Draft not saved", r.error);
+    else success("Draft saved!", "You can continue editing from the Drafts tab.");
+  }, [persistDraft, toastLoading, dismiss, success, toastError]);
 
-        if (newDraftId) {
-          draftIdRef.current = newDraftId;
-          if (!state.draftId) update({ draftId: newDraftId });
-        }
-        success("Draft saved!", "You can continue editing from the Drafts tab.");
-      }
-    } catch {
-      dismiss(t);
-      toastError("Draft not saved", "Something went wrong.");
+  /*
+   * Keep an existing draft in step with its files.
+   *
+   * The audio upload finishes on its own time. Saving the draft while it was still going —
+   * or saving on step 1 and then uploading — left a draft with no audio, and the artist only
+   * found out on resuming it. Once a draft exists, every finished upload (and every step
+   * change) is written back to it. A release that was never saved as a draft is left alone.
+   */
+  const fileFingerprint = [
+    state.audioKey,
+    state.artworkKey,
+    state.step,
+    state.tracks.map((t) => `${t.id}:${t.audioKey}`).join(","),
+  ].join("|");
+  const lastAutosavedRef = useRef<string>("");
+
+  useEffect(() => {
+    if (!isOpen || isEditing || isLoadingDraft) return;
+    if (state.step === "select-type" || state.step === "submitted") return;
+    if (!draftIdRef.current) {
+      lastAutosavedRef.current = fileFingerprint;
+      return;
     }
-  }, [buildDraftPayload, state.draftId, toastLoading, dismiss, success, toastError, update]);
+    if (lastAutosavedRef.current === fileFingerprint) return;
+    lastAutosavedRef.current = fileFingerprint;
+    persistDraft();
+  }, [fileFingerprint, isOpen, isEditing, isLoadingDraft, state.step, persistDraft]);
 
   const handleClose = useCallback(() => {
     draftIdRef.current = undefined;
+    lastAutosavedRef.current = "";
     idempotencyKeyRef.current = undefined;
     setState(INITIAL_STATE);
     onClose();
