@@ -96,7 +96,7 @@ export default function YourMusicPage() {
   const [filterStatus, setFilterStatus] = useState("all");
 
   const { releases, isLoading: releasesLoading, refresh: refreshReleases } = useMusic();
-  const { drafts, isLoading: draftsLoading, remove: removeDraft } = useDrafts();
+  const { drafts, isLoading: draftsLoading, remove: removeDraft, refresh: refreshDrafts } = useDrafts();
   const { submit: submitTakedown, isLoading: takedownLoading } = useRequestTakedown();
   const stats = useMusicStats(releases);
 
@@ -364,7 +364,7 @@ export default function YourMusicPage() {
       <UploadModal
         isOpen={continueDraftId !== undefined}
         draftId={continueDraftId}
-        onClose={() => { setContinueDraftId(undefined); refreshReleases(); }}
+        onClose={() => { setContinueDraftId(undefined); refreshReleases(); refreshDrafts(); }}
       />
     </DashboardLayout>
   );
