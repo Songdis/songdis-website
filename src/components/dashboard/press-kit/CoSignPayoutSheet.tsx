@@ -17,6 +17,10 @@ interface Props {
   busy: boolean;
   failure: CoSignFailure | null;
   onSubmit: (amountKobo: number) => Promise<boolean>;
+  /** SongDis's transfer fee, taken from the amount withdrawn. */
+  feeKobo?: number;
+  /** The smallest withdrawal allowed. */
+  minKobo?: number;
 }
 
 function maskAccount(number: string): string {
@@ -31,6 +35,8 @@ export function CoSignPayoutSheet({
   busy,
   failure,
   onSubmit,
+  feeKobo = 0,
+  minKobo = 0,
 }: Props) {
   const [amountText, setAmountText] = useState(() =>
     formatNaira(availableKobo, { withSymbol: false })
@@ -44,7 +50,11 @@ export function CoSignPayoutSheet({
       ? "Enter an amount."
       : amountKobo > availableKobo
         ? `That is more than your available balance of ${formatNaira(availableKobo)}.`
-        : null;
+        : amountKobo < minKobo
+          ? `The smallest withdrawal is ${formatNaira(minKobo)}.`
+          : null;
+
+  const netKobo = amountKobo !== null ? Math.max(0, amountKobo - feeKobo) : 0;
 
   const submit = async () => {
     setTouched(true);
@@ -152,6 +162,19 @@ export function CoSignPayoutSheet({
               </p>
             )}
           </div>
+
+          {feeKobo > 0 && (
+            <dl className="rounded-xl border border-white/[0.07] p-3.5 font-body text-[13px]">
+              <div className="flex justify-between text-white/55">
+                <dt>Transfer fee</dt>
+                <dd className="tabular-nums">−{formatNaira(feeKobo)}</dd>
+              </div>
+              <div className="mt-1.5 flex justify-between text-white">
+                <dt className="font-semibold">You receive</dt>
+                <dd className="font-heading tabular-nums">{formatNaira(netKobo)}</dd>
+              </div>
+            </dl>
+          )}
 
           <div className="rounded-xl border border-white/[0.07] p-3.5">
             <p className="font-body text-[10px] uppercase tracking-[0.12em] text-white/40 mb-1.5">

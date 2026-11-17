@@ -194,6 +194,8 @@ export type CoSignPayoutStatus =
 export interface CoSignPayoutRecord {
   id: number;
   amount_kobo: number;
+  fee_kobo: number;
+  net_kobo: number;
   status: CoSignPayoutStatus;
   failure_reason: string | null;
   reference: string | null;
@@ -323,6 +325,8 @@ function normalisePayout(raw: unknown, fallbackId: number): CoSignPayoutRecord {
   return {
     id: Number.isFinite(id) ? id : fallbackId,
     amount_kobo: kobo(p.amount_kobo),
+    fee_kobo: kobo(p.fee_kobo),
+    net_kobo: p.net_kobo === undefined ? kobo(p.amount_kobo) : kobo(p.net_kobo),
     status: payoutStatus(p.status),
     failure_reason: str(p.failure_reason),
     reference: str(p.reference),
@@ -452,6 +456,8 @@ export interface CoSignArtistMoney {
 export interface CoSignOverview {
   artists: CoSignArtistMoney[];
   available_kobo: number;
+  fee_kobo: number;
+  min_kobo: number;
 }
 
 export function normaliseCoSignOverview(raw: unknown): CoSignOverview {
@@ -468,7 +474,7 @@ export function normaliseCoSignOverview(raw: unknown): CoSignOverview {
       payouts: normalisePayouts({ items: a.payouts }),
     }];
   });
-  return { artists, available_kobo: kobo(root.available_kobo) };
+  return { artists, available_kobo: kobo(root.available_kobo), fee_kobo: kobo(root.fee_kobo), min_kobo: kobo(root.min_kobo) };
 }
 
 /** `GET /api/co-sign` → every artist with co-sign money, for the Earnings page. */

@@ -73,7 +73,7 @@ export default function CoSignEarnings({ destination }: { destination: PayoutAcc
       setFailure({ error: res.error, errors: res.errors ?? null, status: res.status });
       return false;
     }
-    setNotice(`${formatNaira(amountKobo)} is on its way to your bank.`);
+    setNotice(`${formatNaira(Math.max(0, amountKobo - data.fee_kobo))} is on its way to your bank.`);
     void load();
     return true;
   };
@@ -129,7 +129,7 @@ export default function CoSignEarnings({ destination }: { destination: PayoutAcc
                   <button
                     type="button"
                     onClick={() => { setFailure(null); setNotice(null); setOpen(a); }}
-                    disabled={available <= 0}
+                    disabled={available < data.min_kobo || available <= 0}
                     className="inline-flex items-center gap-1.5 rounded-full bg-[#C30100] px-3.5 py-1.5 font-body text-xs font-semibold text-white transition hover:bg-[#a50100] disabled:cursor-not-allowed disabled:bg-white/[0.06] disabled:text-white/30"
                   >
                     <ArrowDownToLine size={13} aria-hidden />
@@ -142,7 +142,10 @@ export default function CoSignEarnings({ destination }: { destination: PayoutAcc
                 <ul className="mt-2.5 space-y-1 pl-[52px]">
                   {a.payouts.slice(0, 3).map((p) => (
                     <li key={p.id} className="flex flex-wrap items-baseline justify-between gap-x-3 font-body text-xs">
-                      <span className="text-white/70 tabular-nums">{formatNaira(p.amount_kobo)}</span>
+                      <span className="text-white/70 tabular-nums">
+                        {formatNaira(p.net_kobo)}
+                        {p.fee_kobo > 0 && <span className="text-white/35"> (after {formatNaira(p.fee_kobo)} fee)</span>}
+                      </span>
                       <span className={p.status === "failed" ? "text-[#ff6b6b]" : p.status === "settled" ? "text-emerald-400" : "text-amber-300"}>
                         {describePayoutStatus(p.status)}
                         {when(p.settled_at ?? p.requested_at) && <span className="text-white/35"> · {when(p.settled_at ?? p.requested_at)}</span>}
@@ -167,6 +170,8 @@ export default function CoSignEarnings({ destination }: { destination: PayoutAcc
           busy={busy}
           failure={failure}
           onSubmit={submit}
+          feeKobo={data.fee_kobo}
+          minKobo={data.min_kobo}
         />
       )}
     </section>
