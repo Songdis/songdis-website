@@ -3,7 +3,7 @@
 import { useRef, useState, useEffect, useCallback } from "react";
 import type { UploadState, Contributor, AdditionalArtist, StepFieldErrors } from "../UploadModal";
 import { StepHeader, StepProgress, StepActions } from "../UploadModal";
-import { uploadAudio } from "@/lib/api/music";
+import { uploadAudio, runWithLimit } from "@/lib/api/music";
 import { getProfile } from "@/lib/api/auth";
 import type { UploadProgress } from "@/lib/api/music";
 import type { ArtistProfile } from "@/components/dashboard/settings/ArtistProfileModal";
@@ -777,15 +777,50 @@ export default function UploadTrack({ state, update, updateTrack, removeTrack, r
 
     const fileList = Array.from(files);
 
-    for (let i = 0; i < fileList.length; i++) {
-      const file = fileList[i];
-      setUploadingFileName(file.name);
-      setUploadProgress(null);
+    // Up to three tracks upload at once instead of one after another. Progress is the
+    // whole batch's bytes, and tracks are added in the order the files were chosen even
+    // when a later one finishes first.
+    const totalBytes = fileList.reduce((sum, f) => sum + f.size, 0);
+    const loadedBytes = new Array<number>(fileList.length).fill(0);
+    const finished: (UploadState["tracks"][number] | null | undefined)[] = new Array(fileList.length);
+    let nextToAdd = 0;
+    let doneCount = 0;
+    const failed: string[] = [];
 
+    const label = () =>
+      fileList.length === 1 ? fileList[0].name : `${doneCount} of ${fileList.length} tracks`;
+    setUploadingFileName(label());
+
+    const reportProgress = () => {
+      const loaded = loadedBytes.reduce((a, b) => a + b, 0);
+      const percentage = totalBytes > 0 ? Math.round((loaded / totalBytes) * 100) : 0;
+      setUploadProgress({
+        loaded,
+        total: totalBytes,
+        percentage,
+        phase: loaded >= totalBytes ? "processing" : "uploading",
+      });
+    };
+
+    const addFinishedInOrder = () => {
+      const ready: UploadState["tracks"] = [];
+      while (nextToAdd < finished.length && finished[nextToAdd] !== undefined) {
+        const t = finished[nextToAdd];
+        if (t) ready.push(t);
+        nextToAdd++;
+      }
+      if (ready.length > 0) update({ tracks: [...tracksRef.current, ...ready] });
+    };
+
+    await runWithLimit(fileList, 3, async (file, i) => {
       const trackId = `track_${Date.now()}_${i}_${Math.random().toString(36).slice(2, 8)}`;
 
       try {
-        const result = await uploadAudio(file, (p) => setUploadProgress(p));
+        const result = await uploadAudio(file, (p) => {
+          loadedBytes[i] = p.loaded;
+          reportProgress();
+        });
+        loadedBytes[i] = file.size;
 
         const metadata = result.metadata as Record<string, unknown> | undefined;
         const dur = metadata?.duration ? formatDuration(metadata.duration as number) : "0:00";
@@ -813,11 +848,22 @@ export default function UploadTrack({ state, update, updateTrack, removeTrack, r
           mixedVersion: "",
         };
 
-        update({ tracks: [...tracksRef.current, newTrack] });
+        finished[i] = newTrack;
       } catch (err) {
         console.error(`Failed to upload ${file.name}:`, err);
-        alert(`Failed to upload ${file.name}. Please try again.`);
+        finished[i] = null;
+        loadedBytes[i] = file.size; // so the batch's bar is not held back by a failed file
+        failed.push(`${file.name}${err instanceof Error && err.message ? ` (${err.message})` : ""}`);
       }
+
+      doneCount++;
+      setUploadingFileName(label());
+      reportProgress();
+      addFinishedInOrder();
+    });
+
+    if (failed.length > 0) {
+      alert(`Failed to upload:\n${failed.join("\n")}\n\nPlease try these again.`);
     }
 
     setUploading(false);
@@ -909,10 +955,14 @@ export default function UploadTrack({ state, update, updateTrack, removeTrack, r
                   <svg className="animate-spin" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#C30100" strokeWidth="2">
                     <path d="M21 12a9 9 0 11-6.219-8.56"/>
                   </svg>
-                  <p className="font-body text-white/70 text-sm">Uploading {audioFile?.name}...</p>
+                  <p className="font-body text-white/70 text-sm">
+                    {uploadProgress?.phase === "processing" ? "Checking" : "Uploading"} {audioFile?.name}...
+                  </p>
                   {uploadProgress && (
                     <div className="w-48 mt-1">
-                      <p className="font-body text-white/50 text-xs text-center mb-1">{uploadProgress.percentage}%</p>
+                      <p className="font-body text-white/50 text-xs text-center mb-1">
+                        {uploadProgress.phase === "processing" ? "Almost done" : `${uploadProgress.percentage}%`}
+                      </p>
                       <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
                         <div className="h-full bg-[#C30100] rounded-full transition-all duration-300" style={{ width: `${uploadProgress.percentage}%` }} />
                       </div>
@@ -979,10 +1029,14 @@ export default function UploadTrack({ state, update, updateTrack, removeTrack, r
                 <svg className="animate-spin" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#C30100" strokeWidth="2">
                   <path d="M21 12a9 9 0 11-6.219-8.56"/>
                 </svg>
-                <p className="font-body text-white/70 text-sm">Uploading {uploadingFileName}...</p>
+                <p className="font-body text-white/70 text-sm">
+                  {uploadProgress?.phase === "processing" ? "Checking" : "Uploading"} {uploadingFileName}...
+                </p>
                 {uploadProgress && (
                   <div className="w-48 mt-1">
-                    <p className="font-body text-white/50 text-xs text-center mb-1">{uploadProgress.percentage}%</p>
+                    <p className="font-body text-white/50 text-xs text-center mb-1">
+                      {uploadProgress.phase === "processing" ? "Almost done" : `${uploadProgress.percentage}%`}
+                    </p>
                     <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
                       <div className="h-full bg-[#C30100] rounded-full transition-all duration-300" style={{ width: `${uploadProgress.percentage}%` }} />
                     </div>

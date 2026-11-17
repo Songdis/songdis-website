@@ -113,6 +113,7 @@ export default function ReleaseDetails({ state, update, onBack, onContinue, onSa
   const [fixing, setFixing] = useState(false);
   const [fixError, setFixError] = useState<string | null>(null);
   const [uploadProgress, setUploadProgress] = useState<UploadProgress | null>(null);
+  const [artworkError, setArtworkError] = useState<string | null>(null);
 
   useEffect(() => {
     getLabelPermission().then((res) => {
@@ -253,6 +254,32 @@ export default function ReleaseDetails({ state, update, onBack, onContinue, onSa
     }
   };
 
+  /**
+   * PNG covers are accepted from the artist but stored as JPEG: Symphonic rejects
+   * anything but "JPG format … RGB colorspace" at import, days later. Drawing onto a
+   * canvas gives an RGB JPEG; transparent areas are flattened onto white, which is
+   * what the stores would show behind them anyway.
+   */
+  const pngToJpeg = async (file: File): Promise<File> => {
+    const bitmap = await createImageBitmap(file);
+    const canvas = document.createElement("canvas");
+    canvas.width = bitmap.width;
+    canvas.height = bitmap.height;
+
+    const ctx = canvas.getContext("2d");
+    if (!ctx) throw new Error("Could not convert this PNG. Please export it as a JPG.");
+
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(bitmap, 0, 0);
+    bitmap.close?.();
+
+    const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/jpeg", 0.92));
+    if (!blob) throw new Error("Could not convert this PNG. Please export it as a JPG.");
+
+    return new File([blob], file.name.replace(/\.[^.]+$/, "") + ".jpg", { type: "image/jpeg" });
+  };
+
   const handleFixArtwork = async () => {
     if (!artworkIssue) return;
 
@@ -283,12 +310,14 @@ export default function ReleaseDetails({ state, update, onBack, onContinue, onSa
     if (!file) return;
 
     setArtworkIssue(null);
+    setArtworkError(null);
 
-    // JPEG only, matching the API. Checked before the size, so a 3000x3000 PNG is refused
-    // here with a clear reason instead of uploading and then failing on the server.
-    // Symphonic requires "JPG format … RGB colorspace" for the release cover.
+    // JPG, JPEG or PNG. A PNG is converted to JPEG below before it is uploaded, because
+    // Symphonic requires "JPG format … RGB colorspace" for the release cover. Anything
+    // else (WebP, HEIC, …) is refused here with a clear reason.
     const isJpeg = file.type === "image/jpeg" || /\.jpe?g$/i.test(file.name);
-    if (!isJpeg) {
+    const isPng = file.type === "image/png" || /\.png$/i.test(file.name);
+    if (!isJpeg && !isPng) {
       setArtworkIssue({ file, width: 0, height: 0, canFix: false, reason: "type" });
       if (fileRef.current) fileRef.current.value = "";
       return;
@@ -317,7 +346,7 @@ export default function ReleaseDetails({ state, update, onBack, onContinue, onSa
     try {
       // A huge cover is re-encoded before it goes anywhere. dims is non-null
       // here: an unreadable image skips the size check and this along with it.
-      const toUpload = dims ? await shrinkIfHuge(file, dims) : file;
+      const toUpload = isPng ? await pngToJpeg(file) : await shrinkIfHuge(file, dims);
 
       const result = await uploadArtwork(toUpload, (p) => setUploadProgress(p));
       update({
@@ -328,6 +357,7 @@ export default function ReleaseDetails({ state, update, onBack, onContinue, onSa
       });
     } catch (err) {
       console.error("Artwork upload failed:", err);
+      setArtworkError(err instanceof Error ? err.message : "Artwork upload failed. Please try again.");
       update({ artwork: null, artworkFile: null });
     } finally {
       setUploading(false);
@@ -360,9 +390,12 @@ export default function ReleaseDetails({ state, update, onBack, onContinue, onSa
                 <svg className="animate-spin" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#C30100" strokeWidth="2">
                   <path d="M21 12a9 9 0 11-6.219-8.56"/>
                 </svg>
+                {!uploadProgress && <p className="font-body text-white text-xs text-center">Preparing...</p>}
                 {uploadProgress && (
                   <div className="w-24">
-                    <p className="font-body text-white text-xs text-center mb-1">{uploadProgress.percentage}%</p>
+                    <p className="font-body text-white text-xs text-center mb-1">
+                      {uploadProgress.phase === "processing" ? "Finishing..." : `Uploading ${uploadProgress.percentage}%`}
+                    </p>
                     <div className="h-1 bg-white/20 rounded-full overflow-hidden">
                       <div className="h-full bg-[#C30100] rounded-full transition-all duration-300" style={{ width: `${uploadProgress.percentage}%` }} />
                     </div>
@@ -381,11 +414,12 @@ export default function ReleaseDetails({ state, update, onBack, onContinue, onSa
             className="w-full border-2 border-dashed border-[#C30100]/40 rounded-xl py-10 flex flex-col items-center gap-2 hover:border-[#C30100]/70 transition-colors mb-5">
             <UploadIcon />
             <p className="font-body text-white/50 text-sm">{uploading ? "Uploading..." : "Click to upload artwork"}</p>
-            <p className="font-body text-white/25 text-xs">or drag and drop · Exactly 3000×3000px · JPG only</p>
+            <p className="font-body text-white/25 text-xs">or drag and drop · Exactly 3000×3000px · JPG, JPEG or PNG</p>
           </button>
         )}
-        <input ref={fileRef} type="file" accept=".jpg,.jpeg,image/jpeg" className="hidden" onChange={handleFileChange} />
+        <input ref={fileRef} type="file" accept=".jpg,.jpeg,.png,image/jpeg,image/png" className="hidden" onChange={handleFileChange} />
         {fieldErrors.artwork && <p className="font-body text-[#C30100] text-xs text-center mb-2">{fieldErrors.artwork}</p>}
+        {artworkError && <p className="font-body text-[#C30100] text-xs text-center mb-2">{artworkError}</p>}
 
         {artworkIssue && (
           <div className="mb-5 rounded-xl border border-[#C30100]/30 bg-[#C30100]/[0.07] p-4">
@@ -396,8 +430,8 @@ export default function ReleaseDetails({ state, update, onBack, onContinue, onSa
             </p>
             <p className="font-body text-white/55 text-xs leading-relaxed mb-3">
               {artworkIssue.reason === "type" ? (
-                <>Artwork must be a JPG. Export it as JPG (exactly 3000&times;3000) and upload
-                it again — streaming platforms do not accept PNG or WebP covers.</>
+                <>Artwork must be a JPG, JPEG or PNG (exactly 3000&times;3000). Export it in one of
+                those formats and upload it again — streaming platforms do not accept WebP or other covers.</>
               ) : (
                 <>Artwork must be exactly 3000&times;3000. Please resize the original and upload
                 it again — we no longer crop or scale it for you, because squaring a rectangular

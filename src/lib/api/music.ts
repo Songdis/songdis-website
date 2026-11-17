@@ -237,11 +237,130 @@ export interface UploadProgress {
   loaded: number;
   total: number;
   percentage: number;
+  /** "uploading" while bytes are moving; "processing" once they have all arrived and the file is being checked. */
+  phase?: "uploading" | "processing";
 }
 
 function getAuthToken(): string | null {
   if (typeof window === "undefined") return null;
   return localStorage.getItem("songdis_token");
+}
+
+/* -- Direct-to-S3 uploads ---------------------------------------------------
+ * The browser asks the API for a presigned PUT URL, uploads the file to object
+ * storage (Contabo, S3-compatible) itself,
+ * then asks the API to check what landed. The file crosses the network once,
+ * and the progress bar measures the whole upload instead of only the first leg.
+ *
+ * If the direct route is not there (API not deployed yet, or the bucket's CORS
+ * does not allow this site) the old through-the-server upload is used instead,
+ * so an upload never fails just because of the route it took.
+ */
+
+class DirectUploadUnavailable extends Error {}
+
+type DirectKind = "audio" | "artwork";
+
+async function postJson(path: string, body: Record<string, unknown>) {
+  const token = getAuthToken();
+  const res = await fetch(`${BASE_URL}${path}`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Accept: "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: JSON.stringify(body),
+  });
+  const json = await res.json().catch(() => ({}));
+  return { res, json: json as Record<string, unknown> };
+}
+
+function errorMessage(json: Record<string, unknown>, fallback: string): string {
+  if (typeof json.message === "string" && json.message) return json.message;
+  const errors = json.errors as Record<string, string[]> | undefined;
+  const first = errors && Object.values(errors)[0]?.[0];
+  return first || fallback;
+}
+
+function putToStorage(
+  url: string,
+  headers: Record<string, string>,
+  file: File,
+  onProgress?: (p: UploadProgress) => void
+): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.upload.addEventListener("progress", (e) => {
+      if (e.lengthComputable && onProgress) {
+        onProgress({ loaded: e.loaded, total: e.total, percentage: Math.round((e.loaded / e.total) * 100), phase: "uploading" });
+      }
+    });
+    xhr.addEventListener("load", () => {
+      if (xhr.status >= 200 && xhr.status < 300) resolve();
+      else reject(new DirectUploadUnavailable(`Storage refused the upload (${xhr.status})`));
+    });
+    // A CORS refusal shows up as a plain network error; treat it as "route unavailable".
+    xhr.addEventListener("error", () => reject(new DirectUploadUnavailable("Network error uploading to storage")));
+    xhr.addEventListener("timeout", () => reject(new Error("Upload timed out")));
+    xhr.timeout = 30 * 60 * 1000;
+    xhr.open("PUT", url);
+    Object.entries(headers).forEach(([k, v]) => xhr.setRequestHeader(k, v));
+    xhr.send(file);
+  });
+}
+
+async function uploadDirect(
+  kind: DirectKind,
+  file: File,
+  onProgress?: (p: UploadProgress) => void
+): Promise<Record<string, unknown>> {
+  let start;
+  try {
+    start = await postJson("/upload/direct/start", {
+      kind,
+      file_name: file.name,
+      content_type: file.type,
+      size: file.size,
+    });
+  } catch {
+    throw new DirectUploadUnavailable("Could not reach the upload service");
+  }
+  if (start.res.status === 404 || start.res.status === 405 || start.res.status >= 500) {
+    throw new DirectUploadUnavailable(`Direct upload unavailable (${start.res.status})`);
+  }
+  if (!start.res.ok) throw new Error(errorMessage(start.json, `Upload failed (${start.res.status})`));
+
+  const s = start.json.data as { url: string; headers?: Record<string, string>; key: string };
+  await putToStorage(s.url, s.headers ?? {}, file, onProgress);
+
+  onProgress?.({ loaded: file.size, total: file.size, percentage: 100, phase: "processing" });
+
+  const done = await postJson("/upload/direct/complete", { key: s.key });
+  if (!done.res.ok) throw new Error(errorMessage(done.json, `Upload failed (${done.res.status})`));
+  return (done.json.data ?? {}) as Record<string, unknown>;
+}
+
+/** Runs `fn` over `items`, at most `limit` at a time; results keep the input order. */
+export async function runWithLimit<T, R>(
+  items: T[],
+  limit: number,
+  fn: (item: T, index: number) => Promise<R>
+): Promise<PromiseSettledResult<R>[]> {
+  const results: PromiseSettledResult<R>[] = new Array(items.length);
+  let next = 0;
+  const worker = async () => {
+    while (next < items.length) {
+      const i = next++;
+      try {
+        results[i] = { status: "fulfilled", value: await fn(items[i], i) };
+      } catch (reason) {
+        results[i] = { status: "rejected", reason };
+      }
+    }
+  };
+  await Promise.all(Array.from({ length: Math.min(limit, items.length) }, worker));
+  return results;
 }
 
 /**
@@ -287,19 +406,37 @@ export function fitArtworkToSpec(
   });
 }
 
-export function uploadArtwork(
+type ArtworkResult = { file_url: string; s3_key: string; sizes?: Record<string, unknown> };
+
+/** `file` must already be a JPEG; ReleaseDetails converts PNG covers before calling this. */
+export async function uploadArtwork(
   file: File,
   onProgress?: (p: UploadProgress) => void
-): Promise<{ file_url: string; s3_key: string; sizes?: Record<string, unknown> }> {
+): Promise<ArtworkResult> {
+  try {
+    const d = await uploadDirect("artwork", file, onProgress);
+    return { file_url: (d.file_url ?? d.url ?? "") as string, s3_key: (d.s3_key ?? d.file_path ?? "") as string };
+  } catch (err) {
+    if (!(err instanceof DirectUploadUnavailable)) throw err;
+    console.warn("Direct artwork upload unavailable, using server upload:", err.message);
+    return uploadArtworkViaServer(file, onProgress);
+  }
+}
+
+function uploadArtworkViaServer(
+  file: File,
+  onProgress?: (p: UploadProgress) => void
+): Promise<ArtworkResult> {
   return new Promise((resolve, reject) => {
     const form = new FormData();
     form.append("artwork", file);
-    form.append("generate_sizes", "true");
+    // Thumbnails were never used and were most of this endpoint's wait.
+    form.append("generate_sizes", "false");
 
     const xhr = new XMLHttpRequest();
     xhr.upload.addEventListener("progress", (e) => {
       if (e.lengthComputable && onProgress) {
-        onProgress({ loaded: e.loaded, total: e.total, percentage: Math.round((e.loaded / e.total) * 100) });
+        onProgress({ loaded: e.loaded, total: e.total, percentage: Math.round((e.loaded / e.total) * 100), phase: e.loaded >= e.total ? "processing" : "uploading" });
       }
     });
     xhr.addEventListener("load", () => {
@@ -335,7 +472,7 @@ function uploadAudioSingle(
     const xhr = new XMLHttpRequest();
     xhr.upload.addEventListener("progress", (e) => {
       if (e.lengthComputable && onProgress) {
-        onProgress({ loaded: e.loaded, total: e.total, percentage: Math.round((e.loaded / e.total) * 100) });
+        onProgress({ loaded: e.loaded, total: e.total, percentage: Math.round((e.loaded / e.total) * 100), phase: e.loaded >= e.total ? "processing" : "uploading" });
       }
     });
     xhr.addEventListener("load", () => {
@@ -423,6 +560,19 @@ export async function uploadAudio(
   file: File,
   onProgress?: (p: UploadProgress) => void
 ): Promise<{ file_url: string; s3_key: string; s3_bucket: string; metadata?: Record<string, unknown> }> {
+  try {
+    const d = await uploadDirect("audio", file, onProgress);
+    return {
+      file_url: (d.file_url ?? d.url ?? "") as string,
+      s3_key: (d.s3_key ?? d.file_path ?? "") as string,
+      s3_bucket: (d.s3_bucket ?? d.bucket ?? "songdis-file") as string,
+      metadata: d.metadata as Record<string, unknown> | undefined,
+    };
+  } catch (err) {
+    if (!(err instanceof DirectUploadUnavailable)) throw err;
+    console.warn("Direct audio upload unavailable, using server upload:", err.message);
+  }
+
   const LARGE_THRESHOLD = 50 * 1024 * 1024;
   if (file.size > LARGE_THRESHOLD) {
     return uploadAudioChunked(file, onProgress);
