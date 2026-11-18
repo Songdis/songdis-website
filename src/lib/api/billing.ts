@@ -42,6 +42,8 @@ export interface BillingPrice {
   features: string[];
   auto_renews: boolean;
   is_current: boolean;
+  /** The current plan, paid by bank transfer: paying again adds another term. */
+  can_renew?: boolean;
   available: boolean;
   unavailable_reason: string | null;
   ready: boolean;

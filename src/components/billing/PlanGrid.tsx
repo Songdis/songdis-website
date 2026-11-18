@@ -161,7 +161,11 @@ export default function PlanGrid({ onChanged }: PlanGridProps) {
       const res = await getBillingPlans();
       const sub = res.data?.subscription;
 
-      if (sub?.is_active && sub.current_price_id !== status?.current_price_id) {
+      // A renewal keeps the same price and only moves the end date.
+      const changed =
+        sub?.current_price_id !== status?.current_price_id || sub?.end_date !== status?.end_date;
+
+      if (sub?.is_active && changed) {
         setAwaitingWebhook(false);
         await load();
         onChanged();
@@ -184,7 +188,7 @@ export default function PlanGrid({ onChanged }: PlanGridProps) {
     };
 
     setTimeout(tick, 2000);
-  }, [load, onChanged, status?.current_price_id, success, info]);
+  }, [load, onChanged, status?.current_price_id, status?.end_date, success, info]);
 
   if (loading) {
     return (
@@ -394,10 +398,13 @@ function PlanCard({
     return null;
   }, [promo, price.amount, price.currency]);
 
-  const disabled = price.is_current || !price.available || !price.ready || busy;
+  const renewable = price.is_current && !!price.can_renew;
+  const disabled = (price.is_current && !renewable) || !price.available || !price.ready || busy;
 
   const label = price.is_current
-    ? "Current Plan"
+    ? renewable
+      ? `Renew ${plan.name}`
+      : "Current Plan"
     : !price.ready
       ? "Unavailable"
       : !price.available
