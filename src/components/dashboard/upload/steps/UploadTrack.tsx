@@ -9,6 +9,9 @@ import type { UploadProgress } from "@/lib/api/music";
 import type { ArtistProfile } from "@/components/dashboard/settings/ArtistProfileModal";
 import { RECORDING_COUNTRY_OPTIONS, countryCodeFromOption, optionFromCountryCode } from "../countries";
 
+/** Recorded year: next year back to 1950, so older catalogue can be dated correctly. */
+const YEARS = Array.from({ length: new Date().getFullYear() + 1 - 1950 + 1 }, (_, i) => String(new Date().getFullYear() + 1 - i));
+
 /* --- Genre / Sub-genre data (matches old app) --------------- */
 
 const GENRE_DATA: Record<string, string[]> = {
@@ -728,6 +731,39 @@ export default function UploadTrack({ state, update, updateTrack, removeTrack, r
     update({ contributors: { ...state.contributors, [type]: list } });
   };
 
+  /*
+   * The writer credit is the selected artist's legal (full) name, not their stage name:
+   * stores and PROs pay songwriters by legal name. Filled in for them; anything they typed
+   * themselves is left alone. Auto-filled entries have ids starting "writer_auto".
+   */
+  const selectedProfile = profiles.find(
+    (p) => state.primaryArtist && (p.stageName === state.primaryArtist || p.fullName === state.primaryArtist)
+  );
+  const writerName = (selectedProfile?.fullName || state.primaryArtist || "").trim();
+
+  useEffect(() => {
+    if (!writerName || !selectedProfile) return;
+
+    // Single: one auto writer, added when there are none, kept in step with the artist.
+    const writers = state.contributors.writers;
+    if (!isSingle) {
+      // Albums keep writers per track; nothing to fill at release level.
+    } else if (writers.length === 0) {
+      update({ contributors: { ...state.contributors, writers: [{ id: "writer_auto_main", name: writerName, role: "Songwriter", type: "writer" as const }] } });
+    } else if (writers.length === 1 && writers[0].id.startsWith("writer_auto") && writers[0].name !== writerName) {
+      update({ contributors: { ...state.contributors, writers: [{ ...writers[0], name: writerName }] } });
+    }
+
+    // Album: tracks whose writer was filled in automatically follow the artist too.
+    state.tracks.forEach((t) => {
+      const w = t.contributors?.writers ?? [];
+      if (w.length === 1 && w[0].id.startsWith("writer_auto") && w[0].name !== writerName) {
+        updateTrack(t.id, { contributors: { ...t.contributors, writers: [{ ...w[0], name: writerName }] } });
+      }
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [writerName, selectedProfile?.id, isSingle]);
+
   /* -- Single mode: handle audio upload ------------------------- */
   const handleAudio = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -804,7 +840,7 @@ export default function UploadTrack({ state, update, updateTrack, removeTrack, r
           subGenre: state.subGenre || "",
           explicitContent: state.explicitContent || "Yes",
           contributors: {
-            writers: state.primaryArtist ? [{ id: `writer_auto_${trackId}`, name: state.primaryArtist, role: "Songwriter", type: "writer" as const }] : [],
+            writers: writerName ? [{ id: `writer_auto_${trackId}`, name: writerName, role: "Songwriter", type: "writer" as const }] : [],
             producers: [],
             performers: state.primaryArtist ? [{ id: `performer_auto_${trackId}`, name: state.primaryArtist, role: "Lead Vocals", type: "performer" as const }] : [],
           },
@@ -1160,7 +1196,7 @@ export default function UploadTrack({ state, update, updateTrack, removeTrack, r
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <Field label="Recorded Year">
-                  <DashSelect value={state.recordedYear} onChange={(v) => update({ recordedYear: v })} options={["2026", "2025", "2024", "2023"]} />
+                  <DashSelect value={state.recordedYear} onChange={(v) => update({ recordedYear: v })} options={YEARS} />
                 </Field>
                 {/* Stores need this before a release can go out, so it is asked for here
                     rather than chased later. */}
@@ -1258,7 +1294,7 @@ export default function UploadTrack({ state, update, updateTrack, removeTrack, r
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <Field label="Recorded Year">
-                  <DashSelect value={state.recordedYear} onChange={(v) => update({ recordedYear: v })} options={["2026", "2025", "2024", "2023"]} />
+                  <DashSelect value={state.recordedYear} onChange={(v) => update({ recordedYear: v })} options={YEARS} />
                 </Field>
                 {/* Stores need this before a release can go out, so it is asked for here
                     rather than chased later. */}

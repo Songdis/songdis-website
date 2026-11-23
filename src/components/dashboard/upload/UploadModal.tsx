@@ -8,7 +8,7 @@ import UploadTrack from "./steps/UploadTrack";
 import ReleaseAvailability from "./steps/ReleaseAvailability";
 import SubmittedModal from "./steps/SubmittedModal";
 import QuickDropModal from "./steps/QuickDropModal";
-import { uploadMusic, saveDraft, getDraft } from "@/lib/api/music";
+import { uploadMusic, saveDraft, getDraft, getDrafts } from "@/lib/api/music";
 import { DRAFTS_CHANGED_EVENT } from "@/lib/hooks/useMusic";
 import { useToast } from "@/components/ui/Toast";
 
@@ -182,8 +182,8 @@ const INITIAL_STATE: UploadState = {
   releaseTitle: "", releaseVersion: "", primaryArtist: "", label: "",
   metaLanguage: "English", upcCode: "",
   noOfTracks: 1, explicitContent: "Yes", coverArtAiUse: "None",
-  trackTitle: "", mixedVersion: "", genre: "", subGenre: "", recordedYear: "2026",
-  cLine: "2026", cLineOwner: "", pLine: "2026", pLineOwner: "",
+  trackTitle: "", mixedVersion: "", genre: "", subGenre: "", recordedYear: String(new Date().getFullYear()),
+  cLine: String(new Date().getFullYear()), cLineOwner: "", pLine: String(new Date().getFullYear()), pLineOwner: "",
   recordingCountry: "", isCoverSong: "",
   isrc: "", lyrics: "", audioFile: null, audioUrl: "", audioKey: "", audioBucket: "",
   audioDuration: "", tiktokTimestamp: 0, artistDetails: "",
@@ -245,6 +245,12 @@ export default function UploadModal({
   const [quickDropOpen, setQuickDropOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoadingDraft, setIsLoadingDraft] = useState(false);
+  /** A draft chosen from the "continue a draft" list shown when an upload starts. */
+  const [pickedDraftId, setPickedDraftId] = useState<number | undefined>(undefined);
+  const draftToLoad = initialDraftId ?? pickedDraftId;
+  /** Drafts offered at the start of a new upload; null until loaded, cleared once answered. */
+  const [draftChoices, setDraftChoices] = useState<DraftChoice[] | null>(null);
+  const [lastAutoSavedAt, setLastAutoSavedAt] = useState<Date | null>(null);
   const [fieldErrors, setFieldErrors] = useState<StepFieldErrors>({});
   const [submitErrors, setSubmitErrors] = useState<SubmitProblem[]>([]);
 
@@ -377,7 +383,7 @@ export default function UploadModal({
         metaLanguage: v.metadata_language ?? "English",
         genre: v.primary_genre ?? "",
         subGenre: v.secondary_genre ?? "",
-        recordedYear: v.recorded_year ?? "2026",
+        recordedYear: v.recorded_year ?? String(new Date().getFullYear()),
         releaseDate: v.release_date ? String(v.release_date).slice(0, 10) : "",
         preOrderDate: v.pre_order_date ? String(v.pre_order_date).slice(0, 10) : "",
         explicitContent: v.explicit_content ? "Yes" : "No",
@@ -459,12 +465,12 @@ export default function UploadModal({
   }, [isOpen, editReleaseId, toastError]);
 
   useEffect(() => {
-    if (!isOpen || !initialDraftId) return;
+    if (!isOpen || !draftToLoad) return;
 
     const loadDraft = async () => {
       setIsLoadingDraft(true);
       try {
-        const res = await getDraft(initialDraftId);
+        const res = await getDraft(draftToLoad);
         if (res.error || !res.data) {
           toastError("Could not load draft", res.error ?? "Draft not found");
           setIsLoadingDraft(false);
@@ -482,7 +488,7 @@ export default function UploadModal({
         };
         const targetStep = stepMap[currentStep] ?? "release-details";
 
-        draftIdRef.current = initialDraftId;
+        draftIdRef.current = draftToLoad;
 
         // upload_type only knows Single and Album/EP; a mixtape was saved as Album/EP and
         // came back as an album. form_data has kept the real type since tracks were added.
@@ -524,7 +530,7 @@ export default function UploadModal({
 
         setState({
           ...INITIAL_STATE,
-          draftId: initialDraftId,
+          draftId: draftToLoad,
           releaseType,
           step: targetStep,
           // Drafts saved before this fix stored a blob: URL here, dead once that tab closed.
@@ -545,10 +551,10 @@ export default function UploadModal({
           trackTitle: (fd.trackTitle as string) ?? "",
           genre: (fd.genre as string) ?? "",
           subGenre: (fd.subGenre as string) ?? "",
-          recordedYear: (fd.recordedYear as string) ?? "2026",
-          cLine: (fd.cLine as string) ?? "2026",
+          recordedYear: (fd.recordedYear as string) ?? String(new Date().getFullYear()),
+          cLine: (fd.cLine as string) ?? String(new Date().getFullYear()),
           cLineOwner: (fd.cLineOwner as string) ?? "",
-          pLine: (fd.pLine as string) ?? "2026",
+          pLine: (fd.pLine as string) ?? String(new Date().getFullYear()),
           pLineOwner: (fd.pLineOwner as string) ?? "",
           recordingCountry: (fd.recordingCountry as string) ?? "",
           isCoverSong: (fd.isCoverSong as string) ?? "",
@@ -585,7 +591,7 @@ export default function UploadModal({
     };
 
     loadDraft();
-  }, [isOpen, initialDraftId]);
+  }, [isOpen, draftToLoad]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -595,6 +601,25 @@ export default function UploadModal({
   }, [isOpen]);
 
   const draftIdRef = useRef<number | undefined>(undefined);
+
+  useEffect(() => {
+    if (!isOpen || initialDraftId || editReleaseId) return;
+    let cancelled = false;
+    getDrafts().then((res) => {
+      if (cancelled) return;
+      const raw = res.data as unknown;
+      const list = (Array.isArray(raw) ? raw : Array.isArray((raw as { data?: unknown })?.data) ? (raw as { data: unknown[] }).data : []) as Record<string, unknown>[];
+      setDraftChoices(list.map((d) => ({
+        id: Number(d.draft_id ?? d.id),
+        title: String(d.release_title ?? "Untitled"),
+        type: String(d.upload_type ?? ""),
+        artist: String(d.primary_artist ?? ""),
+        artwork: (d.artwork_url as string | null) ?? null,
+        updatedAt: String(d.updated_at ?? ""),
+      })).filter((d) => Number.isFinite(d.id)));
+    });
+    return () => { cancelled = true; };
+  }, [isOpen, initialDraftId, editReleaseId]);
   const idempotencyKeyRef = useRef<string | undefined>(undefined);
 
   const update = useCallback((patch: Partial<UploadState>) => {
@@ -1120,36 +1145,37 @@ export default function UploadModal({
   }, [persistDraft, toastLoading, dismiss, success, toastError]);
 
   /*
-   * Keep an existing draft in step with its files.
-   *
-   * The audio upload finishes on its own time. Saving the draft while it was still going —
-   * or saving on step 1 and then uploading — left a draft with no audio, and the artist only
-   * found out on resuming it. Once a draft exists, every finished upload (and every step
-   * change) is written back to it. A release that was never saved as a draft is left alone.
+   * Auto-save. Once the upload has something worth keeping (a title or a file), it is saved
+   * as a draft a few seconds after every change; the first save creates the draft. Closing
+   * the tab, losing signal or a crash no longer loses the work. Edits of a live release are
+   * not drafts and are never auto-saved.
    */
-  const fileFingerprint = [
-    state.audioKey,
-    state.artworkKey,
-    state.step,
-    state.tracks.map((t) => `${t.id}:${t.audioKey}`).join(","),
-  ].join("|");
+  const autosaveFingerprint = JSON.stringify(buildDraftPayload().form_data) + "|" + state.step;
   const lastAutosavedRef = useRef<string>("");
 
   useEffect(() => {
-    if (!isOpen || isEditing || isLoadingDraft) return;
+    if (!isOpen || isEditing || isLoadingDraft || isSubmitting) return;
     if (state.step === "select-type" || state.step === "submitted") return;
-    if (!draftIdRef.current) {
-      lastAutosavedRef.current = fileFingerprint;
-      return;
-    }
-    if (lastAutosavedRef.current === fileFingerprint) return;
-    lastAutosavedRef.current = fileFingerprint;
-    persistDraft();
-  }, [fileFingerprint, isOpen, isEditing, isLoadingDraft, state.step, persistDraft]);
+    const worthKeeping = Boolean(
+      state.releaseTitle.trim() || state.trackTitle.trim() || state.audioKey || state.artworkKey || state.tracks.length
+    );
+    if (!worthKeeping || lastAutosavedRef.current === autosaveFingerprint) return;
+
+    const t = setTimeout(async () => {
+      lastAutosavedRef.current = autosaveFingerprint;
+      const r = await persistDraft();
+      if (!r.error) setLastAutoSavedAt(new Date());
+    }, 2500);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autosaveFingerprint, isOpen, isEditing, isLoadingDraft, isSubmitting, persistDraft]);
 
   const handleClose = useCallback(() => {
     draftIdRef.current = undefined;
     lastAutosavedRef.current = "";
+    setPickedDraftId(undefined);
+    setDraftChoices(null);
+    setLastAutoSavedAt(null);
     idempotencyKeyRef.current = undefined;
     setState(INITIAL_STATE);
     onClose();
@@ -1186,8 +1212,20 @@ export default function UploadModal({
             <CloseIcon />
           </button>
           <StepToaster toast={stepToast} />
+          {lastAutoSavedAt && !isEditing && state.step !== "select-type" && (
+            <p className="absolute top-6 right-14 z-10 hidden sm:block font-body text-[11px] text-white/35">
+              Draft saved automatically
+            </p>
+          )}
 
-          {state.step === "select-type" && (
+          {state.step === "select-type" && !draftToLoad && draftChoices && draftChoices.length > 0 && (
+            <DraftPicker
+              drafts={draftChoices}
+              onPick={(id) => { setDraftChoices(null); setPickedDraftId(id); }}
+              onStartNew={() => setDraftChoices([])}
+            />
+          )}
+          {state.step === "select-type" && !(draftChoices && draftChoices.length > 0) && (
             <SelectUploadType selected={state.releaseType} onSelect={(t) => update({ releaseType: t })} onContinue={() => { if (state.releaseType) goNext(); }} />
           )}
           {state.step === "release-details" && (
@@ -1426,3 +1464,71 @@ export function StepActions({ onBack, onSaveDraft, onContinue, continueLabel = "
 
 function CloseIcon() { return <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>; }
 function SaveIcon() { return <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>; }
+
+
+interface DraftChoice {
+  id: number;
+  title: string;
+  type: string;
+  artist: string;
+  artwork: string | null;
+  updatedAt: string;
+}
+
+function draftAge(iso: string): string {
+  const t = new Date(iso).getTime();
+  if (!Number.isFinite(t)) return "";
+  const mins = Math.round((Date.now() - t) / 60000);
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins} min ago`;
+  const hours = Math.round(mins / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.round(hours / 24);
+  return days === 1 ? "yesterday" : `${days} days ago`;
+}
+
+/** Shown when a new upload starts and there are saved drafts: carry on with one, or start fresh. */
+function DraftPicker({ drafts, onPick, onStartNew }: { drafts: DraftChoice[]; onPick: (id: number) => void; onStartNew: () => void }) {
+  return (
+    <div className="p-5 sm:p-8">
+      <p className="font-heading text-white uppercase text-lg tracking-wide pr-8">Continue where you left off?</p>
+      <p className="font-body text-white/45 text-sm mt-1">
+        You have {drafts.length === 1 ? "an unfinished upload" : `${drafts.length} unfinished uploads`}. Pick one to carry on, or start a new upload.
+      </p>
+
+      <ul className="mt-6 flex flex-col gap-2 max-h-[50vh] overflow-y-auto pr-1">
+        {drafts.map((d) => (
+          <li key={d.id}>
+            <button
+              type="button"
+              onClick={() => onPick(d.id)}
+              className="w-full flex items-center gap-3 rounded-xl border border-white/[0.08] bg-white/[0.02] p-3 text-left transition-colors hover:border-[#C30100]/50 hover:bg-[#C30100]/[0.06]"
+            >
+              {d.artwork ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={d.artwork} alt="" className="h-12 w-12 shrink-0 rounded-lg object-cover" />
+              ) : (
+                <div className="h-12 w-12 shrink-0 rounded-lg bg-white/[0.06]" />
+              )}
+              <div className="min-w-0 flex-1">
+                <p className="truncate font-body text-sm font-semibold text-white">{d.title}</p>
+                <p className="truncate font-body text-xs text-white/45">
+                  {[d.type === "Single" ? "Single" : "Album / EP", d.artist !== "Unknown Artist" ? d.artist : "", draftAge(d.updatedAt)].filter(Boolean).join(" · ")}
+                </p>
+              </div>
+              <span className="shrink-0 font-heading text-[10px] uppercase tracking-widest text-[#ff6b6b]">Continue</span>
+            </button>
+          </li>
+        ))}
+      </ul>
+
+      <button
+        type="button"
+        onClick={onStartNew}
+        className="mt-5 w-full min-h-[48px] rounded-full bg-[#C30100] font-heading text-xs uppercase tracking-widest text-white transition-colors hover:bg-[#a80000]"
+      >
+        Start a new upload
+      </button>
+    </div>
+  );
+}

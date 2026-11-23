@@ -12,6 +12,9 @@ import type { UploadProgress } from "@/lib/api/music";
 import ArtistProfileModal from "@/components/dashboard/settings/ArtistProfileModal";
 import type { ArtistProfile } from "@/components/dashboard/settings/ArtistProfileModal";
 
+/** P line / C line years: next year back to 1950, so older catalogue can be dated correctly. */
+const RIGHTS_YEARS = Array.from({ length: new Date().getFullYear() + 1 - 1950 + 1 }, (_, i) => String(new Date().getFullYear() + 1 - i));
+
 
 function ArtworkGenerator({
   onClose,
@@ -580,7 +583,7 @@ export default function ReleaseDetails({ state, update, onBack, onContinue, onSa
           </Field>
 
           <Field label="C Line (Copyright)" hint="Who owns the song and lyrics?">
-            <DashSelect value={state.cLine} onChange={(v) => update({ cLine: v })} options={["2026", "2025", "2024", "2023"]} />
+            <DashSelect value={state.cLine} onChange={(v) => update({ cLine: v })} options={RIGHTS_YEARS} />
             {canCustomiseRights && (
               <input
                 value={state.cLineOwner}
@@ -592,7 +595,7 @@ export default function ReleaseDetails({ state, update, onBack, onContinue, onSa
           </Field>
 
           <Field label="P Line (Recording)" hint="Who owns the audio recording?">
-            <DashSelect value={state.pLine} onChange={(v) => update({ pLine: v })} options={["2026", "2025", "2024", "2023"]} />
+            <DashSelect value={state.pLine} onChange={(v) => update({ pLine: v })} options={RIGHTS_YEARS} />
             {canCustomiseRights && (
               <input
                 value={state.pLineOwner}

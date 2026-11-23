@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { request } from "@/lib/api/core";
 import { useToast } from "@/components/ui/Toast";
+import PhotoCropper from "./PhotoCropper";
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -122,41 +123,50 @@ export function GeneralTab() {
   }, []);
 
   // Handle photo selection
-  const handlePhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Any size of photo: it is cropped to a square here, then uploaded as a profile photo
+  // (not as release artwork, which must be exactly 3000x3000).
+  const [cropSrc, setCropSrc] = useState<string | null>(null);
+
+  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
+    if (fileInputRef.current) fileInputRef.current.value = "";
     if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      toastError("That isn't a photo", "Choose a JPG, PNG or WebP image.");
+      return;
+    }
+    setCropSrc(URL.createObjectURL(file));
+  };
 
-    // Local preview immediately
-    const preview = URL.createObjectURL(file);
-    setAvatarPreview(preview);
+  const uploadCropped = async (file: File) => {
+    if (cropSrc) URL.revokeObjectURL(cropSrc);
+    setCropSrc(null);
+    setAvatarPreview(URL.createObjectURL(file));
 
-    // Upload to S3 via /upload/artwork
     setIsUploadingAvatar(true);
     const toastId = toastLoading("Uploading photo...");
     try {
       const formData = new FormData();
-      formData.append("artwork", file);
-      formData.append("generate_sizes", "false");
+      formData.append("avatar", file);
 
       const token = typeof window !== "undefined" ? localStorage.getItem("songdis_token") : null;
       const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL ?? "https://api.songdis.com"}/upload/artwork`,
+        `${process.env.NEXT_PUBLIC_API_URL ?? "https://api.songdis.com"}/upload/avatar`,
         {
           method: "POST",
-          headers: token ? { Authorization: `Bearer ${token}` } : {},
+          headers: { Accept: "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
           body: formData,
         }
       );
-      const json = await res.json();
+      const json = await res.json().catch(() => null);
       dismiss(toastId);
 
       if (!res.ok) {
         toastError("Photo upload failed", json?.message ?? "Please try again.");
-        setAvatarPreview(""); // revert preview
+        setAvatarPreview("");
       } else {
         const d = json?.data ?? json;
-        const url = (d?.file_url ?? d?.url ?? "") as string;
-        setAvatarUrl(url);
+        setAvatarUrl((d?.file_url ?? d?.url ?? "") as string);
         success("Photo uploaded!", "Save changes to apply it.");
       }
     } catch {
@@ -165,8 +175,6 @@ export function GeneralTab() {
       setAvatarPreview("");
     } finally {
       setIsUploadingAvatar(false);
-      // Reset input so the same file can be re-selected
-      if (fileInputRef.current) fileInputRef.current.value = "";
     }
   };
 
@@ -228,7 +236,7 @@ export function GeneralTab() {
             <CameraIcon />
             {isUploadingAvatar ? "Uploading..." : "Change Photo"}
           </button>
-          <p className="font-montserrat text-white/30 text-xs mt-2">JPG or PNG. 5MB max.</p>
+          <p className="font-montserrat text-white/30 text-xs mt-2">Any size of JPG, PNG or WebP. You can crop it next.</p>
         </div>
         {/* Hidden file input */}
         <input
@@ -238,6 +246,13 @@ export function GeneralTab() {
           className="hidden"
           onChange={handlePhotoChange}
         />
+        {cropSrc && (
+          <PhotoCropper
+            src={cropSrc}
+            onCancel={() => { URL.revokeObjectURL(cropSrc); setCropSrc(null); }}
+            onDone={uploadCropped}
+          />
+        )}
       </div>
 
       <div className="flex flex-col gap-4">
