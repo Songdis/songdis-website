@@ -58,6 +58,16 @@ export default function SupportWidget() {
 
         // Eusate: load its chat; the sidebar's Support item opens it.
         if (data?.provider === "eusate" && data.api_key && data.sdk_url) {
+          // On the dashboard the chat opens from the sidebar's Support item, so Eusate's own
+          // floating button is hidden while the chat is closed (it sat on top of Ayo). It shows
+          // again while the chat is open, because it is also the button that closes it.
+          if (!document.getElementById("eusate-dashboard-style")) {
+            const style = document.createElement("style");
+            style.id = "eusate-dashboard-style";
+            style.textContent =
+              "#eusate-chat-widget-container:not(:has(#eusate-chat-widget.isOpen)) #eusate-chat-widget-fab{display:none!important}";
+            document.head.appendChild(style);
+          }
           const ok = await loadEusate({ provider: "eusate", configured: true, api_key: data.api_key, sdk_url: data.sdk_url, environment: data.environment });
           if (ok && !cancelled) markSupportReady();
           return;
