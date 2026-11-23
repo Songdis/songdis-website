@@ -11,6 +11,11 @@ import { request, type ApiResponse } from "./core";
  * raise a ticket, they just are not recognised automatically.
  */
 export interface SupportIdentity {
+  /** "eusate" when the Eusate chat is set up; otherwise the Zoho Desk fields below apply. */
+  provider?: "eusate";
+  api_key?: string;
+  sdk_url?: string;
+  environment?: string;
   configured: boolean;
   token: string | null;
   /**
@@ -24,4 +29,9 @@ export interface SupportIdentity {
 
 export async function getSupportIdentity(): Promise<ApiResponse<SupportIdentity>> {
   return request<SupportIdentity>("/support/identity", { method: "GET" }, true);
+}
+
+/** The chat for visitors who are not signed in (public site). */
+export async function getPublicSupportWidget(): Promise<ApiResponse<SupportIdentity>> {
+  return request<SupportIdentity>("/support/widget", { method: "GET" }, false);
 }

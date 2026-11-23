@@ -1,5 +1,7 @@
 "use client";
 
+import { openEusate } from "./eusate";
+
 /**
  * A tiny handle on the help-desk widget, so the rest of the app can open it.
  *
@@ -50,6 +52,8 @@ type HcAsap = { Action?: (name: string, ...args: unknown[]) => void };
  * support button that silently does nothing on some portals.
  */
 export function openSupport(): void {
+  // Eusate first; Zoho Desk only if Eusate is not the provider on this environment.
+  if (openEusate()) return;
   const desk = (window as { ZohoDeskAsap?: DeskAsap }).ZohoDeskAsap;
   const hc = (window as { ZohoHCAsap?: HcAsap }).ZohoHCAsap;
 

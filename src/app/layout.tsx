@@ -3,6 +3,7 @@ import Script from "next/script";
 import localFont from "next/font/local";
 import "./globals.css";
 import { ToastProvider } from "@/components/ui/Toast";
+import PublicSupportChat from "@/components/PublicSupportChat";
 
 
 // Bundled with the site rather than fetched from Google at build time: the build server's
@@ -112,6 +113,7 @@ fbq('track', 'PageView');`}
 
         <ToastProvider>
           {children}
+          <PublicSupportChat />
         </ToastProvider>
       </body>
     </html>

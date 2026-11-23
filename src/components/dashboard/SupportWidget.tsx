@@ -16,6 +16,7 @@
 import { useEffect, useRef } from "react";
 import { getSupportIdentity } from "@/lib/api/support";
 import { markSupportReady } from "@/lib/support/controller";
+import { loadEusate } from "@/lib/support/eusate";
 
 /**
  * The widget is a third-party global. Typed loosely and only where used, because the exact
@@ -54,6 +55,13 @@ export default function SupportWidget() {
         if (cancelled) return;
 
         const data = res.data;
+
+        // Eusate: load its chat; the sidebar's Support item opens it.
+        if (data?.provider === "eusate" && data.api_key && data.sdk_url) {
+          const ok = await loadEusate({ provider: "eusate", configured: true, api_key: data.api_key, sdk_url: data.sdk_url, environment: data.environment });
+          if (ok && !cancelled) markSupportReady();
+          return;
+        }
 
         // Not configured on this environment, or the call failed. Either way: no widget.
         if (!data?.configured || !data.script_url) return;
