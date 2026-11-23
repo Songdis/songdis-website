@@ -5,6 +5,7 @@ import Image from "next/image";
 import { request } from "@/lib/api/core";
 import { useToast } from "@/components/ui/Toast";
 import PhotoCropper from "./PhotoCropper";
+import { clearUserCache } from "@/lib/hooks/useUser";
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -166,8 +167,22 @@ export function GeneralTab() {
         setAvatarPreview("");
       } else {
         const d = json?.data ?? json;
-        setAvatarUrl((d?.file_url ?? d?.url ?? "") as string);
-        success("Photo uploaded!", "Save changes to apply it.");
+        const url = (d?.file_url ?? d?.url ?? "") as string;
+        // Saved to the account straight away. It used to wait for a separate "Save changes"
+        // press, so a refresh after "Photo uploaded!" quietly brought the old photo back.
+        const saved = await request<Record<string, unknown>>(
+          "/update-profile",
+          { method: "PUT", body: JSON.stringify({ avatar_url: url }) },
+          true
+        );
+        if (saved.error) {
+          toastError("Photo not saved", saved.error);
+          setAvatarPreview("");
+        } else {
+          setAvatarUrl(url);
+          clearUserCache();
+          success("Profile photo updated", "Your new photo is saved.");
+        }
       }
     } catch {
       dismiss(toastId);
