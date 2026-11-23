@@ -71,6 +71,15 @@ function AcceptSplitInner() {
   /** Guards the auto-accept so a re-render cannot fire a second acceptance. */
   const autoFired = useRef(false);
 
+  /*
+   * The password boxes are read straight from the page when the button is tapped, not only
+   * from React state. iPhone Chrome/Safari "strong password" autofill fills the boxes
+   * without firing onChange, so state stayed empty and the button stayed greyed out with
+   * the boxes visibly full (Nov 2026: a collaborator could not accept on an iPhone).
+   */
+  const passwordRef = useRef<HTMLInputElement>(null);
+  const confirmRef = useRef<HTMLInputElement>(null);
+
   const backHere = `/splitr/accept/${token}?accept=1`;
 
   /** Hand off to sign-in, carrying the return trip so signing in completes the accept. */
@@ -289,17 +298,23 @@ function AcceptSplitInner() {
                       share earns.
                     </p>
                     <input
+                      ref={passwordRef}
                       type="password"
+                      name="new-password"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
+                      onInput={(e) => setPassword(e.currentTarget.value)}
                       placeholder="Password (at least 8 characters)"
                       className={inputCls}
                       autoComplete="new-password"
                     />
                     <input
+                      ref={confirmRef}
                       type="password"
+                      name="confirm-password"
                       value={confirm}
                       onChange={(e) => setConfirm(e.target.value)}
+                      onInput={(e) => setConfirm(e.currentTarget.value)}
                       placeholder="Confirm password"
                       className={inputCls}
                       autoComplete="new-password"
@@ -316,18 +331,26 @@ function AcceptSplitInner() {
                 {!needsSignIn && (
                   <button
                     onClick={() => {
-                      if (needsPassword && password !== confirm) {
+                      // What is in the boxes now, autofill included.
+                      const pw = passwordRef.current?.value ?? password;
+                      // Autofill often fills only the first box; one password is enough then.
+                      const pw2 = confirmRef.current?.value || pw;
+                      if (needsPassword && pw.length < 8) {
+                        setErr("Choose a password of at least 8 characters.");
+                        return;
+                      }
+                      if (needsPassword && pw !== pw2) {
                         setErr("Those passwords do not match.");
                         return;
                       }
                       void runAccept(
                         invitation,
                         needsPassword
-                          ? { password, password_confirmation: confirm }
+                          ? { password: pw, password_confirmation: pw2 }
                           : undefined
                       );
                     }}
-                    disabled={busy || (needsPassword && password.length < 8)}
+                    disabled={busy}
                     className={`${primaryBtn} mt-5`}
                   >
                     {needsPassword ? "Create account & accept" : "Accept split"}
