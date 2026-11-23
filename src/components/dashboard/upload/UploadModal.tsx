@@ -1021,11 +1021,10 @@ export default function UploadModal({
     const errors: StepFieldErrors = {};
     if (!state.releaseDate) errors.releaseDate = "Release date is required";
     if (state.selectedDSPs.length === 0) errors.platforms = "Select at least one provider";
-    if (!state.agreedToTerms) errors.terms = "You must accept the terms";
     if (Object.keys(errors).length > 0) { setFieldErrors(errors); return; }
     setFieldErrors({});
     handleSubmit();
-  }, [state.releaseDate, state.selectedDSPs, state.agreedToTerms, handleSubmit]);
+  }, [state.releaseDate, state.selectedDSPs, handleSubmit]);
 
   const buildDraftPayload = useCallback(() => ({
     draft_id: draftIdRef.current ?? state.draftId,
