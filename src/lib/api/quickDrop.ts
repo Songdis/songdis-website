@@ -45,6 +45,8 @@ export async function getQuickDropOptions() {
 export async function createQuickDropCheckout(payload: {
   release_date: string;
   draft_id?: number;
+  /** A link to send to someone else to pay. */
+  pay_for_me?: boolean;
 }) {
   return request<QuickDropCheckout>(
     `${BASE}/checkout`,

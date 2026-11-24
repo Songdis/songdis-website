@@ -13,6 +13,7 @@ import {
 import { openBachsOverlay, type BachsEvent } from "@/lib/bachs";
 import { formatMoney } from "@/lib/api/billing";
 import { useToast } from "@/components/ui/Toast";
+import PayForMeSheet from "@/components/billing/PayForMeSheet";
 
 interface QuickDropProps {
   onClose: () => void;
@@ -36,6 +37,8 @@ export default function QuickDropModal({ onClose, onActivated, saveDraft }: Quic
   const [isProcessing, setIsProcessing] = useState(false);
   const [awaitingWebhook, setAwaitingWebhook] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  /** "Pay for me" link being shared, if any. */
+  const [payLink, setPayLink] = useState<string | null>(null);
 
   const { success, error: toastError, info } = useToast();
 
@@ -87,6 +90,34 @@ export default function QuickDropModal({ onClose, onActivated, saveDraft }: Quic
       success("Quick Drop applied", `Your release is set for ${formatQuickDropDate(target.release_date)}.`);
       onActivated(target.release_date);
       onClose();
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  /** A link for someone else to pay this Quick Drop. The release is saved first, as for paying. */
+  const handlePayForMe = async () => {
+    if (!date) {
+      setError("Please select a release date");
+      return;
+    }
+    setIsProcessing(true);
+    setError(null);
+    try {
+      let draftId: number | undefined;
+      if (saveDraft) {
+        try {
+          draftId = await saveDraft();
+        } catch {
+          info("Heads up", "We could not save your draft first. The payment will still be kept.");
+        }
+      }
+      const res = await createQuickDropCheckout({ release_date: date, draft_id: draftId, pay_for_me: true });
+      if (res.error || !res.data?.checkout_url) {
+        setError(res.error ?? "Could not create the link.");
+        return;
+      }
+      setPayLink(res.data.checkout_url);
     } finally {
       setIsProcessing(false);
     }
@@ -339,6 +370,22 @@ export default function QuickDropModal({ onClose, onActivated, saveDraft }: Quic
                     : "Pay"}
               </button>
             </div>
+            <button
+              type="button"
+              onClick={handlePayForMe}
+              disabled={!date || isProcessing || awaitingWebhook}
+              className="mt-3 w-full font-body text-xs text-white/50 hover:text-white underline underline-offset-2 disabled:opacity-40"
+            >
+              Ask someone to pay for this
+            </button>
+            {payLink && (
+              <PayForMeSheet
+                link={payLink}
+                what="my Quick Drop release on SongDis"
+                amount={options.amount !== null && options.currency ? formatMoney(options.amount, options.currency) : null}
+                onClose={() => setPayLink(null)}
+              />
+            )}
           </>
         )}
       </div>

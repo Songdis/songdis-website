@@ -17,6 +17,7 @@ import {
 import { openBachsOverlay, type BachsEvent } from "@/lib/bachs";
 import { useToast } from "@/components/ui/Toast";
 import PromoInput from "./PromoInput";
+import PayForMeSheet from "./PayForMeSheet";
 import { currenciesFor, detectCurrency, priceIn } from "@/lib/billing/currency";
 
 interface PlanGridProps {
@@ -35,6 +36,8 @@ export default function PlanGrid({ onChanged }: PlanGridProps) {
   const [displayCurrency, setDisplayCurrency] = useState<string | null>(null);
   const [promo, setPromo] = useState<PromoPreview | null>(null);
   const [busyPriceId, setBusyPriceId] = useState<number | null>(null);
+  /** The "Pay for me" link being shared, if any. */
+  const [payForMe, setPayForMe] = useState<{ link: string; what: string; amount: string | null } | null>(null);
   const [awaitingWebhook, setAwaitingWebhook] = useState(false);
 
   const { success, error: toastError, info } = useToast();
@@ -105,6 +108,28 @@ export default function PlanGrid({ onChanged }: PlanGridProps) {
         .find((p) => p.track === "usd_card" && p.trial_days)?.trial_days ?? 0,
     [plans]
   );
+
+  const handlePayForMe = async (plan: BillingPlan, price: BillingPrice) => {
+    setBusyPriceId(price.id);
+    try {
+      const res = await createCheckout({
+        price_id: price.id,
+        promo_code: promo?.valid && !promo.grants_access ? promo.code : undefined,
+        pay_for_me: true,
+      });
+      if (res.error || !res.data?.checkout_url) {
+        toastError("Couldn't create the link", res.error ?? "Please try again.");
+        return;
+      }
+      setPayForMe({
+        link: res.data.checkout_url,
+        what: `my SongDis ${plan.name} plan`,
+        amount: price.amount_display ?? null,
+      });
+    } finally {
+      setBusyPriceId(null);
+    }
+  };
 
   const handleSubscribe = async (price: BillingPrice) => {
     setBusyPriceId(price.id);
@@ -348,9 +373,14 @@ export default function PlanGrid({ onChanged }: PlanGridProps) {
             promo={promo}
             busy={busyPriceId === price.id}
             onSubscribe={() => handleSubscribe(price)}
+            onPayForMe={() => handlePayForMe(plan, price)}
           />
         ))}
       </div>
+
+      {payForMe && (
+        <PayForMeSheet link={payForMe.link} what={payForMe.what} amount={payForMe.amount} onClose={() => setPayForMe(null)} />
+      )}
 
     </div>
   );
@@ -363,6 +393,7 @@ function PlanCard({
   promo,
   busy,
   onSubscribe,
+  onPayForMe,
 }: {
   plan: BillingPlan;
   price: BillingPrice;
@@ -370,6 +401,7 @@ function PlanCard({
   promo: PromoPreview | null;
   busy: boolean;
   onSubscribe: () => void;
+  onPayForMe: () => void;
 }) {
   // What this card quotes. `priceIn` returns the server's own derived figure for the
   // chosen currency, or falls back to the price's own — it never converts client-side,
@@ -513,6 +545,18 @@ function PlanCard({
         )}
         {busy ? "Opening..." : label}
       </button>
+
+      {/* Someone else pays: one-off bank transfer plans only (a card plan would renew on
+          their card every cycle). */}
+      {!disabled && price.track === "local_transfer" && (
+        <button
+          type="button"
+          onClick={onPayForMe}
+          className="mt-2 w-full font-montserrat text-[11px] text-white/50 hover:text-white underline underline-offset-2 transition-colors"
+        >
+          Ask someone to pay for this
+        </button>
+      )}
 
       {price.unavailable_reason && !price.is_current && (
         <p className="font-montserrat text-white/35 text-[10px] mt-2 leading-relaxed text-center">

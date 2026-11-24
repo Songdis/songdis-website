@@ -149,6 +149,8 @@ export async function createCheckout(payload: {
   price_id: number;
   promo_code?: string;
   billing_currency?: string;
+  /** A link to send to someone else to pay (bank transfer plans only). */
+  pay_for_me?: boolean;
 }) {
   return request<CheckoutSession>(
     `${BASE}/checkout`,
