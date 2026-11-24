@@ -313,6 +313,20 @@ export default function PlanGrid({ onChanged }: PlanGridProps) {
         )}
       </div>
 
+      {/* Promo code first, where people see it before choosing a plan (it used to sit below
+          every plan card, off-screen on a phone). */}
+      <div className="mb-6 [&>div]:mt-0">
+        <PromoInput
+          priceId={cards[0]?.price.id}
+          applied={promo}
+          onApplied={setPromo}
+          onRedeemed={() => {
+            load();
+            onChanged();
+          }}
+        />
+      </div>
+
       {awaitingWebhook && (
         <div className="mb-5 rounded-xl border border-amber-500/25 bg-amber-500/[0.07] px-4 py-3 flex items-center gap-3">
           <svg className="animate-spin shrink-0" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="2">
@@ -338,15 +352,6 @@ export default function PlanGrid({ onChanged }: PlanGridProps) {
         ))}
       </div>
 
-      <PromoInput
-        priceId={cards[0]?.price.id}
-        applied={promo}
-        onApplied={setPromo}
-        onRedeemed={() => {
-          load();
-          onChanged();
-        }}
-      />
     </div>
   );
 }
