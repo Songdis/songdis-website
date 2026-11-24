@@ -1,7 +1,34 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import { getBillingPlans, formatMoney, type BillingPlan, type BillingPrice } from "@/lib/api/billing";
+import { priceIn, currenciesFor, detectCurrency } from "@/lib/billing/currency";
+
+/**
+ * Live prices in the visitor's currency.
+ *
+ * The plans and their prices come from the same catalogue checkout uses, and the server says
+ * where the visitor is (Cloudflare) and what to show first: their own currency by bank
+ * transfer where we can take it, otherwise USD by card. The figures below the PLANS list are
+ * only a fallback if that request fails.
+ */
+type Live = {
+  plans: BillingPlan[];
+  currency: string;
+  track: "local_transfer" | "usd_card";
+};
+
+function livePrice(live: Live | null, key: string, interval: "month" | "year"): { text: string; currency: string } | null {
+  if (!live) return null;
+  const plan = live.plans.find((p) => p.key === key || p.key.startsWith(key + "-") || p.key.startsWith(key));
+  // USD is the card track; any other currency is a bank-transfer price shown in that currency.
+  const track = live.currency === "USD" ? "usd_card" : "local_transfer";
+  const price: BillingPrice | undefined = plan?.prices.find((p) => p.interval === interval && p.track === track);
+  if (!price) return null;
+  const shown = priceIn(price, live.currency);
+  return { text: formatMoney(shown.amount, shown.currency), currency: shown.currency };
+}
 
 
 function useInView(threshold = 0.1) {
@@ -37,6 +64,8 @@ const CheckIcon: React.FC = () => (
 );
 
 interface Plan {
+  /** billing_plans.key this card shows. */
+  key: string;
   name: string;
   bestFor: string;
   priceYearly: string;
@@ -50,6 +79,7 @@ interface Plan {
 
 const PLANS: Plan[] = [
   {
+    key: "basic",
     name: "Basic",
     bestFor: "Perfect for independent artists getting started.",
     priceYearly: "59,988",
@@ -69,6 +99,7 @@ const PLANS: Plan[] = [
     ctaHref: "/sign-up?plan=basic",
   },
   {
+    key: "growth",
     name: "Growth",
     bestFor: "For artists and teams ready to scale.",
     priceYearly: "143,988",
@@ -87,6 +118,7 @@ const PLANS: Plan[] = [
     popular: true,
   },
   {
+    key: "label",
     name: "Label Plan",
     bestFor: "Small labels, managers & collectives",
     priceYearly: "215,880",
@@ -115,10 +147,16 @@ const PricingCard: React.FC<{
   plan: Plan;
   billing: "monthly" | "yearly";
   delay?: number;
-}> = ({ plan, billing, delay = 0 }) => {
+  live: Live | null;
+}> = ({ plan, billing, delay = 0, live }) => {
   const { ref, inView } = useInView(0.05);
-  const price = billing === "yearly" ? plan.priceYearly : plan.priceMonthly;
   const period = billing === "yearly" ? "/year" : "/month";
+  const fromLive = livePrice(live, plan.key, billing === "yearly" ? "year" : "month");
+  // Fallback: the naira figures typed below, as before.
+  const price = fromLive?.text ?? "₦" + (billing === "yearly" ? plan.priceYearly : plan.priceMonthly);
+  const addOns = plan.addOns && (!fromLive || fromLive.currency === "NGN")
+    ? plan.addOns
+    : plan.addOns ? [{ label: "Add extra artists to your label (contact us for pricing in your currency)" }] : undefined;
 
   return (
     <div
@@ -163,11 +201,7 @@ const PricingCard: React.FC<{
 
         {/* Price */}
         <div className="flex items-baseline gap-1 mb-8">
-          <span className="font-heading text-white text-lg">₦</span>
-          <span
-            className="font-heading text-white leading-none text-[30px]"
-           
-          >
+          <span className="font-heading text-white leading-none text-[30px]">
             {price}
           </span>
           <span className="font-body text-white/50 text-sm ml-1">
@@ -188,13 +222,13 @@ const PricingCard: React.FC<{
         </ul>
 
         {/* Add-ons */}
-        {plan.addOns && (
+        {addOns && (
           <div className="mt-6 pt-6 border-t border-white/[0.07]">
             <h4 className="font-heading text-white uppercase text-sm tracking-widest mb-4">
               Add-Ons
             </h4>
             <ul className="flex flex-col gap-3">
-              {plan.addOns.map((a) => (
+              {addOns.map((a) => (
                 <li key={a.label} className="flex items-start gap-3">
                   <CheckIcon />
                   <span className="font-body text-white/75 text-sm leading-relaxed">
@@ -238,6 +272,34 @@ const PricingCard: React.FC<{
 const PricingSection: React.FC = () => {
   const [billing, setBilling] = useState<"monthly" | "yearly">("yearly");
   const { ref: headRef, inView: headInView } = useInView(0.2);
+  const [live, setLive] = useState<Live | null>(null);
+
+  useEffect(() => {
+    let alive = true;
+    getBillingPlans().then((res) => {
+      if (!alive || !res.data?.plans?.length) return;
+      const loc = res.data.location;
+      const fallback = detectCurrency();
+      setLive({
+        plans: res.data.plans,
+        currency: loc?.currency ?? fallback ?? "USD",
+        track: loc?.track ?? (fallback ? "local_transfer" : "usd_card"),
+      });
+    });
+    return () => { alive = false; };
+  }, []);
+
+  /** USD (card) plus every local currency the bank-transfer prices can be shown in. */
+  const currencies = useMemo(() => {
+    if (!live) return [];
+    const set = new Set<string>(["USD"]);
+    for (const p of live.plans) {
+      for (const price of p.prices) {
+        if (price.track === "local_transfer") currenciesFor(price).forEach((c) => set.add(c));
+      }
+    }
+    return [...set];
+  }, [live]);
 
   return (
     <section className="relative w-full bg-[#140C0C] py-20 sm:py-24 lg:py-32 px-4 sm:px-6 lg:px-10 overflow-hidden">
@@ -288,6 +350,20 @@ const PricingSection: React.FC = () => {
           </div>
         </div>
 
+        {live && currencies.length > 1 && (
+          <div className="-mt-8 mb-10 flex items-center justify-center gap-2">
+            <span className="font-body text-white/40 text-xs">Prices in</span>
+            <select
+              value={live.currency}
+              onChange={(e) => setLive({ ...live, currency: e.target.value })}
+              className="rounded-full border border-white/15 bg-[#1A0808] px-3 py-1.5 font-body text-xs text-white outline-none focus:border-[#C30100]"
+              aria-label="Currency"
+            >
+              {currencies.map((c) => <option key={c} value={c}>{c}</option>)}
+            </select>
+          </div>
+        )}
+
         {/* ── PRICING CARDS ── */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-stretch">
           {PLANS.map((plan, i) => (
@@ -296,6 +372,7 @@ const PricingSection: React.FC = () => {
               plan={plan}
               billing={billing}
               delay={i * 100}
+              live={live}
             />
           ))}
         </div>
