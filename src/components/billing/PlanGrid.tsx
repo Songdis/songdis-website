@@ -53,7 +53,14 @@ export default function PlanGrid({ onChanged }: PlanGridProps) {
 
       const sub = res.data.subscription;
       if (sub?.interval) setInterval(sub.interval);
+
+      // Someone already on a plan stays on how they pay. Everyone else starts on what suits
+      // where they are: their own currency by bank transfer if we can take it there,
+      // otherwise USD by card.
+      const loc = res.data.location;
       if (sub?.track) setTrack(sub.track);
+      else if (loc?.track) setTrack(loc.track);
+      if (loc?.currency) setDisplayCurrency(loc.currency);
     }
 
     setLoading(false);
@@ -74,8 +81,9 @@ export default function PlanGrid({ onChanged }: PlanGridProps) {
     [plans, interval, track]
   );
 
+  // Until the server says where they are, guess from the device's time zone.
   useEffect(() => {
-    setDisplayCurrency(detectCurrency());
+    setDisplayCurrency((c) => c ?? detectCurrency());
   }, []);
 
   /** Every currency the visible prices can be quoted in. */

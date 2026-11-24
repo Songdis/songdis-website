@@ -138,6 +138,8 @@ export async function getBillingPlans(track?: BillingTrack) {
     plans: BillingPlan[];
     tracks: TrackOption[];
     subscription: BillingStatus | null;
+    /** The visitor's country (from their connection) and what to show them first. */
+    location?: { country: string | null; currency: string; track: BillingTrack };
   }>(`${BASE}/plans${qs}`, { method: "GET" }, true);
 }
 
