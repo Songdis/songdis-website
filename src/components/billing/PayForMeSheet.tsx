@@ -1,11 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createPayRequest, type PayRequestInput, type PayView } from "@/lib/api/payRequests";
 
 /**
- * "Ask someone to pay": the artist adds an optional message, gets a SongDis link
- * (songdis.com/pay/CODE) and sends it. The person paying sees a SongDis page about the
+ * "Ask someone to pay": the link (songdis.com/pay/CODE) is created as soon as this opens,
+ * and the artist sends it. The person paying sees a SongDis page about the
  * artist and pays there; the plan or Quick Drop turns on for the artist as soon as they do.
  */
 export default function PayForMeSheet({
@@ -18,26 +18,23 @@ export default function PayForMeSheet({
   what: string;
   onClose: () => void;
 }) {
-  const [note, setNote] = useState("");
-  const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [made, setMade] = useState<{ url: string; view: PayView } | null>(null);
   const [copied, setCopied] = useState(false);
+  const started = useRef(false);
 
-  const create = async () => {
-    setBusy(true);
-    setError(null);
-    const res = await createPayRequest({ ...input, note: note.trim() || undefined });
-    setBusy(false);
-    if (res.error || !res.data) {
-      setError(res.error ?? "Couldn't create the link. Please try again.");
-      return;
-    }
-    setMade({ url: res.data.url, view: res.data.view });
-  };
+  // Created straight away: the button that opened this is the "make my link" tap.
+  useEffect(() => {
+    if (started.current) return;
+    started.current = true;
+    createPayRequest(input).then((res) => {
+      if (res.error || !res.data) setError(res.error ?? "Couldn't create the link. Please try again.");
+      else setMade({ url: res.data.url, view: res.data.view });
+    });
+  }, [input]);
 
   const message = made
-    ? `${note.trim() ? note.trim() + "\n\n" : ""}Could you help me pay for ${what} (${made.view.amount_display})? It's quick and secure: ${made.url}`
+    ? `Hi! Could you help me pay for ${what} (${made.view.amount_display})? It's quick and secure: ${made.url}`
     : "";
 
   const copy = async () => {
@@ -66,29 +63,18 @@ export default function PayForMeSheet({
     <div className="fixed inset-0 z-[90] flex items-end justify-center bg-black/80 sm:items-center sm:p-6" onClick={onClose} role="dialog" aria-modal="true">
       <div className="w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl border border-white/10 bg-[#140C0C] p-5 sm:p-6" onClick={(e) => e.stopPropagation()}>
         {!made ? (
-          <>
-            <p className="font-heading text-white uppercase text-sm tracking-wide">Ask someone to pay 💸</p>
-            <p className="mt-1.5 font-body text-sm leading-relaxed text-white/55">
-              We&apos;ll make a SongDis payment link for {what}. Send it to a friend, family or your manager. It turns on for you the moment they pay.
-            </p>
-            <label className="mt-4 block font-body text-[11px] uppercase tracking-widest text-white/40">Add a message (optional)</label>
-            <textarea
-              value={note}
-              onChange={(e) => setNote(e.target.value.slice(0, 280))}
-              rows={3}
-              placeholder="Abeg help me with my SongDis plan 🙏🏾 New music loading!"
-              className="mt-1.5 w-full resize-none rounded-xl border border-white/10 bg-black/30 px-3.5 py-3 font-body text-sm text-white placeholder:text-white/25 outline-none focus:border-[#C30100]/60"
-            />
-            {error && <p className="mt-3 rounded-lg bg-[#C30100]/10 px-3 py-2 font-body text-xs text-[#ff8a8a]">{error}</p>}
-            <button
-              onClick={create}
-              disabled={busy}
-              className="mt-4 flex min-h-[50px] w-full items-center justify-center rounded-full bg-[#C30100] font-heading text-[11px] uppercase tracking-widest text-white hover:bg-[#a80000] disabled:opacity-50"
-            >
-              {busy ? "Creating your link…" : "Create my link"}
-            </button>
-            <button onClick={onClose} className="mt-2 min-h-[40px] w-full font-body text-xs text-white/40 hover:text-white/70">Cancel</button>
-          </>
+          error ? (
+            <>
+              <p className="font-heading text-white uppercase text-sm tracking-wide">Ask someone to pay</p>
+              <p className="mt-3 rounded-lg bg-[#C30100]/10 px-3 py-2 font-body text-sm text-[#ff8a8a]">{error}</p>
+              <button onClick={onClose} className="mt-4 min-h-[44px] w-full rounded-full border border-white/15 font-heading text-[11px] uppercase tracking-widest text-white/80">Close</button>
+            </>
+          ) : (
+            <div className="py-8 text-center">
+              <svg className="mx-auto animate-spin" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#C30100" strokeWidth="2.5"><path d="M21 12a9 9 0 11-6.219-8.56" /></svg>
+              <p className="mt-3 font-body text-sm text-white/60">Creating your payment link…</p>
+            </div>
+          )
         ) : (
           <>
             <p className="font-heading text-white uppercase text-sm tracking-wide">Your link is ready 🎉</p>
