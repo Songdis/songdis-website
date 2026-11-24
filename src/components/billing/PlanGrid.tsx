@@ -18,6 +18,7 @@ import { openBachsOverlay, type BachsEvent } from "@/lib/bachs";
 import { useToast } from "@/components/ui/Toast";
 import PromoInput from "./PromoInput";
 import PayForMeSheet from "./PayForMeSheet";
+import type { PayRequestInput } from "@/lib/api/payRequests";
 import { currenciesFor, detectCurrency, priceIn } from "@/lib/billing/currency";
 
 interface PlanGridProps {
@@ -37,7 +38,7 @@ export default function PlanGrid({ onChanged }: PlanGridProps) {
   const [promo, setPromo] = useState<PromoPreview | null>(null);
   const [busyPriceId, setBusyPriceId] = useState<number | null>(null);
   /** The "Pay for me" link being shared, if any. */
-  const [payForMe, setPayForMe] = useState<{ link: string; what: string; amount: string | null } | null>(null);
+  const [payForMe, setPayForMe] = useState<{ input: PayRequestInput; what: string } | null>(null);
   const [awaitingWebhook, setAwaitingWebhook] = useState(false);
 
   const { success, error: toastError, info } = useToast();
@@ -109,26 +110,15 @@ export default function PlanGrid({ onChanged }: PlanGridProps) {
     [plans]
   );
 
-  const handlePayForMe = async (plan: BillingPlan, price: BillingPrice) => {
-    setBusyPriceId(price.id);
-    try {
-      const res = await createCheckout({
+  const handlePayForMe = (plan: BillingPlan, price: BillingPrice) => {
+    setPayForMe({
+      input: {
+        kind: "plan",
         price_id: price.id,
         promo_code: promo?.valid && !promo.grants_access ? promo.code : undefined,
-        pay_for_me: true,
-      });
-      if (res.error || !res.data?.checkout_url) {
-        toastError("Couldn't create the link", res.error ?? "Please try again.");
-        return;
-      }
-      setPayForMe({
-        link: res.data.checkout_url,
-        what: `my SongDis ${plan.name} plan`,
-        amount: price.amount_display ?? null,
-      });
-    } finally {
-      setBusyPriceId(null);
-    }
+      },
+      what: `my SongDis ${plan.name} plan`,
+    });
   };
 
   const handleSubscribe = async (price: BillingPrice) => {
@@ -379,7 +369,7 @@ export default function PlanGrid({ onChanged }: PlanGridProps) {
       </div>
 
       {payForMe && (
-        <PayForMeSheet link={payForMe.link} what={payForMe.what} amount={payForMe.amount} onClose={() => setPayForMe(null)} />
+        <PayForMeSheet input={payForMe.input} what={payForMe.what} onClose={() => setPayForMe(null)} />
       )}
 
     </div>

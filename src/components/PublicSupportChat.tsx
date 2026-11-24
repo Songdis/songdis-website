@@ -10,7 +10,7 @@ import { loadEusate } from "@/lib/support/eusate";
  * Not on the dashboard (it has its own, opened from the sidebar), artists' press kits,
  * getepk, or the pages collaborators and fans land on.
  */
-const SKIP = ["/dashboard", "/k/", "/epk", "/listen", "/splitr", "/support", "/partner"];
+const SKIP = ["/dashboard", "/k/", "/epk", "/listen", "/splitr", "/support", "/partner", "/pay"];
 
 export default function PublicSupportChat() {
   const pathname = usePathname() ?? "/";

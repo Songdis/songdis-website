@@ -1,29 +1,49 @@
 "use client";
 
 import { useState } from "react";
+import { createPayRequest, type PayRequestInput, type PayView } from "@/lib/api/payRequests";
 
 /**
- * "Pay for me": the link the artist sends to someone else (a manager, family, a label).
- * It works for 24 hours; whatever it pays for turns on by itself as soon as it is paid.
+ * "Ask someone to pay": the artist adds an optional message, gets a SongDis link
+ * (songdis.com/pay/CODE) and sends it. The person paying sees a SongDis page about the
+ * artist and pays there; the plan or Quick Drop turns on for the artist as soon as they do.
  */
 export default function PayForMeSheet({
-  link,
+  input,
   what,
-  amount,
   onClose,
 }: {
-  link: string;
-  /** e.g. "my SongDis Growth plan" or "my Quick Drop release" */
+  input: PayRequestInput;
+  /** e.g. "my SongDis Growth plan" */
   what: string;
-  amount?: string | null;
   onClose: () => void;
 }) {
+  const [note, setNote] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [made, setMade] = useState<{ url: string; view: PayView } | null>(null);
   const [copied, setCopied] = useState(false);
-  const message = `Hi, could you help me pay for ${what}${amount ? ` (${amount})` : ""} on SongDis? Here's the secure payment link: ${link}`;
+
+  const create = async () => {
+    setBusy(true);
+    setError(null);
+    const res = await createPayRequest({ ...input, note: note.trim() || undefined });
+    setBusy(false);
+    if (res.error || !res.data) {
+      setError(res.error ?? "Couldn't create the link. Please try again.");
+      return;
+    }
+    setMade({ url: res.data.url, view: res.data.view });
+  };
+
+  const message = made
+    ? `${note.trim() ? note.trim() + "\n\n" : ""}Could you help me pay for ${what} (${made.view.amount_display})? It's quick and secure: ${made.url}`
+    : "";
 
   const copy = async () => {
+    if (!made) return;
     try {
-      await navigator.clipboard.writeText(link);
+      await navigator.clipboard.writeText(made.url);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {
@@ -32,10 +52,11 @@ export default function PayForMeSheet({
   };
 
   const share = async () => {
+    if (!made) return;
     try {
-      await navigator.share({ title: "Pay for me on SongDis", text: message, url: link });
+      await navigator.share({ title: "Help me pay on SongDis", text: message, url: made.url });
     } catch {
-      /* cancelled or not supported */
+      /* cancelled */
     }
   };
 
@@ -44,36 +65,63 @@ export default function PayForMeSheet({
   return (
     <div className="fixed inset-0 z-[90] flex items-end justify-center bg-black/80 sm:items-center sm:p-6" onClick={onClose} role="dialog" aria-modal="true">
       <div className="w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl border border-white/10 bg-[#140C0C] p-5 sm:p-6" onClick={(e) => e.stopPropagation()}>
-        <p className="font-heading text-white uppercase text-sm tracking-wide">Ask someone to pay</p>
-        <p className="mt-1.5 font-body text-sm leading-relaxed text-white/55">
-          Send this link to whoever is paying for {what}. It works for 24 hours, and it turns on for you as soon as they pay.
-        </p>
-
-        <div className="mt-4 flex items-center gap-2 rounded-xl border border-white/10 bg-black/30 px-3 py-2.5">
-          <span className="min-w-0 flex-1 truncate font-body text-xs text-white/70">{link}</span>
-          <button onClick={copy} className="shrink-0 rounded-full border border-white/15 px-3 py-1.5 font-body text-[11px] font-semibold text-white hover:border-white/40">
-            {copied ? "Copied" : "Copy"}
-          </button>
-        </div>
-
-        <div className="mt-3 flex flex-col gap-2">
-          <a
-            href={`https://wa.me/?text=${encodeURIComponent(message)}`}
-            target="_blank"
-            rel="noreferrer"
-            className="flex min-h-[48px] items-center justify-center rounded-full bg-[#25D366] font-heading text-[11px] uppercase tracking-widest text-black hover:bg-[#1fb857]"
-          >
-            Send on WhatsApp
-          </a>
-          {canShare && (
-            <button onClick={share} className="flex min-h-[46px] items-center justify-center rounded-full border border-white/15 font-heading text-[11px] uppercase tracking-widest text-white/80 hover:text-white">
-              Share another way
+        {!made ? (
+          <>
+            <p className="font-heading text-white uppercase text-sm tracking-wide">Ask someone to pay 💸</p>
+            <p className="mt-1.5 font-body text-sm leading-relaxed text-white/55">
+              We&apos;ll make a SongDis payment link for {what}. Send it to a friend, family or your manager. It turns on for you the moment they pay.
+            </p>
+            <label className="mt-4 block font-body text-[11px] uppercase tracking-widest text-white/40">Add a message (optional)</label>
+            <textarea
+              value={note}
+              onChange={(e) => setNote(e.target.value.slice(0, 280))}
+              rows={3}
+              placeholder="Abeg help me with my SongDis plan 🙏🏾 New music loading!"
+              className="mt-1.5 w-full resize-none rounded-xl border border-white/10 bg-black/30 px-3.5 py-3 font-body text-sm text-white placeholder:text-white/25 outline-none focus:border-[#C30100]/60"
+            />
+            {error && <p className="mt-3 rounded-lg bg-[#C30100]/10 px-3 py-2 font-body text-xs text-[#ff8a8a]">{error}</p>}
+            <button
+              onClick={create}
+              disabled={busy}
+              className="mt-4 flex min-h-[50px] w-full items-center justify-center rounded-full bg-[#C30100] font-heading text-[11px] uppercase tracking-widest text-white hover:bg-[#a80000] disabled:opacity-50"
+            >
+              {busy ? "Creating your link…" : "Create my link"}
             </button>
-          )}
-          <button onClick={onClose} className="min-h-[40px] font-body text-xs text-white/40 hover:text-white/70">
-            Done
-          </button>
-        </div>
+            <button onClick={onClose} className="mt-2 min-h-[40px] w-full font-body text-xs text-white/40 hover:text-white/70">Cancel</button>
+          </>
+        ) : (
+          <>
+            <p className="font-heading text-white uppercase text-sm tracking-wide">Your link is ready 🎉</p>
+            <p className="mt-1.5 font-body text-sm leading-relaxed text-white/55">
+              They&apos;ll see your name and photo, what it&apos;s for and {made.view.amount_display}. It works for 3 days, and we&apos;ll tell you as soon as they pay.
+            </p>
+            <div className="mt-4 flex items-center gap-2 rounded-xl border border-white/10 bg-black/30 px-3 py-2.5">
+              <span className="min-w-0 flex-1 truncate font-body text-sm text-white">{made.url.replace(/^https?:\/\//, "")}</span>
+              <button onClick={copy} className="shrink-0 rounded-full border border-white/15 px-3 py-1.5 font-body text-[11px] font-semibold text-white hover:border-white/40">
+                {copied ? "Copied ✓" : "Copy"}
+              </button>
+            </div>
+            <div className="mt-3 flex flex-col gap-2">
+              <a
+                href={`https://wa.me/?text=${encodeURIComponent(message)}`}
+                target="_blank"
+                rel="noreferrer"
+                className="flex min-h-[50px] items-center justify-center rounded-full bg-[#25D366] font-heading text-[11px] uppercase tracking-widest text-black hover:bg-[#1fb857]"
+              >
+                Send on WhatsApp
+              </a>
+              {canShare && (
+                <button onClick={share} className="flex min-h-[46px] items-center justify-center rounded-full border border-white/15 font-heading text-[11px] uppercase tracking-widest text-white/80 hover:text-white">
+                  Share another way
+                </button>
+              )}
+              <a href={made.url} target="_blank" rel="noreferrer" className="min-h-[36px] pt-2 text-center font-body text-xs text-white/45 underline underline-offset-2 hover:text-white/70">
+                Preview what they&apos;ll see
+              </a>
+              <button onClick={onClose} className="min-h-[36px] font-body text-xs text-white/40 hover:text-white/70">Done</button>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );
