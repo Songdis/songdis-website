@@ -338,7 +338,7 @@ export default function QuickDropModal({ onClose, onActivated, saveDraft }: Quic
                   : "—"}
               </p>
               <p className="font-body text-white/30 text-xs mt-1">
-                One-time payment · Card, bank transfer or mobile money
+                One-time payment · Card, bank transfer{options.crypto ? ", mobile money or crypto" : " or mobile money"}
               </p>
             </div>
 

@@ -140,6 +140,8 @@ export async function getBillingPlans(track?: BillingTrack) {
     subscription: BillingStatus | null;
     /** The visitor's country (from their connection) and what to show them first. */
     location?: { country: string | null; currency: string; track: BillingTrack };
+    /** Crypto (USDT, USDC…) is offered on bank-transfer payments. */
+    crypto?: boolean;
   }>(`${BASE}/plans${qs}`, { method: "GET" }, true);
 }
 

@@ -40,6 +40,7 @@ export default function PlanGrid({ onChanged }: PlanGridProps) {
   /** The "Pay for me" link being shared, if any. */
   const [payForMe, setPayForMe] = useState<{ input: PayRequestInput; what: string } | null>(null);
   const [awaitingWebhook, setAwaitingWebhook] = useState(false);
+  const [crypto, setCrypto] = useState(false);
 
   const { success, error: toastError, info } = useToast();
 
@@ -58,6 +59,7 @@ export default function PlanGrid({ onChanged }: PlanGridProps) {
       // where they are: their own currency by bank transfer if we can take it there,
       // otherwise USD by card.
       const loc = res.data.location;
+      setCrypto(Boolean(res.data.crypto));
       if (sub?.track) setTrack(sub.track);
       else if (loc?.track) setTrack(loc.track);
       if (loc?.currency) setDisplayCurrency(loc.currency);
@@ -279,6 +281,7 @@ export default function PlanGrid({ onChanged }: PlanGridProps) {
         {activeTrack && (
           <p className="font-montserrat text-white/35 text-[11px] text-center max-w-md">
             {activeTrack.description}
+            {crypto && track === "local_transfer" && " You can also pay with crypto (USDT, USDC)."}
           </p>
         )}
 

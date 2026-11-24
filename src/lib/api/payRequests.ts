@@ -13,6 +13,8 @@ export interface PayView {
   note: string | null;
   payer_name: string | null;
   expires_at: string;
+  /** Crypto (USDT, USDC…) is offered. */
+  crypto?: boolean;
   paid_at: string | null;
 }
 

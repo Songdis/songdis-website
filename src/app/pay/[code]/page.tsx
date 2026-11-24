@@ -221,7 +221,7 @@ export default function PayPage() {
                   {phase === "paying" ? "Opening secure payment…" : `Pay ${view.amount_display}`}
                 </button>
                 <p className="mt-3 text-center font-body text-[11px] text-white/35">
-                  🔒 Secure payment · Card or bank transfer · Link valid until {new Date(view.expires_at).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}
+                  🔒 Secure payment · {view.crypto ? "Card, bank transfer or crypto" : "Card or bank transfer"} · Link valid until {new Date(view.expires_at).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}
                 </p>
               </>
             )}

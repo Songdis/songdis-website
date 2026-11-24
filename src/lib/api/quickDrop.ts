@@ -24,6 +24,8 @@ export interface QuickDropOptions {
   max_date: string;
   timezone: string;
   today: string;
+  /** Crypto (USDT, USDC…) is offered. */
+  crypto?: boolean;
   credits: QuickDropCredit[];
 }
 
