@@ -2,6 +2,7 @@
 
 import { normaliseStatus, statusConfigFor } from "@/lib/music/status";
 import PrivateLinkPanel from "./PrivateLinkPanel";
+import Link from "next/link";
 import type { LinkVisibility, PrivateLink } from "@/lib/api/privateLinks";
 
 import { useState, useRef, useEffect, useCallback } from "react";
@@ -314,6 +315,30 @@ function ShareLinkSection({ releaseId }: { releaseId: number }) {
   );
 }
 
+/** What Ayo's box says for a release, by status: true statements only, and the question to ask. */
+function ayoPromptFor(status: string, title: string): { line: string; cta: string; question: string } {
+  const t = `"${title}"`;
+  switch (status) {
+    case "need_documentation":
+      return { line: `${t} is waiting on you before it can go out. Ayo can walk you through exactly what's needed.`, cta: "Ask Ayo what to do", question: `What do I need to do to get ${t} out?` };
+    case "takedown":
+      return { line: `${t} has been taken down. Ayo can tell you why and what your options are.`, cta: "Ask Ayo why", question: `Why was ${t} taken down, and what can I do?` };
+    case "rejected":
+      return { line: `${t} wasn't accepted. Ayo can explain the reason and how to fix it.`, cta: "Ask Ayo why", question: `Why was ${t} rejected, and how do I fix it?` };
+    case "pending":
+    case "under_review":
+    case "processing":
+    case "approved":
+      return { line: `${t} is still on its way. Ayo can tell you where it's at and help you plan the rollout.`, cta: "Ask Ayo", question: `What's happening with ${t}, and how should I plan its release?` };
+    case "delivered":
+    case "distributed":
+    case "live":
+      return { line: `Ayo can look at how ${t} is doing and suggest ways to push it further.`, cta: "Ask Ayo", question: `How is ${t} doing, and how can I push it further?` };
+    default:
+      return { line: `Ask Ayo anything about ${t}.`, cta: "Ask Ayo", question: `Tell me about ${t}.` };
+  }
+}
+
 export function ReleaseDetailModal({
   uploadId,
   cover,
@@ -521,18 +546,31 @@ export function ReleaseDetailModal({
               </>
             )}
 
-            {/* Ayo insight */}
-            <div className="rounded-xl border border-yellow-500/25 bg-yellow-500/[0.04] p-4 mb-6 flex gap-3">
-              <div className="w-8 h-8 rounded-full bg-yellow-500/15 flex items-center justify-center shrink-0">
-                <BoltIcon />
-              </div>
-              <div>
-                <p className="font-body text-yellow-400 text-xs font-semibold mb-1">Ayo AI · Earnings Insight</p>
-                <p className="font-body text-white/55 text-xs leading-relaxed">
-                  &quot;{release.title}&quot; is performing well in your catalog. Want me to draft a Splitr promo or build a Release Link to push it further?
-                </p>
-              </div>
-            </div>
+            {/* Ayo. This box used to say every release was "performing well in your catalog",
+                whatever its status or numbers. It now says only what is true for this release
+                and hands the real question to Ayo, which can see the reasons and the streams. */}
+            {(() => {
+              const ayo = ayoPromptFor(normaliseStatus(release.status), release.title || fallbackTitle || "this release");
+              return (
+                <div className="rounded-xl border border-yellow-500/25 bg-yellow-500/[0.04] p-4 mb-6 flex flex-col sm:flex-row sm:items-center gap-3">
+                  <div className="flex gap-3 flex-1 min-w-0">
+                    <div className="w-8 h-8 rounded-full bg-yellow-500/15 flex items-center justify-center shrink-0">
+                      <BoltIcon />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="font-body text-yellow-400 text-xs font-semibold mb-1">Ayo AI</p>
+                      <p className="font-body text-white/55 text-xs leading-relaxed">{ayo.line}</p>
+                    </div>
+                  </div>
+                  <Link
+                    href={`/dashboard/ayo?msg=${encodeURIComponent(ayo.question)}`}
+                    className="shrink-0 text-center font-body text-white text-xs bg-yellow-500/15 border border-yellow-500/30 hover:bg-yellow-500/25 rounded-full px-4 py-2 transition-colors"
+                  >
+                    {ayo.cta}
+                  </Link>
+                </div>
+              );
+            })()}
 
             {/* Actions */}
             <div className="flex flex-col sm:flex-row gap-3">
