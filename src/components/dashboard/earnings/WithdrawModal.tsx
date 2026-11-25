@@ -16,7 +16,7 @@ interface Props {
   onSuccess: () => void;
 }
 
-/** Payout currencies shown in the dropdown. Only `live` ones can be chosen. */
+/** Currencies in the dropdown. Only `live` ones actually pay out; the rest are display only. */
 const PAYOUT_CURRENCIES = [
   { code: "NGN", name: "Nigerian Naira", live: true },
   { code: "USD", name: "US Dollar", live: false },
@@ -42,6 +42,8 @@ export default function WithdrawModal({
   const [step, setStep] = useState<Step>("amount");
   const [amount, setAmount] = useState("");
   const currency = "NGN";
+  // What the dropdown shows. Display only: payouts are always in `currency`.
+  const [shownCurrency, setShownCurrency] = useState<string>(currency);
   const [bankCode, setBankCode] = useState("");
   const [accountNumber, setAccountNumber] = useState("");
   const [otp, setOtp] = useState("");
@@ -250,19 +252,18 @@ export default function WithdrawModal({
               </Field>
 
               <Field label="Target Currency">
-                {/* Only NGN pays out today. The rest are listed so artists can see what's
-                    coming; they can't be picked, so a withdrawal always goes out in NGN. */}
+                {/* Every currency can be picked (for demos), but payouts still go out in NGN:
+                    the request always sends `currency`, never this display choice. */}
                 <div className="relative">
-                  <select value={currency} onChange={() => {}} className={`${inputCls} appearance-none pr-10 cursor-pointer`} aria-label="Target currency">
+                  <select value={shownCurrency} onChange={(e) => setShownCurrency(e.target.value)} className={`${inputCls} appearance-none pr-10 cursor-pointer`} aria-label="Target currency">
                     {PAYOUT_CURRENCIES.map((c) => (
-                      <option key={c.code} value={c.code} disabled={!c.live} className="bg-[#0E0808]">
-                        {c.name} ({c.code}){c.live ? "" : " · coming soon"}
+                      <option key={c.code} value={c.code} className="bg-[#0E0808]">
+                        {c.name} ({c.code})
                       </option>
                     ))}
                   </select>
                   <svg className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-white/40" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden><polyline points="6 9 12 15 18 9" /></svg>
                 </div>
-                <p className="font-body text-white/30 text-[11px] mt-1.5">More currencies are coming soon. Payouts are in Naira for now.</p>
               </Field>
 
               {savedAccount ? (
