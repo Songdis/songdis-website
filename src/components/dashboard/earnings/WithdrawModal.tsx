@@ -16,6 +16,22 @@ interface Props {
   onSuccess: () => void;
 }
 
+/** Payout currencies shown in the dropdown. Only `live` ones can be chosen. */
+const PAYOUT_CURRENCIES = [
+  { code: "NGN", name: "Nigerian Naira", live: true },
+  { code: "USD", name: "US Dollar", live: false },
+  { code: "GBP", name: "British Pound", live: false },
+  { code: "EUR", name: "Euro", live: false },
+  { code: "GHS", name: "Ghanaian Cedi", live: false },
+  { code: "KES", name: "Kenyan Shilling", live: false },
+  { code: "ZAR", name: "South African Rand", live: false },
+  { code: "UGX", name: "Ugandan Shilling", live: false },
+  { code: "TZS", name: "Tanzanian Shilling", live: false },
+  { code: "XOF", name: "West African CFA Franc", live: false },
+  { code: "XAF", name: "Central African CFA Franc", live: false },
+  { code: "CAD", name: "Canadian Dollar", live: false },
+] as const;
+
 export default function WithdrawModal({
   availableBalance,
   pausedMessage: pausedFromPage = null,
@@ -234,9 +250,19 @@ export default function WithdrawModal({
               </Field>
 
               <Field label="Target Currency">
-                <div className="rounded-xl border border-white/[0.08] bg-[#0E0808] px-4 py-3">
-                  <p className="font-body text-white text-sm font-medium">Nigerian Naira (NGN)</p>
+                {/* Only NGN pays out today. The rest are listed so artists can see what's
+                    coming; they can't be picked, so a withdrawal always goes out in NGN. */}
+                <div className="relative">
+                  <select value={currency} onChange={() => {}} className={`${inputCls} appearance-none pr-10 cursor-pointer`} aria-label="Target currency">
+                    {PAYOUT_CURRENCIES.map((c) => (
+                      <option key={c.code} value={c.code} disabled={!c.live} className="bg-[#0E0808]">
+                        {c.name} ({c.code}){c.live ? "" : " · coming soon"}
+                      </option>
+                    ))}
+                  </select>
+                  <svg className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-white/40" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden><polyline points="6 9 12 15 18 9" /></svg>
                 </div>
+                <p className="font-body text-white/30 text-[11px] mt-1.5">More currencies are coming soon. Payouts are in Naira for now.</p>
               </Field>
 
               {savedAccount ? (
