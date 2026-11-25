@@ -348,6 +348,7 @@ export function ReleaseDetailModal({
   // and processing releases all displayed as Live. statusConfigFor knows every status
   // and falls back to showing the raw value, not a green badge.
   const status = statusConfigFor(release?.status);
+  const needsDocs = normaliseStatus(release?.status) === "need_documentation";
   const { toast, show } = useToast();
 
   return (
@@ -402,11 +403,44 @@ export function ReleaseDetailModal({
               </div>
             </div>
 
-            <ShareLinkSection releaseId={uploadId} />
+            {/* Need Documentation: show what the team asked for, and no links. A release
+                that can't go out yet has nothing to share. */}
+            {needsDocs && (
+              <div className="rounded-xl border border-yellow-500/30 bg-yellow-500/[0.06] p-4 mb-5">
+                <p className="font-body text-yellow-400 text-xs font-semibold uppercase tracking-wider mb-2">Action needed</p>
+                <p className="font-body text-white/85 text-sm leading-relaxed whitespace-pre-wrap break-words">
+                  {release.documentationNote?.note ||
+                    "This release needs a few changes or documents before it can be distributed. Check your email for the details, or contact support."}
+                </p>
+                {release.documentationNote?.at && (
+                  <p className="font-body text-white/35 text-xs mt-2">
+                    From the Songdis team · {new Date(release.documentationNote.at).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" })}
+                  </p>
+                )}
+                <div className="flex flex-wrap gap-2 mt-3">
+                  {onRequestEdit && (
+                    <button
+                      onClick={() => onRequestEdit()}
+                      className="font-heading text-white uppercase text-[11px] tracking-widest rounded-full bg-[#C30100] px-4 py-2.5 hover:bg-[#a00100] transition-colors"
+                    >
+                      Edit release
+                    </button>
+                  )}
+                  <a
+                    href="mailto:support@songdis.com"
+                    className="font-heading text-white uppercase text-[11px] tracking-widest rounded-full border border-white/20 px-4 py-2.5 hover:border-white/40 transition-colors"
+                  >
+                    Contact support
+                  </a>
+                </div>
+              </div>
+            )}
+
+            {!needsDocs && <ShareLinkSection releaseId={uploadId} />}
 
             {/* The pre-release listening link. Distinct from the smart link above, which
                 points at the DSPs and only exists once the music is out. */}
-            {onCreatePrivateLink && onUpdatePrivateLink && (
+            {!needsDocs && onCreatePrivateLink && onUpdatePrivateLink && (
               <div className="mb-5">
                 <PrivateLinkPanel
                   releaseId={uploadId}

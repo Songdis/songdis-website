@@ -99,6 +99,8 @@ export interface NormalisedRelease {
   trackCount: number;
   /** Set for album_ep rows: the submission these tracks were grouped by. */
   submissionKey?: string;
+  /** What the team asked for, while the release is in Need Documentation. */
+  documentationNote: { note: string; at: string | null } | null;
 }
 
 /**
@@ -153,6 +155,7 @@ function normaliseRelease(r: Release): NormalisedRelease {
     createdAt: r.created_at ?? "",
     trackCount: 1,
     submissionKey: r.submission_key,
+    documentationNote: ((r as unknown as Record<string, unknown>).documentation_note as NormalisedRelease["documentationNote"]) ?? null,
   };
 }
 
@@ -222,6 +225,7 @@ function normaliseReleaseDetail(r: Release): NormalisedReleaseDetail {
     cLine: r.c_line ?? "",
     pLine: r.p_line ?? "",
     releaseLink: (r as unknown as Record<string, unknown>).release_link as string ?? "",
+    documentationNote: ((r as unknown as Record<string, unknown>).documentation_note as NormalisedReleaseDetail["documentationNote"]) ?? null,
     tracks,
   };
 }

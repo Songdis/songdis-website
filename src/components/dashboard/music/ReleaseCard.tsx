@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { normaliseStatus, statusConfigFor } from "@/lib/music/status";
 import Image from "next/image";
 import { isTakedownEligible, type NormalisedRelease } from "@/lib/hooks/useMusic";
@@ -20,8 +21,12 @@ export default function ReleaseCard({ release, onView, onEdit, onTakedown, priva
   const status = statusConfigFor(release.status);
   const takedownEligible = isTakedownEligible(release.releaseDateIso);
   const { toast, show } = useToast();
+  const note = rawStatus === "need_documentation" ? release.documentationNote : null;
+  const [noteOpen, setNoteOpen] = useState(false);
 
   return (
+    <>
+    {noteOpen && note && <NoteDialog title={release.title} note={note} onClose={() => setNoteOpen(false)} onView={() => { setNoteOpen(false); onView(release); }} />}
     <div
       className="rounded-xl overflow-hidden bg-[#180F0F] border border-white/[0.06] flex flex-col cursor-pointer hover:border-white/[0.12] transition-all duration-200 group"
       onClick={() => onView(release)}
@@ -45,7 +50,21 @@ export default function ReleaseCard({ release, onView, onEdit, onTakedown, priva
           itself rather than a manage sheet: the common move is to check what the person you
           sent it to is actually seeing. Managing it lives in the release detail.
         */}
-        {privateLinkUrl && (
+        {/* A note from the team (Need Documentation): the message icon opens it. */}
+        {note && (
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); setNoteOpen(true); }}
+            title="Message from the Songdis team"
+            aria-label="Read the message from the Songdis team"
+            className="absolute top-2.5 left-2.5 w-8 h-8 rounded-full flex items-center justify-center bg-yellow-400 text-black hover:bg-yellow-300 transition-colors shadow-lg"
+          >
+            <MessageIcon />
+            <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-[#C30100] border-2 border-[#180F0F]" />
+          </button>
+        )}
+        {/* No listening link while the release needs documentation: it can't go out yet. */}
+        {privateLinkUrl && rawStatus !== "need_documentation" && (
           <a
             href={privateLinkUrl}
             target="_blank"
@@ -138,6 +157,50 @@ export default function ReleaseCard({ release, onView, onEdit, onTakedown, priva
 
       <Toaster toast={toast} />
     </div>
+    </>
+  );
+}
+
+/** The team's Need Documentation note, opened from the message icon on the card. */
+function NoteDialog({ title, note, onClose, onView }: {
+  title: string;
+  note: { note: string; at: string | null };
+  onClose: () => void;
+  onView: () => void;
+}) {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center px-4" role="dialog" aria-modal="true" aria-label="Message from the Songdis team">
+      <div aria-hidden className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative z-10 w-full max-w-md rounded-2xl bg-[#1A0808] border border-yellow-500/30 p-6">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="w-9 h-9 rounded-full bg-yellow-400 text-black flex items-center justify-center shrink-0"><MessageIcon /></div>
+          <div className="min-w-0">
+            <p className="font-body text-yellow-400 text-xs font-semibold uppercase tracking-wider">Action needed</p>
+            <p className="font-body text-white/60 text-xs truncate">{title}</p>
+          </div>
+        </div>
+        <p className="font-body text-white/85 text-sm leading-relaxed whitespace-pre-wrap break-words">{note.note}</p>
+        {note.at && (
+          <p className="font-body text-white/35 text-xs mt-3">
+            From the Songdis team · {new Date(note.at).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" })}
+          </p>
+        )}
+        <div className="flex flex-col sm:flex-row gap-2 mt-5">
+          <button onClick={onView} className="flex-1 font-heading text-white uppercase text-[11px] tracking-widest rounded-full bg-[#C30100] py-3 hover:bg-[#a00100] transition-colors">
+            Open release
+          </button>
+          <button onClick={onClose} className="flex-1 font-heading text-white uppercase text-[11px] tracking-widest rounded-full border border-white/20 py-3 hover:border-white/40 transition-colors">
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -227,6 +290,7 @@ export function DraftCard({
   );
 }
 
+function MessageIcon() { return <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>; }
 function HeadphoneIcon() { return <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 18v-6a9 9 0 0118 0v6"/><path d="M21 19a2 2 0 01-2 2h-1a2 2 0 01-2-2v-3a2 2 0 012-2h3zM3 19a2 2 0 002 2h1a2 2 0 002-2v-3a2 2 0 00-2-2H3z"/></svg>; }
 function MusicNoteIcon() { return <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.15)" strokeWidth="1.5"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>; }
 function MusicNoteSmallIcon() { return <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>; }
