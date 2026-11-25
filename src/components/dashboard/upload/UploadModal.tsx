@@ -45,6 +45,15 @@ function normaliseCoverArtAiUse(value: unknown): string {
 }
 
 
+/** Stereo AI Use as the API stores it: None, Some (partial) or All (full). */
+export function normaliseStereoAiUse(value: unknown): "None" | "Some" | "All" {
+  const raw = String(value ?? "None");
+  const mapped = ({ Partial: "Some", Full: "All" } as Record<string, string>)[raw] ?? raw;
+
+  return mapped === "Some" || mapped === "All" ? mapped : "None";
+}
+
+
 function normaliseTimestamp(value: unknown): number {
   if (typeof value === "number" && Number.isFinite(value)) {
     return Math.max(0, Math.floor(value));
@@ -120,6 +129,8 @@ export interface UploadState {
   noOfTracks: number;
   explicitContent: string;
   coverArtAiUse: string;
+  /** "None" | "Some" | "All". The single's answer, and the default for an album's tracks. */
+  stereoAiUse: string;
   trackTitle: string;
   mixedVersion: string;
   genre: string;
@@ -159,6 +170,8 @@ export interface UploadState {
     genre: string; subGenre: string; explicitContent: string;
     /** "Yes" | "No" | "" — Symphonic's Is Cover Song, which is per track. */
     isCoverSong: string;
+    /** Overrides the release's Stereo AI Use for this track; empty means the same as the release. */
+    stereoAiUse?: string;
     contributors: { writers: Contributor[]; producers: Contributor[]; performers: Contributor[] };
     additionalArtists: AdditionalArtist[];
     tiktokTimestamp: number; mixedVersion: string;
@@ -181,7 +194,7 @@ const INITIAL_STATE: UploadState = {
   artwork: null, artworkFile: null, artworkUrl: "", artworkKey: "", artworkSizes: null,
   releaseTitle: "", releaseVersion: "", primaryArtist: "", label: "",
   metaLanguage: "English", upcCode: "",
-  noOfTracks: 1, explicitContent: "Yes", coverArtAiUse: "None",
+  noOfTracks: 1, explicitContent: "Yes", coverArtAiUse: "None", stereoAiUse: "None",
   trackTitle: "", mixedVersion: "", genre: "", subGenre: "", recordedYear: String(new Date().getFullYear()),
   cLine: String(new Date().getFullYear()), cLineOwner: "", pLine: String(new Date().getFullYear()), pLineOwner: "",
   recordingCountry: "", isCoverSong: "",
@@ -388,6 +401,7 @@ export default function UploadModal({
         preOrderDate: v.pre_order_date ? String(v.pre_order_date).slice(0, 10) : "",
         explicitContent: v.explicit_content ? "Yes" : "No",
         coverArtAiUse: normaliseCoverArtAiUse(v.cover_art_ai_use),
+        stereoAiUse: normaliseStereoAiUse(v.stereo_ai_use),
         trackTitle: v.track_title ?? "",
         mixedVersion: v.mix_version ?? "",
         lyrics: v.lyrics ?? "",
@@ -515,6 +529,7 @@ export default function UploadModal({
           subGenre: t.subGenre ?? "",
           explicitContent: t.explicitContent ?? "Yes",
           isCoverSong: t.isCoverSong ?? "",
+          stereoAiUse: t.stereoAiUse ? normaliseStereoAiUse(t.stereoAiUse) : "",
           contributors: {
             writers: t.contributors?.writers ?? [],
             producers: t.contributors?.producers ?? [],
@@ -547,6 +562,7 @@ export default function UploadModal({
           noOfTracks: (fd.noOfTracks as number) ?? 1,
           explicitContent: (fd.explicitContent as string) ?? "Yes",
           coverArtAiUse: normaliseCoverArtAiUse(fd.coverArtAiUse),
+          stereoAiUse: normaliseStereoAiUse(fd.stereoAiUse),
           // Track details
           trackTitle: (fd.trackTitle as string) ?? "",
           genre: (fd.genre as string) ?? "",
@@ -763,6 +779,7 @@ export default function UploadModal({
     pre_order_date: state.preOrderDate || null,
     explicit_content: state.explicitContent === "Yes",
     cover_art_ai_use: normaliseCoverArtAiUse(state.coverArtAiUse),
+    stereo_ai_use: normaliseStereoAiUse(state.stereoAiUse),
     track_title: state.trackTitle,
     mix_version: state.mixedVersion,
     lyrics: state.lyrics,
@@ -794,7 +811,7 @@ export default function UploadModal({
       secondary_genre: "Sub-genre", recorded_year: "Recorded year",
       c_line: "C-line", p_line: "P-line", release_date: "Release date",
       pre_order_date: "Pre-order date", explicit_content: "Explicit content",
-      cover_art_ai_use: "Cover art AI use", track_title: "Track title",
+      cover_art_ai_use: "Cover art AI use", stereo_ai_use: "Stereo AI use", track_title: "Track title",
       mix_version: "Mix version", lyrics: "Lyrics", platforms: "Platforms",
       territory_rights: "Territory rights", additional_artists: "Additional artists",
       is_previously_released: "Previously released",
@@ -954,7 +971,7 @@ export default function UploadModal({
         original_release_date: state.isPreviouslyReleased ? state.originalReleaseDate : null,
         platforms: state.selectedDSPs,
         territory_rights: state.territory === "worldwide" ? "worldwide" : "custom",
-        upc_code: state.upcCode || null, stereo_ai_use: "None",
+        upc_code: state.upcCode || null, stereo_ai_use: normaliseStereoAiUse(state.stereoAiUse),
       };
       const payload = isSingle
         ? { ...base, upload_type: "Single", track_title: state.trackTitle || state.releaseTitle,
@@ -972,7 +989,8 @@ export default function UploadModal({
               s3_key: tr.audioKey, s3_bucket: tr.audioBucket || "songdis-file",
               explicit_status: tr.explicitContent === "Yes" ? "Yes" : "No",
               genre: tr.genre || state.genre, subgenre: tr.subGenre || state.subGenre,
-              recorded_year: state.recordedYear, isrc: tr.isrc || null, stereo_ai_use: "None",
+              recorded_year: state.recordedYear, isrc: tr.isrc || null,
+              stereo_ai_use: normaliseStereoAiUse(tr.stereoAiUse || state.stereoAiUse),
               recording_country: state.recordingCountry || null,
               is_cover_song: tr.isCoverSong === "Yes" ? true : tr.isCoverSong === "No" ? false : null,
               lyrics: tr.lyrics || "", lyrics_language: state.metaLanguage,
@@ -1060,7 +1078,8 @@ export default function UploadModal({
       releaseVersion: state.releaseVersion, primaryArtist: state.primaryArtist,
       label: state.label, metaLanguage: state.metaLanguage, upcCode: state.upcCode,
       explicitContent: state.explicitContent,
-      coverArtAiUse: state.coverArtAiUse, genre: state.genre, subGenre: state.subGenre,
+      coverArtAiUse: state.coverArtAiUse, stereoAiUse: state.stereoAiUse,
+      genre: state.genre, subGenre: state.subGenre,
       recordedYear: state.recordedYear, recordingCountry: state.recordingCountry,
       cLine: state.cLine, cLineOwner: state.cLineOwner,
       pLine: state.pLine, pLineOwner: state.pLineOwner,

@@ -67,6 +67,14 @@ function Field({ label, children, hint }: { label: string; children: React.React
   );
 }
 
+/**
+ * Stereo AI Use. Shown as None / Partial / Full; stored as None / Some / All. Releases are
+ * checked for AI-made audio, and one that says None while the audio is AI is held, so
+ * this answer matters.
+ */
+const AI_USE_LABEL: Record<string, string> = { None: "None", Some: "Partial", All: "Full" };
+const AI_USE_VALUE: Record<string, string> = { None: "None", Partial: "Some", Full: "All" };
+
 function DashSelect({ value, onChange, options, placeholder }: { value: string; onChange: (v: string) => void; options: string[]; placeholder?: string }) {
   return (
     <div className="relative">
@@ -445,6 +453,7 @@ function TrackEditModal({ track, profiles, onSave, onClose }: {
   const [subGenre, setSubGenre] = useState(track.subGenre);
   const [explicit, setExplicit] = useState(track.explicitContent);
   const [isCoverSong, setIsCoverSong] = useState(track.isCoverSong ?? "");
+  const [stereoAiUse, setStereoAiUse] = useState(track.stereoAiUse ?? "");
   const [mixedVersion, setMixedVersion] = useState(track.mixedVersion);
   const [contributors, setContributors] = useState(track.contributors);
   const [additionalArtists, setAdditionalArtists] = useState(track.additionalArtists);
@@ -464,6 +473,7 @@ function TrackEditModal({ track, profiles, onSave, onClose }: {
       subGenre,
       explicitContent: explicit,
       isCoverSong,
+      stereoAiUse,
       mixedVersion,
       contributors,
       additionalArtists,
@@ -503,6 +513,14 @@ function TrackEditModal({ track, profiles, onSave, onClose }: {
             {/* Per track, not per release: an album can mix covers and originals. */}
             <Field label="Is this a cover song?">
               <DashSelect value={isCoverSong} onChange={setIsCoverSong} options={["", "Yes", "No"]} />
+            </Field>
+            <Field label="Stereo AI Use">
+              <DashSelect
+                value={stereoAiUse ? AI_USE_LABEL[stereoAiUse] ?? "" : ""}
+                onChange={(v) => setStereoAiUse(AI_USE_VALUE[v] ?? "")}
+                placeholder="Same as release"
+                options={["None", "Partial", "Full"]}
+              />
             </Field>
             <Field label="Genre">
               <DashSelect value={genre} onChange={(v) => { setGenre(v); setSubGenre(""); }} placeholder="Select genre" options={GENRE_OPTIONS} />
@@ -1212,7 +1230,11 @@ export default function UploadTrack({ state, update, updateTrack, removeTrack, r
                     className="w-full bg-[#0E0808] border border-white/10 rounded-lg px-4 py-3 font-body text-white text-sm placeholder:text-white/25 outline-none focus:border-[#C30100] transition-colors" />
                 </Field>
                 <Field label="Stereo AI Use">
-                  <DashSelect value="None" onChange={() => {}} options={["None", "Partial", "Full"]} />
+                  <DashSelect
+                    value={AI_USE_LABEL[state.stereoAiUse] ?? "None"}
+                    onChange={(v) => update({ stereoAiUse: AI_USE_VALUE[v] ?? "None" })}
+                    options={["None", "Partial", "Full"]}
+                  />
                 </Field>
               </div>
             </SectionBox>
@@ -1306,7 +1328,11 @@ export default function UploadTrack({ state, update, updateTrack, removeTrack, r
                   />
                 </Field>
                 <Field label="Stereo AI Use">
-                  <DashSelect value="None" onChange={() => {}} options={["None", "Partial", "Full"]} />
+                  <DashSelect
+                    value={AI_USE_LABEL[state.stereoAiUse] ?? "None"}
+                    onChange={(v) => update({ stereoAiUse: AI_USE_VALUE[v] ?? "None" })}
+                    options={["None", "Partial", "Full"]}
+                  />
                 </Field>
               </div>
             </SectionBox>
