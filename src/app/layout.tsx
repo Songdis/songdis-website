@@ -4,6 +4,7 @@ import localFont from "next/font/local";
 import "./globals.css";
 import { ToastProvider } from "@/components/ui/Toast";
 import PublicSupportChat from "@/components/PublicSupportChat";
+import PromoCapture from "@/components/PromoCapture";
 
 
 // Bundled with the site rather than fetched from Google at build time: the build server's
@@ -96,6 +97,7 @@ fbq('track', 'PageView');`}
         </Script>
       </head>
       <body className="bg-[#140C0C] text-white antialiased" suppressHydrationWarning>
+        <PromoCapture />
         {/*
           The <noscript> fallback stays in <body>: inside <head> a <noscript> may only
           contain link/style/meta, so an <img> there is invalid HTML and browsers drop it.

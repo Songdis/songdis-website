@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { forgetPromo, savedPromo } from "@/lib/billing/promoCapture";
 import { previewPromo, redeemPromo, formatMoney, type PromoPreview } from "@/lib/api/billing";
 import { useToast } from "@/components/ui/Toast";
 
@@ -23,8 +24,21 @@ export default function PromoInput({
   const [error, setError] = useState<string | null>(null);
   const { success, error: toastError } = useToast();
 
-  const apply = async () => {
-    const trimmed = code.trim();
+  // A code that came in a link (campaign QR) is applied once, as soon as a plan is there to
+  // price it against. Not "used up" here: checkout records the redemption.
+  const autoTried = useRef(false);
+  useEffect(() => {
+    if (autoTried.current || applied || !priceId) return;
+    const saved = savedPromo();
+    if (!saved) return;
+    autoTried.current = true;
+    setCode(saved);
+    void apply(saved, true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [priceId, applied]);
+
+  const apply = async (override?: string, fromLink = false) => {
+    const trimmed = (override ?? code).trim();
     if (!trimmed) return;
 
     setLoading(true);
@@ -37,6 +51,9 @@ export default function PromoInput({
       if (!preview?.valid) {
         setError(preview?.message ?? res.error ?? "That promo code is not valid.");
         onApplied(null);
+        // A link's code that can't be used by this person (already used, not a first-timer,
+        // ended) is dropped, so it doesn't come back on every visit.
+        if (fromLink) forgetPromo();
         return;
       }
 
@@ -119,7 +136,7 @@ export default function PromoInput({
           ].join(" ")}
         />
         <button
-          onClick={apply}
+          onClick={() => apply()}
           disabled={!code.trim() || loading}
           className="font-nulshock uppercase text-[10px] tracking-widest rounded-full border border-white/20 px-5 py-2.5 text-white hover:border-white/40 transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2 min-h-[44px]"
         >
